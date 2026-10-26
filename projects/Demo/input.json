@@ -1,0 +1,186 @@
+{
+  "actions": [
+    {
+      "bindings": [
+        {
+          "code": 32,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 0,
+          "scale": 1.0,
+          "type": "gamepadButton"
+        }
+      ],
+      "name": "Jump"
+    },
+    {
+      "bindings": [
+        {
+          "code": 340,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 9,
+          "scale": 1.0,
+          "type": "gamepadButton"
+        }
+      ],
+      "name": "Sprint"
+    },
+    {
+      "bindings": [
+        {
+          "code": 0,
+          "scale": 1.0,
+          "type": "mouseButton"
+        },
+        {
+          "code": 5,
+          "scale": 1.0,
+          "type": "gamepadAxis"
+        }
+      ],
+      "name": "Fire"
+    },
+    {
+      "bindings": [
+        {
+          "code": 69,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 2,
+          "scale": 1.0,
+          "type": "gamepadButton"
+        }
+      ],
+      "name": "Interact"
+    },
+    {
+      "bindings": [
+        {
+          "code": 256,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 7,
+          "scale": 1.0,
+          "type": "gamepadButton"
+        }
+      ],
+      "name": "Pause"
+    }
+  ],
+  "axes": [
+    {
+      "bindings": [
+        {
+          "code": 68,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 65,
+          "scale": -1.0,
+          "type": "key"
+        },
+        {
+          "code": 262,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 263,
+          "scale": -1.0,
+          "type": "key"
+        },
+        {
+          "code": 0,
+          "scale": 1.0,
+          "type": "gamepadAxis"
+        }
+      ],
+      "deadzone": 0.15000000596046448,
+      "name": "MoveX"
+    },
+    {
+      "bindings": [
+        {
+          "code": 87,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 83,
+          "scale": -1.0,
+          "type": "key"
+        },
+        {
+          "code": 265,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 264,
+          "scale": -1.0,
+          "type": "key"
+        },
+        {
+          "code": 1,
+          "scale": -1.0,
+          "type": "gamepadAxis"
+        }
+      ],
+      "deadzone": 0.15000000596046448,
+      "name": "MoveY"
+    },
+    {
+      "bindings": [
+        {
+          "code": 0,
+          "scale": 0.10000000149011612,
+          "type": "mouseAxis"
+        },
+        {
+          "code": 2,
+          "scale": 2.5,
+          "type": "gamepadAxis"
+        }
+      ],
+      "deadzone": 0.15000000596046448,
+      "name": "LookX"
+    },
+    {
+      "bindings": [
+        {
+          "code": 1,
+          "scale": 0.10000000149011612,
+          "type": "mouseAxis"
+        },
+        {
+          "code": 3,
+          "scale": 2.5,
+          "type": "gamepadAxis"
+        }
+      ],
+      "deadzone": 0.15000000596046448,
+      "name": "LookY"
+    },
+    {
+      "bindings": [
+        {
+          "code": 2,
+          "scale": 1.0,
+          "type": "mouseAxis"
+        }
+      ],
+      "deadzone": 0.15000000596046448,
+      "name": "Zoom"
+    }
+  ]
+}
