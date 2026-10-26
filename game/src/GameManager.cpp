@@ -24,7 +24,7 @@ void GameManager::OnStart() {
     m_Total = remaining + m_Collected;
     if (Entity p = FindByUUID(portal)) if (m_Total > 0) p.SetActive(m_Collected >= m_Total);
     Input::SetCursorMode(CursorMode::Locked);
-    if (m_Collected == 0) Notify("Find every ember on the island", 4.0f);
+    if (m_Total > 0 && m_Collected == 0) Notify("Find every ember on the island", 4.0f);
 }
 
 void GameManager::OnDestroy() {
