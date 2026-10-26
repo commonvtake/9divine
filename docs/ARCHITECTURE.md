@@ -190,6 +190,7 @@ Payloads are JSON for readability and debuggability. The roadmap lists the produ
 ## 17. Editor
 `editor/src/`
 
+- **Project Hub** (`ProjectHub.cpp`): the start screen. Templates live in `game/src/ProjectTemplates.cpp` and are built with the same `Scene` + `SceneSerializer` API games use, so a template is just code that creates entities. Recent projects are stored in the user's app-data folder. Switching projects stops play mode, clears the asset cache, reloads the input map and opens the start scene; requests go through `RequestProjectChange`, which shows the unsaved-changes prompt and runs the switch at the start of the next frame (never in the middle of drawing UI).
 - Docking layout with Viewport, Hierarchy, Inspector, Assets, Console, Profiler, Scene Settings, Input Map, Multiplayer and Project Settings panels.
 - **Picking** reads the entity ID attachment under the mouse; clicking a model part selects its root first, then the part.
 - **Gizmos** with ImGuizmo; the manipulated world matrix is converted back to the parent's local space.

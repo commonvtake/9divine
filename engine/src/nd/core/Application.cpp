@@ -111,7 +111,11 @@ void Application::InitImGui() {
     glfwGetWindowContentScale(m_Window, &xs, &ys);
     float scale = std::max(1.0f, xs);
     auto font = Project::EngineAssetsDir() / "fonts" / "Roboto-Medium.ttf";
-    if (fs::exists(font)) io.Fonts->AddFontFromFileTTF(font.string().c_str(), 16.0f * scale);
+    if (fs::exists(font)) {
+        io.Fonts->AddFontFromFileTTF(font.string().c_str(), 16.0f * scale);   // Fonts[0]: UI
+        io.Fonts->AddFontFromFileTTF(font.string().c_str(), 22.0f * scale);   // Fonts[1]: headings
+        io.Fonts->AddFontFromFileTTF(font.string().c_str(), 44.0f * scale);   // Fonts[2]: titles
+    }
     ApplyEditorStyle();
     ImGui::GetStyle().ScaleAllSizes(scale);
 

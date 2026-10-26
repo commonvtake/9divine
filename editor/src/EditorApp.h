@@ -4,6 +4,8 @@
 #include <nd/renderer/Framebuffer.h>
 #include <nd/renderer/Renderer.h>
 #include "EditorCamera.h"
+#include "ProjectHub.h"
+#include <functional>
 
 namespace nd::editor {
 
@@ -11,6 +13,7 @@ enum class PlayState { Edit, Play };
 
 class EditorApp : public Application {
 public:
+    // projectDir may be empty: the editor then starts in the Project Hub.
     EditorApp(const AppConfig& config, fs::path projectDir);
 
     // Scene the editor is showing: the play copy while playing, else the edited scene.
@@ -27,6 +30,15 @@ protected:
     bool OnCloseRequested() override;
 
 private:
+    // Projects (ProjectHub.cpp)
+    bool OpenProject(const fs::path& dir);
+    void CloseProject();                               // back to the hub
+    void RequestProjectChange(std::function<void()> action);   // asks to save first if needed
+    void BeginNewProject();
+    void BeginOpenProject();
+    void DrawProjectHub();
+    void DrawProjectDialogs();
+
     // Scene management (EditorApp.cpp)
     void NewScene();
     bool OpenScene(const std::string& path);
@@ -84,6 +96,7 @@ public:
 private:
 
     fs::path m_ProjectDir;
+    bool m_ProjectOpen = false;
     Ref<Scene> m_EditorScene;
     PlayState m_State = PlayState::Edit;
     UUID m_SelectedID = 0;
@@ -137,8 +150,21 @@ private:
     std::string m_JoinAddress = "127.0.0.1";
     int m_NetPort = 7777;
     bool m_FirstFrame = true;
+
+    // Project Hub
+    RecentProjects m_Recent;
+    FolderBrowser m_OpenBrowser, m_LocationBrowser;
+    std::string m_HubSearch;
+    std::string m_NewProjectName, m_NewProjectLocation;
+    int m_NewProjectTemplate = 1;
+    bool m_OpenNewProjectDialog = false, m_OpenOpenProjectDialog = false;
+    bool m_ShowProjectError = false;
+    std::string m_ProjectError;
+    std::function<void()> m_PendingAction;        // runs at the start of the next frame
+    std::function<void()> m_AfterUnsavedPrompt;   // runs after Save / Don't Save
 public:
     bool playOnStart = false;
+    bool newProjectOnStart = false;
 };
 
 } // namespace nd::editor

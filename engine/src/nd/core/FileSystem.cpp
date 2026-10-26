@@ -93,6 +93,21 @@ fs::path Platform::UserDataDir(const std::string& appName) {
     return dir;
 }
 
+fs::path Platform::HomeDir() {
+#ifdef _WIN32
+    if (const char* p = std::getenv("USERPROFILE")) return fs::path(p);
+#else
+    if (const char* p = std::getenv("HOME")) return fs::path(p);
+#endif
+    return fs::current_path();
+}
+
+fs::path Platform::DocumentsDir() {
+    fs::path docs = HomeDir() / "Documents";
+    std::error_code ec;
+    return fs::is_directory(docs, ec) ? docs : HomeDir();
+}
+
 size_t Platform::ProcessMemoryBytes() {
 #ifdef _WIN32
     PROCESS_MEMORY_COUNTERS pmc{};

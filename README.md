@@ -41,6 +41,7 @@ The repository includes **Ember Isle**, a small game built entirely with the eng
 | **Navigation & AI** | Grid nav-mesh baking from terrain and colliders, A* with path smoothing, nav agents, finite state machines, behaviour trees |
 | **Particles** | CPU simulation, instanced billboards, additive/alpha blending with sorting, presets (fire, smoke, sparks, magic, rain, dust) |
 | **Debugging** | CPU profiler with per-system timings, frame-time graph, draw/triangle/memory stats, debug line drawing, collider and nav-grid overlays |
+| **Projects** | Project Hub with templates (Empty, 3D Starter, sample copy), recent projects, in-editor folder browser, switching projects with save prompts |
 | **Build / Export** | Packages the runtime, engine data and project into a standalone folder from the editor or the command line |
 | **Save system** | Key/value save slots, checkpoints that snapshot every `Saveable` entity, restore across scene reloads |
 | **Networking** | Client/server over UDP with handshake, timeouts, ping, transform replication with interpolation, remote player spawning, custom JSON messages |
@@ -75,8 +76,24 @@ cmake --build build -j
 
 Run the tests with `ctest --test-dir build -C Release --output-on-failure`.
 
+### Create a project
+Launching `9divine-editor` opens the **Project Hub**:
+
+![Project Hub](docs/images/new_project.png)
+
+- **New Project** – pick a template, a name and a folder (defaults to `Documents/9divine Projects`):
+  - **Empty** – camera, sun and a ground plane.
+  - **3D Starter** – a playable third-person character with camera, physics props, HUD and pause menu.
+  - **Ember Isle (Sample)** – your own editable copy of the full demo game.
+- **Open Project...** – browse to any folder that contains a `project.json`.
+- **Recent Projects** – click to reopen; right-click to show in the file browser or remove from the list.
+
+Inside the editor, **File → New Project / Open Project / Recent Projects / Close Project** switch projects (you're asked to save unsaved changes first).
+
+A project is a folder with `project.json`, `input.json`, `Scenes/`, `Models/`, `Textures/` and `Audio/`. Gameplay scripts are C++ in `game/src` and are available to every project.
+
 ### Play the demo
-- **Editor:** `9divine-editor` opens the Ember Isle project. Press **Play** (Ctrl+P).
+- **Editor:** click **Open Sample: Ember Isle** in the hub (or run `9divine-editor projects/Demo`). Press **Play** (Ctrl+P).
 - **Standalone:** `9divine-player` runs the game directly.
 - **Multiplayer:** start one copy with `9divine-player --host` and another with `9divine-player --join 127.0.0.1` (or use the in-game pause menu).
 
@@ -198,7 +215,10 @@ docs/               architecture notes, roadmap, screenshots
 
 | Command | |
 |---|---|
-| `9divine-editor [projectDir]` | Open a project (creates an empty one if the folder is new) |
+| `9divine-editor` | Open the Project Hub |
+| `9divine-editor [projectDir]` | Open a project (an empty or new folder becomes an Empty project) |
+| `9divine-editor --new-project` | Open the hub straight to the New Project dialog |
+| `9divine-editor --create-project <dir> [--template empty\|starter\|sample] [--name "My Game"]` | Create a project from a template and open it |
 | `9divine-editor --play` | Open and immediately enter play mode |
 | `9divine-editor [projectDir] --export <dir>` | Build a standalone game without opening the editor |
 | `9divine-player [projectDir]` | Run a project |

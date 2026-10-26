@@ -23,19 +23,23 @@ Entity EditorApp::Selected() {
 void EditorApp::Select(Entity e) { m_SelectedID = e ? e.GetUUID() : UUID(0); }
 
 void EditorApp::OnInit() {
-    Input::LoadMap(Project::Info().inputMap);
     FramebufferSpec spec;
     spec.width = 1280;
     spec.height = 720;
     m_Viewport = MakeScope<Framebuffer>(spec);
-    m_AssetDir = Project::Root();
-    m_BuildDir = (Project::Root().parent_path() / "Builds" / Project::Info().name).generic_string();
     SceneManager::onQuitRequested = [this] { if (m_State == PlayState::Play) StopPlay(); };
-
-    std::string start = Project::Info().startScene;
-    if (start.empty() || !OpenScene(start)) NewScene();
     m_RenderOptions.showLightGizmos = true;
-    ND_INFO("9divine Editor ready. Press Play (Ctrl+P) to run the game.");
+    m_Recent.Load();
+    m_NewProjectLocation = (Platform::DocumentsDir() / "9divine Projects").string();
+
+    if (!m_ProjectDir.empty()) OpenProject(m_ProjectDir);
+    if (!m_ProjectOpen) {
+        UpdateTitle();
+        if (newProjectOnStart) BeginNewProject();
+        ND_INFO("9divine Project Hub ready.");
+    } else {
+        ND_INFO("9divine Editor ready. Press Play (Ctrl+P) to run the game.");
+    }
 }
 
 void EditorApp::OnShutdown() {
@@ -45,12 +49,14 @@ void EditorApp::OnShutdown() {
 }
 
 bool EditorApp::OnCloseRequested() {
-    if (!m_Dirty) return true;
+    if (!m_ProjectOpen || !m_Dirty) return true;
+    m_AfterUnsavedPrompt = [this] { Close(); };
     m_ConfirmQuit = true;
     return false;
 }
 
 void EditorApp::UpdateTitle() {
+    if (!m_ProjectOpen) { SetTitle("9divine - Project Hub"); return; }
     std::string title = "9divine Editor - " + Project::Info().name + " - " + (m_EditorScene ? m_EditorScene->name : std::string("")) +
                         (m_EditorScene && !m_EditorScene->path.empty() ? " (" + m_EditorScene->path + ")" : "") + (m_Dirty ? " *" : "");
     if (m_State == PlayState::Play) title += "  [PLAYING]";
@@ -270,6 +276,18 @@ void EditorApp::DuplicateSelected() {
 
 // ----------------------------------------------------------------- frame
 void EditorApp::OnUpdate(float dt) {
+    if (m_PendingAction) {
+        auto action = std::move(m_PendingAction);
+        m_PendingAction = nullptr;
+        action();
+    }
+    if (!m_ProjectOpen) {
+        ivec2 fb = FramebufferSize();
+        Framebuffer::BindDefault(fb.x, fb.y);
+        glClearColor(0.105f, 0.11f, 0.12f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        return;
+    }
     AssetManager::PollChanges();
     if (m_State == PlayState::Play) {
         Input::SetGameInputEnabled(m_ViewportFocused || Input::GetCursorMode() == CursorMode::Locked);
@@ -289,6 +307,11 @@ void EditorApp::OnUpdate(float dt) {
 }
 
 void EditorApp::OnImGui() {
+    if (!m_ProjectOpen) {
+        DrawProjectHub();
+        DrawProjectDialogs();
+        return;
+    }
     ImGuizmo::BeginFrame();
     ImGuiIO& io = ImGui::GetIO();
 
@@ -296,7 +319,7 @@ void EditorApp::OnImGui() {
     bool ctrl = io.KeyCtrl;
     if (!io.WantTextInput) {
         if (ctrl && ImGui::IsKeyPressed(ImGuiKey_S, false)) SaveScene();
-        if (ctrl && ImGui::IsKeyPressed(ImGuiKey_N, false)) NewScene();
+        if (ctrl && ImGui::IsKeyPressed(ImGuiKey_N, false)) { if (io.KeyShift) BeginNewProject(); else NewScene(); }
         if (ctrl && ImGui::IsKeyPressed(ImGuiKey_O, false)) m_OpenScenePopup = true;
         if (ctrl && ImGui::IsKeyPressed(ImGuiKey_Z, false)) { if (io.KeyShift) Redo(); else Undo(); }
         if (ctrl && ImGui::IsKeyPressed(ImGuiKey_Y, false)) Redo();
@@ -334,6 +357,7 @@ void EditorApp::OnImGui() {
     if (m_ShowProject) DrawProjectSettings();
     if (m_ShowDemo) ImGui::ShowDemoWindow(&m_ShowDemo);
     DrawPopups();
+    DrawProjectDialogs();
 
     // Commit inspector edits once the user lets go of a widget
     if (!ImGui::IsAnyItemActive() && m_EditedThisInteraction) {
