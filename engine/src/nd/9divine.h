@@ -1,0 +1,22 @@
+#pragma once
+// Umbrella header for gameplay code: #include <nd/9divine.h>
+
+#include "nd/core/Base.h"
+#include "nd/core/Log.h"
+#include "nd/core/Input.h"
+#include "nd/core/Application.h"
+#include "nd/core/Profiler.h"
+#include "nd/scene/Scene.h"
+#include "nd/scene/Entity.h"
+#include "nd/scene/Components.h"
+#include "nd/scene/ScriptableEntity.h"
+#include "nd/scene/SceneManager.h"
+#include "nd/physics/Physics.h"
+#include "nd/audio/Audio.h"
+#include "nd/ai/Navigation.h"
+#include "nd/ui/GameUI.h"
+#include "nd/particles/Particles.h"
+#include "nd/save/SaveGame.h"
+#include "nd/net/Network.h"
+#include "nd/renderer/DebugDraw.h"
+#include "nd/terrain/Terrain.h"
