@@ -1,0 +1,13 @@
+{
+  "fullscreen": false,
+  "inputMap": "input.json",
+  "name": "Ember Isle",
+  "scenes": [
+    "Scenes/Island.scene",
+    "Scenes/Arena.scene"
+  ],
+  "startScene": "Scenes/Island.scene",
+  "vsync": true,
+  "windowHeight": 900,
+  "windowWidth": 1600
+}
