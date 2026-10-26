@@ -1,0 +1,7 @@
+add_executable(NineDivineTests EngineTests.cpp)
+target_link_libraries(NineDivineTests PRIVATE NineDivineEngine)
+if(MSVC)
+    target_compile_options(NineDivineTests PRIVATE /utf-8)
+endif()
+add_test(NAME EngineTests COMMAND NineDivineTests)
+set_target_properties(NineDivineTests PROPERTIES OUTPUT_NAME "9divine-tests")
