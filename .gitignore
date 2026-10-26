@@ -1,0 +1,22 @@
+# Build output
+build/
+build-*/
+out/
+Builds/
+cmake-build-*/
+CMakeUserPresets.json
+
+# IDEs
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime files
+imgui.ini
+screenshot_*.png
