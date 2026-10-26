@@ -23,6 +23,8 @@ public:
     static fs::path ExecutableDir();
     static fs::path ExecutablePath();
     static fs::path UserDataDir(const std::string& appName); // e.g. %APPDATA%/9divine/<app>
+    static fs::path HomeDir();
+    static fs::path DocumentsDir();
     static size_t ProcessMemoryBytes();
     static bool OpenInFileBrowser(const fs::path& path);
 };
