@@ -37,6 +37,20 @@ void EditorApp::DrawMenuBar() {
     if (!ImGui::BeginMainMenuBar()) return;
     bool playing = m_State == PlayState::Play;
     if (ImGui::BeginMenu("File")) {
+        if (ImGui::MenuItem("New Project...", "Ctrl+Shift+N")) BeginNewProject();
+        if (ImGui::MenuItem("Open Project...")) BeginOpenProject();
+        if (ImGui::BeginMenu("Recent Projects")) {
+            int shown = 0;
+            for (auto& r : m_Recent.List()) {
+                if (fs::path(r.path) == m_ProjectDir || !IsProjectFolder(r.path)) continue;
+                if (ImGui::MenuItem(r.name.c_str(), r.path.c_str())) { fs::path dir = r.path; RequestProjectChange([this, dir] { OpenProject(dir); }); }
+                if (++shown >= 10) break;
+            }
+            if (shown == 0) ImGui::TextDisabled("No other recent projects");
+            ImGui::EndMenu();
+        }
+        if (ImGui::MenuItem("Close Project")) RequestProjectChange([this] { CloseProject(); });
+        ImGui::Separator();
         if (ImGui::MenuItem("New Scene", "Ctrl+N")) NewScene();
         if (ImGui::MenuItem("Open Scene...", "Ctrl+O")) m_OpenScenePopup = true;
         if (ImGui::MenuItem("Save Scene", "Ctrl+S", false, !playing)) SaveScene();
@@ -45,7 +59,7 @@ void EditorApp::DrawMenuBar() {
         if (ImGui::MenuItem("Build Game...", nullptr, false, !playing)) { m_BuildPopup = true; m_BuildLog.clear(); }
         if (ImGui::MenuItem("Open Project Folder")) Platform::OpenInFileBrowser(Project::Root());
         ImGui::Separator();
-        if (ImGui::MenuItem("Exit")) { if (m_Dirty) m_ConfirmQuit = true; else Close(); }
+        if (ImGui::MenuItem("Exit")) RequestProjectChange([this] { Close(); });
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Edit")) {
@@ -81,7 +95,10 @@ void EditorApp::DrawMenuBar() {
         if (ImGui::MenuItem("Reload All Assets")) AssetManager::ClearCache();
         if (ImGui::MenuItem("Bake Navigation", nullptr, false, !playing)) ActiveScene()->Nav().Bake();
         ImGui::Separator();
-        if (ImGui::MenuItem("Rebuild Demo Scenes", nullptr, false, !playing)) {
+        std::error_code sameEc;
+        bool isSample = fs::equivalent(Project::Root(), fs::path(ND_SOURCE_DIR) / "projects" / "Demo", sameEc) ||
+                        Project::Info().name == "Ember Isle";
+        if (ImGui::MenuItem("Rebuild Demo Scenes", nullptr, false, !playing && isSample)) {
             demo::BuildDemoProject(Project::Root());
             OpenScene(Project::Info().startScene);
         }
@@ -633,12 +650,17 @@ void EditorApp::DrawPopups() {
     }
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
     if (ImGui::BeginPopupModal("Unsaved Changes", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Save changes to '%s' before quitting?", m_EditorScene ? m_EditorScene->name.c_str() : "");
-        if (ImGui::Button("Save", ImVec2(110, 0))) { if (m_State == PlayState::Play) StopPlay(); if (SaveScene()) Close(); ImGui::CloseCurrentPopup(); }
+        ImGui::Text("Save changes to '%s' first?", m_EditorScene ? m_EditorScene->name.c_str() : "");
+        auto proceed = [this] { m_PendingAction = std::move(m_AfterUnsavedPrompt); m_AfterUnsavedPrompt = nullptr; };
+        if (ImGui::Button("Save", ImVec2(110, 0))) {
+            if (m_State == PlayState::Play) StopPlay();
+            if (SaveScene()) proceed();
+            ImGui::CloseCurrentPopup();
+        }
         ImGui::SameLine();
-        if (ImGui::Button("Don't Save", ImVec2(110, 0))) { Close(); ImGui::CloseCurrentPopup(); }
+        if (ImGui::Button("Don't Save", ImVec2(110, 0))) { m_Dirty = false; proceed(); ImGui::CloseCurrentPopup(); }
         ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(110, 0))) ImGui::CloseCurrentPopup();
+        if (ImGui::Button("Cancel", ImVec2(110, 0))) { m_AfterUnsavedPrompt = nullptr; ImGui::CloseCurrentPopup(); }
         ImGui::EndPopup();
     }
 }
