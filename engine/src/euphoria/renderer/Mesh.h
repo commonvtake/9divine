@@ -34,8 +34,13 @@ public:
 
     static void ComputeNormals(std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
 
+    // Smoothed normals used to extrude ink outlines (vertex attribute 9). Vertices that share a
+    // position - like the split corners of a cube - get one angle-weighted average, so pushing
+    // the hull outward along it never tears open at hard edges.
+    static std::vector<vec3> ComputeOutlineNormals(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+
 private:
-    uint32_t m_VAO = 0, m_VBO = 0, m_IBO = 0;
+    uint32_t m_VAO = 0, m_VBO = 0, m_IBO = 0, m_OutlineVBO = 0;
     std::vector<Vertex> m_Vertices;
     std::vector<uint32_t> m_Indices;
     AABB m_Bounds;

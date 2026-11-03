@@ -55,6 +55,16 @@ struct MeshRendererComponent {
     vec3 emissive{ 0.0f };
     bool castShadows = true;
     bool visible = true;
+    // Toon / cel shading: lighting is snapped into flat bands instead of a smooth gradient.
+    bool toon = false;
+    int toonBands = 3;                      // number of light steps (2 = hard two-tone)
+    float toonSoftness = 0.02f;             // blur at band edges (0 = razor sharp)
+    vec3 toonShadowColor{ 0.45f, 0.40f, 0.62f }; // sRGB tint multiplied into the darkest band
+    float toonRim = 0.25f;                  // hard rim light on the lit side (0 = off)
+    // Ink outline drawn with an inverted hull (works with or without toon shading).
+    bool outline = false;
+    float outlineWidth = 3.0f;              // in pixels at close range, thinner with distance
+    vec4 outlineColor{ 0.04f, 0.03f, 0.05f, 1.0f };
     // runtime
     Ref<Model> model;
     std::string loadedMesh;

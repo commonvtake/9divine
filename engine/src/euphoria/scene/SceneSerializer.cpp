@@ -35,10 +35,16 @@ json SceneSerializer::SerializeEntity(Entity e) {
     auto& t = e.Get<TransformComponent>();
     j["transform"] = { { "position", t.position }, { "rotation", t.rotation }, { "scale", t.scale }, { "parent", (uint64_t)t.parent } };
 
-    if (auto* c = e.TryGet<MeshRendererComponent>())
+    if (auto* c = e.TryGet<MeshRendererComponent>()) {
         j["meshRenderer"] = { { "mesh", c->mesh }, { "useModelMaterials", c->useModelMaterials }, { "color", c->color }, { "texture", c->texture },
                               { "tiling", c->tiling }, { "specular", c->specular }, { "shininess", c->shininess }, { "emissive", c->emissive },
                               { "castShadows", c->castShadows }, { "visible", c->visible } };
+        // Only written when used, so existing scene files stay unchanged.
+        if (c->toon || c->outline)
+            j["meshRenderer"]["toon"] = { { "enabled", c->toon }, { "bands", c->toonBands }, { "softness", c->toonSoftness },
+                                          { "shadowColor", c->toonShadowColor }, { "rim", c->toonRim }, { "outline", c->outline },
+                                          { "outlineWidth", c->outlineWidth }, { "outlineColor", c->outlineColor } };
+    }
     if (auto* c = e.TryGet<CameraComponent>())
         j["camera"] = { { "primary", c->primary }, { "orthographic", c->orthographic }, { "fov", c->fov }, { "orthoSize", c->orthoSize },
                         { "near", c->nearClip }, { "far", c->farClip } };
@@ -152,6 +158,17 @@ Entity SceneSerializer::DeserializeEntity(Scene& scene, const json& j, std::unor
         c.emissive = JGet(jc, "emissive", c.emissive);
         c.castShadows = JGet(jc, "castShadows", c.castShadows);
         c.visible = JGet(jc, "visible", c.visible);
+        if (jc.contains("toon")) {
+            auto& jt = jc["toon"];
+            c.toon = JGet(jt, "enabled", c.toon);
+            c.toonBands = JGet(jt, "bands", c.toonBands);
+            c.toonSoftness = JGet(jt, "softness", c.toonSoftness);
+            c.toonShadowColor = JGet(jt, "shadowColor", c.toonShadowColor);
+            c.toonRim = JGet(jt, "rim", c.toonRim);
+            c.outline = JGet(jt, "outline", c.outline);
+            c.outlineWidth = JGet(jt, "outlineWidth", c.outlineWidth);
+            c.outlineColor = JGet(jt, "outlineColor", c.outlineColor);
+        }
     }
     if (j.contains("camera")) {
         auto& jc = j["camera"];

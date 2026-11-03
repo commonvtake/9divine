@@ -1,4 +1,5 @@
-// Standard lit material. Variants: SKINNED (GPU skinning), INSTANCED (per-instance matrix).
+// Standard lit material. Variants: SKINNED (GPU skinning), INSTANCED (per-instance matrix),
+// TOON (banded cel lighting from toon.glsl instead of smooth Blinn-Phong).
 #type vertex
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
@@ -42,6 +43,9 @@ void main() {
 
 #type fragment
 #include "lighting.glsl"
+#ifdef TOON
+#include "toon.glsl"
+#endif
 in vec3 vWorldPos;
 in vec3 vNormal;
 in vec2 vUV;
@@ -60,7 +64,11 @@ void main() {
     if (base.a < 0.35) discard;
     vec3 N = normalize(vNormal);
     if (!gl_FrontFacing) N = -N;
+#ifdef TOON
+    vec3 c = ComputeToonLighting(base.rgb, N, vWorldPos, uSpecular, uShininess) + uEmissive;
+#else
     vec3 c = ComputeLighting(base.rgb, N, vWorldPos, uSpecular, uShininess) + uEmissive;
+#endif
     c = ApplyFog(c, vWorldPos);
     oColor = vec4(Tonemap(c), 1.0);
     oID = uEntityID;

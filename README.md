@@ -4,7 +4,7 @@
 
 **A 3D game engine and editor written from scratch in C++17 and OpenGL 3.3.**
 
-ECS architecture · Forward renderer with shadows · Physics · Skeletal animation · 3D audio · Terrain & foliage · Navigation & AI · Game UI · Save system · UDP multiplayer · One-click game export
+ECS architecture · Forward renderer with shadows · Toon shading & ink outlines · Physics · Skeletal animation · 3D audio · Terrain & foliage · Navigation & AI · Game UI · Save system · UDP multiplayer · One-click game export
 
 ![Gameplay](docs/images/gameplay.png)
 
@@ -21,13 +21,32 @@ ECS architecture · Forward renderer with shadows · Physics · Skeletal animati
 | ![Animation](docs/images/animation.png) | ![Arena](docs/images/arena.png) |
 | **Skeletal animation** – glTF skins, blend spaces, state machines | **Physics arena** – stacking, ramps, moving platforms, projectiles |
 
+### Toon shading
+
+![Toon shading](docs/images/toon.png)
+
+*Left to right: standard Blinn-Phong, the same sphere with toon shading, a cube whose outline stays closed at the hard edges, and the skinned glTF fox.*
+
+Tick **Toon shading** and/or **Outline** on any Mesh Renderer. Lighting snaps into flat bands (2-8), the darkest band is tinted instead of going grey, and an inverted-hull pass draws a pixel-width ink line around the silhouette. From code:
+
+```cpp
+auto& mr = entity.Get<MeshRendererComponent>();
+mr.toon = true;
+mr.toonBands = 3;                         // light steps
+mr.toonShadowColor = { 0.45f, 0.40f, 0.62f };
+mr.outline = true;
+mr.outlineWidth = 3.0f;                   // pixels
+```
+
+How it works is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#toon-shading-and-outlines).
+
 The repository includes **Ember Isle**, a small game built entirely with the engine: explore a procedurally generated island, collect embers, avoid the shades that hunt you, save at campfires, and unlock a portal to a physics playground. It can be played solo or with a friend over the network.
 
 ## Features
 
 | System | What's implemented |
 |---|---|
-| **Rendering** | Forward Blinn-Phong renderer, directional light with PCF shadow maps (texel-snapped), 8 point + 4 spot lights, procedural sky, distance fog, ACES tone mapping, frustum culling, GPU skinning, instancing, entity-ID picking buffer |
+| **Rendering** | Forward Blinn-Phong renderer, **toon/cel shading** (banded lighting, tinted shadows, hard specular, rim light) with **inverted-hull ink outlines**, directional light with PCF shadow maps (texel-snapped), 8 point + 4 spot lights, procedural sky, distance fog, ACES tone mapping, frustum culling, GPU skinning, instancing, entity-ID picking buffer |
 | **Entity Component System** | Custom sparse-set ECS with versioned handles, stable component storage, multi-component views, parent/child hierarchy |
 | **Input** | Keyboard, mouse, up to 4 gamepads, named actions & axes, runtime rebinding with JSON persistence |
 | **Scenes** | Human-readable JSON scenes, scene switching at safe points, deep entity duplication with UUID remapping |
@@ -45,7 +64,7 @@ The repository includes **Ember Isle**, a small game built entirely with the eng
 | **Build / Export** | Packages the runtime, engine data and project into a standalone folder from the editor or the command line |
 | **Save system** | Key/value save slots, checkpoints that snapshot every `Saveable` entity, restore across scene reloads |
 | **Networking** | Client/server over UDP with handshake, timeouts, ping, transform replication with interpolation, remote player spawning, custom JSON messages |
-| **Tests & CI** | 20 headless unit tests (CTest) covering ECS, serialization, physics, terrain, navigation, AI, animation, input and saves; GitHub Actions builds on Windows and Linux |
+| **Tests & CI** | 23 headless unit tests (CTest) covering ECS, serialization, physics, terrain, navigation, AI, animation, input, saves and toon outline normals; GitHub Actions builds on Windows and Linux |
 
 ## Getting started
 

@@ -346,10 +346,13 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
     }
 
     // Opaque meshes
+    std::vector<const DrawItem*> outlined;
     {
         EU_PROFILE_SCOPE("Opaque");
         auto lit = GetShader("lit.glsl");
         auto litSkin = GetShader("lit.glsl", { "SKINNED" });
+        auto toon = GetShader("lit.glsl", { "TOON" });
+        auto toonSkin = GetShader("lit.glsl", { "SKINNED", "TOON" });
         Shader* bound = nullptr;
         auto white = Texture2D::White();
         for (auto& d : items) {
@@ -357,13 +360,21 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
             if (!skinned && !d.mr->model->IsSkinned()) {
                 if (!frustum.Visible(TransformAABB(d.mr->model->bounds, d.world))) continue;
             }
-            Shader* s = skinned ? litSkin.get() : lit.get();
+            if (d.mr->outline) outlined.push_back(&d);
+            Shader* s = d.mr->toon ? (skinned ? toonSkin.get() : toon.get())
+                                   : (skinned ? litSkin.get() : lit.get());
             if (s != bound) {
                 s->Bind();
                 ApplyLights(*s, L, env, cam);
                 s->SetMat4("uViewProj", viewProj);
                 s->SetInt("uAlbedoMap", 0);
                 bound = s;
+            }
+            if (d.mr->toon) {
+                s->SetFloat("uToonBands", (float)glm::clamp(d.mr->toonBands, 2, 8));
+                s->SetFloat("uToonSoftness", glm::clamp(d.mr->toonSoftness, 0.0f, 0.5f));
+                s->SetVec3("uToonShadowColor", d.mr->toonShadowColor);
+                s->SetFloat("uToonRim", d.mr->toonRim);
             }
             s->SetMat4("uModel", d.world);
             s->SetInt("uEntityID", (int)d.id);
@@ -388,6 +399,38 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
                 if (mat && mat->doubleSided) glEnable(GL_CULL_FACE);
             }
         }
+    }
+
+    // Ink outlines (inverted hull): redraw outlined meshes inflated along their outline
+    // normals with front faces culled, so only the shell's back faces show around the edges.
+    if (!outlined.empty()) {
+        EU_PROFILE_SCOPE("Outlines");
+        auto os = GetShader("outline.glsl");
+        auto osSkin = GetShader("outline.glsl", { "SKINNED" });
+        vec2 viewport((float)target.Width(), (float)target.Height());
+        glCullFace(GL_FRONT);
+        Shader* bound = nullptr;
+        for (const DrawItem* d : outlined) {
+            bool skinned = isSkinned(*d);
+            Shader* s = skinned ? osSkin.get() : os.get();
+            if (s != bound) {
+                s->Bind();
+                ApplyLights(*s, L, env, cam);   // camera position + fog for distance fading
+                s->SetMat4("uViewProj", viewProj);
+                s->SetVec2("uViewportSize", viewport);
+                bound = s;
+            }
+            s->SetMat4("uModel", d->world);
+            s->SetInt("uEntityID", (int)d->id);
+            s->SetFloat("uOutlineWidth", glm::max(d->mr->outlineWidth, 0.0f));
+            s->SetVec4("uOutlineColor", d->mr->outlineColor);
+            if (skinned) {
+                auto& m = d->anim->runtime->skinMatrices;
+                s->SetMat4Array("uBones", m.data(), (int)std::min<size_t>(m.size(), 100));
+            }
+            for (auto& sm : d->mr->model->meshes) sm.mesh->Draw();
+        }
+        glCullFace(GL_BACK);
     }
 
     // Terrain + foliage

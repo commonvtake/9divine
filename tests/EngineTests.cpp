@@ -358,6 +358,92 @@ TEST(Save_ValuesAndSceneSnapshot) {
     CHECK(!fresh.FindByName("Coin"));   // collected things stay collected
 }
 
+// ---------------------------------------------------------------------- Toon shading
+// A unit cube with split (flat) normals: 6 faces x 4 vertices, like Primitives::Cube().
+static void FlatCube(std::vector<Vertex>& verts, std::vector<uint32_t>& idx) {
+    const vec3 normals[6] = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
+    for (const vec3& n : normals) {
+        vec3 u = std::abs(n.y) > 0.5f ? vec3(1, 0, 0) : vec3(0, 1, 0);
+        vec3 v = glm::cross(n, u);
+        uint32_t base = (uint32_t)verts.size();
+        for (int i = 0; i < 4; i++) {
+            float a = (i == 0 || i == 3) ? -0.5f : 0.5f, b = (i < 2) ? -0.5f : 0.5f;
+            Vertex vx;
+            vx.position = n * 0.5f + u * a + v * b;
+            vx.normal = n;
+            verts.push_back(vx);
+        }
+        idx.insert(idx.end(), { base, base + 1, base + 2, base, base + 2, base + 3 });
+    }
+}
+
+TEST(Toon_OutlineNormalsWeldHardEdges) {
+    std::vector<Vertex> verts;
+    std::vector<uint32_t> idx;
+    FlatCube(verts, idx);
+    auto n = Mesh::ComputeOutlineNormals(verts, idx);
+    CHECK(n.size() == verts.size());
+    for (size_t i = 0; i < verts.size(); i++) {
+        // Every cube corner should point diagonally out of the corner, e.g. (1,1,1)/sqrt(3),
+        // regardless of which face's copy of the vertex it is - so the hull can't split open.
+        vec3 expected = glm::normalize(glm::sign(verts[i].position));
+        CHECK_NEAR(glm::dot(n[i], expected), 1.0f, 1e-4f);
+        CHECK_NEAR(glm::length(n[i]), 1.0f, 1e-4f);
+    }
+}
+
+TEST(Toon_OutlineNormalsKeepSmoothSurfaces) {
+    // A single flat quad has no hard edges: outline normals equal the face normal.
+    std::vector<Vertex> verts(4);
+    verts[0].position = { 0, 0, 0 }; verts[1].position = { 1, 0, 0 };
+    verts[2].position = { 1, 0, -1 }; verts[3].position = { 0, 0, -1 };
+    std::vector<uint32_t> idx = { 0, 1, 2, 0, 2, 3 };
+    auto n = Mesh::ComputeOutlineNormals(verts, idx);
+    for (auto& v : n) CHECK_NEAR(glm::dot(v, vec3(0, 1, 0)), 1.0f, 1e-5f);
+    // Degenerate input falls back to the vertex normal instead of producing NaNs.
+    std::vector<Vertex> lone(1);
+    lone[0].normal = { 0, 0, 1 };
+    auto f = Mesh::ComputeOutlineNormals(lone, {});
+    CHECK(f[0] == vec3(0, 0, 1));
+}
+
+TEST(Toon_SettingsSerialize) {
+    Scene a;
+    Entity plain = a.CreateEntity("Plain");
+    plain.Add<MeshRendererComponent>();
+    Entity hero = a.CreateEntity("Hero");
+    auto& mr = hero.Add<MeshRendererComponent>();
+    mr.toon = true;
+    mr.toonBands = 2;
+    mr.toonSoftness = 0.0f;
+    mr.toonShadowColor = { 0.2f, 0.1f, 0.4f };
+    mr.toonRim = 0.6f;
+    mr.outline = true;
+    mr.outlineWidth = 4.0f;
+    mr.outlineColor = { 1.0f, 0.0f, 0.0f, 1.0f };
+
+    json j = SceneSerializer(a).ToJson();
+    Scene b;
+    SceneSerializer(b).FromJson(j);
+    auto& p = b.FindByName("Plain").Get<MeshRendererComponent>();
+    CHECK(!p.toon && !p.outline);
+    auto& h = b.FindByName("Hero").Get<MeshRendererComponent>();
+    CHECK(h.toon);
+    CHECK(h.toonBands == 2);
+    CHECK(h.toonSoftness == 0.0f);
+    CHECK(h.toonShadowColor == vec3(0.2f, 0.1f, 0.4f));
+    CHECK(h.toonRim == 0.6f);
+    CHECK(h.outline);
+    CHECK(h.outlineWidth == 4.0f);
+    CHECK(h.outlineColor == vec4(1.0f, 0.0f, 0.0f, 1.0f));
+    CHECK(SceneSerializer(b).ToJson() == j);
+    // Meshes without toon settings don't gain a "toon" block (existing scenes stay byte-identical).
+    std::string dump = j.dump();
+    size_t count = 0;
+    for (size_t pos = dump.find("\"toon\""); pos != std::string::npos; pos = dump.find("\"toon\"", pos + 1)) count++;
+    CHECK(count == 1);
+}
+
 int main() {
     std::printf("Euphoria engine tests\n");
     for (auto& t : Tests()) {
