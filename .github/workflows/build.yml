@@ -30,3 +30,9 @@ jobs:
 
       - name: Unit tests
         run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Hero model matches its generator
+        if: runner.os == 'Linux'
+        run: |
+          python3 tools/blender/euphoria_hero.py build/Hero.glb
+          cmp build/Hero.glb projects/Demo/Models/Hero/Hero.glb || (echo "Hero.glb is stale - run: python3 tools/blender/euphoria_hero.py" && exit 1)

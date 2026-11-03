@@ -136,6 +136,7 @@ Also: raycasts (sphere, slab test against OBBs, terrain march + bisection; verti
 - **Skinning:** `skin[i] = global[i] * inverseBind[i]`, uploaded as a uniform array; the vertex shader blends four bone matrices.
 - **Animator:** states play a clip or a **1D blend space** (e.g. idle → walk → run driven by `Speed`). Blend spaces keep clips **phase-synchronised** (normalised time) so feet don't slide during the blend. Transitions are condition lists over float/bool/trigger parameters, with optional exit time and a cross-fade duration. Triggers auto-reset when consumed.
 - **Root motion:** the root joint's horizontal delta is removed from the pose and applied to the entity's transform.
+- **Locomotion auto-setup** (`animation/Locomotion.cpp`): `FindLocomotionClips` picks idle/walk/run/jump/fall clips by name, case-insensitively. It strips exporter prefixes like Blender's `Armature|`, and an exact name wins over a substring. `SetupLocomotion` turns those into a `Speed` blend space plus an `Airborne` state gated by a `Grounded` bool, which starts true so an undriven animator idles. `PlayerController` feeds both parameters, with 0.15 s of "coyote time" so walking down a slope doesn't flicker into the jump pose. This is what lets an arbitrary Blender character become the player with one click; see [BLENDER.md](BLENDER.md).
 
 ## 8. Audio
 `audio/Audio.cpp`
