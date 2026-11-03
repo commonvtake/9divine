@@ -18,6 +18,7 @@ struct AppConfig {
     int screenshotFrame = -1;
     std::string screenshotPath;
     int maxFrames = -1;                   // quit after N frames (testing)
+    float fixedDelta = 0.0f;              // > 0: every frame advances exactly this long (deterministic screenshots)
 };
 
 class Time {

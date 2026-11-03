@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
     auto isNum = [](const char* s) { return s && *s && std::strspn(s, "0123456789") == std::strlen(s); };
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
-        if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--width" || a == "--height") { i++; continue; }
+        if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--fixed-dt" || a == "--width" || a == "--height") { i++; continue; }
         if (a == "--host") { if (i + 1 < argc && isNum(argv[i + 1])) i++; continue; }
         if (a == "--join") { i++; if (i + 1 < argc && isNum(argv[i + 1])) i++; continue; }
         if (a.rfind("--", 0) == 0) continue;

@@ -245,6 +245,7 @@ docs/               architecture notes, roadmap, screenshots
 | `euphoria-player --build-demo <dir>` | Regenerate the sample project |
 | `--width W --height H --fullscreen --no-vsync` | Window options |
 | `--screenshot file.png --screenshot-frame N` | Save frame N and exit (automated testing) |
+| `--fixed-dt 0.0166` | Advance exactly this many seconds per frame, so screenshots are deterministic |
 
 ## Roadmap
 
