@@ -1,10 +1,10 @@
 #include "DemoBuilder.h"
-#include <nd/9divine.h>
-#include <nd/scene/SceneSerializer.h>
-#include <nd/core/FileSystem.h>
+#include <euphoria/Euphoria.h>
+#include <euphoria/scene/SceneSerializer.h>
+#include <euphoria/core/FileSystem.h>
 #include <cmath>
 
-using namespace nd;
+using namespace eu;
 
 namespace demo {
 
@@ -468,7 +468,7 @@ bool BuildDemoProject(const fs::path& dir) {
     FileSystem::WriteText(dir / "input.json", map.ToJson().dump(2));
     BuildIsland("Scenes/Island.scene");
     BuildArena("Scenes/Arena.scene");
-    ND_INFO("Demo project written to {}", dir.string());
+    EU_INFO("Demo project written to {}", dir.string());
     return true;
 }
 

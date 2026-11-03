@@ -1,8 +1,8 @@
 #pragma once
-#include <nd/9divine.h>
+#include <euphoria/Euphoria.h>
 
 // Owns the game's rules and HUD: ember counting, pause menu, save/load, multiplayer menu.
-class GameManager : public nd::ScriptableEntity {
+class GameManager : public eu::ScriptableEntity {
 public:
     std::string title = "EMBER ISLE";
     uint64_t player = 0;
@@ -11,14 +11,14 @@ public:
 
     static GameManager* Instance() { return s_Instance; }
 
-    void Reflect(nd::FieldVisitor& v) override;
+    void Reflect(eu::FieldVisitor& v) override;
     void OnCreate() override;
     void OnStart() override;
     void OnDestroy() override;
     void OnUpdate(float dt) override;
     void OnGUI() override;
     void OnUIButton(const std::string& name) override;
-    void OnNetworkMessage(const std::string& channel, const nd::json& data, uint32_t sender) override;
+    void OnNetworkMessage(const std::string& channel, const eu::json& data, uint32_t sender) override;
 
     void CollectEmber();
     void Notify(const std::string& text, float seconds = 3.0f);

@@ -22,7 +22,7 @@ target_compile_definitions(glm INTERFACE GLM_ENABLE_EXPERIMENTAL GLM_FORCE_SILEN
 add_library(nlohmann_json INTERFACE)
 target_include_directories(nlohmann_json INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/json/include)
 
-# --- Single-header libs (implemented in engine/src/cy/ThirdPartyImpl.cpp) ---
+# --- Single-header libs (implemented in engine/src/euphoria/ThirdPartyImpl.cpp) ---
 add_library(single_headers INTERFACE)
 target_include_directories(single_headers INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/stb

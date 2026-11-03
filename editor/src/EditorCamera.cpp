@@ -1,9 +1,9 @@
 #include "EditorCamera.h"
-#include <nd/core/Input.h>
+#include <euphoria/core/Input.h>
 #include <imgui.h>
 #include <cmath>
 
-namespace nd::editor {
+namespace eu::editor {
 
 quat EditorCamera::Orientation() const {
     return glm::angleAxis(glm::radians(-yaw), vec3(0, 1, 0)) * glm::angleAxis(glm::radians(-pitch), vec3(1, 0, 0));
@@ -77,4 +77,4 @@ Ray EditorCamera::ScreenRay(const vec2& ndc, float aspect) const {
     return { a, glm::normalize(b - a) };
 }
 
-} // namespace nd::editor
+} // namespace eu::editor

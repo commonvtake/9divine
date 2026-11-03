@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
-project(NineDivine VERSION 0.1.0 LANGUAGES C CXX)
+project(Euphoria VERSION 0.1.0 LANGUAGES C CXX)
 
 # ---------------------------------------------------------------------------
-# 9divine - a small 3D game engine (C++17 / OpenGL 3.3)
+# Euphoria Engine - a small 3D game engine (C++17 / OpenGL 3.3)
 # ---------------------------------------------------------------------------
 
 set(CMAKE_CXX_STANDARD 17)
@@ -21,25 +21,25 @@ foreach(cfg ${CMAKE_CONFIGURATION_TYPES})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CFG} ${CMAKE_BINARY_DIR}/bin)
 endforeach()
 
-option(NINEDIVINE_BUILD_EDITOR "Build the 9divine Editor" ON)
-option(NINEDIVINE_BUILD_PLAYER "Build the standalone game player" ON)
-option(NINEDIVINE_BUILD_TESTS "Build the unit tests" ON)
+option(EUPHORIA_BUILD_EDITOR "Build the Euphoria Editor" ON)
+option(EUPHORIA_BUILD_PLAYER "Build the standalone game player" ON)
+option(EUPHORIA_BUILD_TESTS "Build the unit tests" ON)
 
 add_subdirectory(third_party)
 add_subdirectory(engine)
 add_subdirectory(game)
 
-if(NINEDIVINE_BUILD_EDITOR)
+if(EUPHORIA_BUILD_EDITOR)
     add_subdirectory(editor)
 endif()
-if(NINEDIVINE_BUILD_PLAYER)
+if(EUPHORIA_BUILD_PLAYER)
     add_subdirectory(player)
 endif()
-if(NINEDIVINE_BUILD_TESTS)
+if(EUPHORIA_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
 
-if(MSVC AND NINEDIVINE_BUILD_EDITOR)
-    set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT NineDivineEditor)
+if(MSVC AND EUPHORIA_BUILD_EDITOR)
+    set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT EuphoriaEditor)
 endif()

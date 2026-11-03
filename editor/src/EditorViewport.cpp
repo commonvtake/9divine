@@ -1,11 +1,11 @@
 #include "EditorApp.h"
-#include <nd/assets/AssetManager.h>
-#include <nd/renderer/GL.h>
+#include <euphoria/assets/AssetManager.h>
+#include <euphoria/renderer/GL.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <ImGuizmo.h>
 
-namespace nd::editor {
+namespace eu::editor {
 
 void EditorApp::DrawEditorOverlays(Scene& scene) {
     Registry& reg = scene.Reg();
@@ -168,7 +168,7 @@ void EditorApp::DrawViewportWindow() {
 
     // Drop assets from the browser into the scene
     if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ND_ASSET")) {
+        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("EU_ASSET")) {
             std::string path((const char*)p->Data, p->DataSize);
             vec2 local = vec2(ImGui::GetMousePos().x - pos.x, ImGui::GetMousePos().y - pos.y);
             vec2 ndc(local.x / avail.x * 2.0f - 1.0f, 1.0f - local.y / avail.y * 2.0f);
@@ -284,4 +284,4 @@ void EditorApp::HandleTerrainSculpt() {
     }
 }
 
-} // namespace nd::editor
+} // namespace eu::editor

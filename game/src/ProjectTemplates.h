@@ -4,7 +4,7 @@
 #include <vector>
 
 // Templates used by the editor's Project Hub ("New Project") and by
-// `9divine-editor --create-project <dir> --template <name>`.
+// `euphoria-editor --create-project <dir> --template <name>`.
 namespace templates {
 
 enum class Template { Empty, Starter3D, Sample };
@@ -24,7 +24,7 @@ bool SampleAvailable();      // the Ember Isle sample ships with the source tree
 bool IsValidProjectName(const std::string& name, std::string* why = nullptr);
 
 // Creates <dir> (which must not exist or be empty) and fills it from the template.
-// Leaves the new project loaded (nd::Project) on success.
+// Leaves the new project loaded (eu::Project) on success.
 bool CreateProject(const std::filesystem::path& dir, const std::string& name, Template t, std::string& error);
 
 } // namespace templates

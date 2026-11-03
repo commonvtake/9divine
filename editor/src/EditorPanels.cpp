@@ -1,12 +1,12 @@
 #include "EditorApp.h"
-#include <nd/scene/SceneSerializer.h>
-#include <nd/assets/AssetManager.h>
+#include <euphoria/scene/SceneSerializer.h>
+#include <euphoria/assets/AssetManager.h>
 #include "DemoBuilder.h"
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
 
-namespace nd::editor {
+namespace eu::editor {
 
 void EditorApp::SetupDefaultLayout(unsigned int dockspaceId) {
     ImGuiID id = dockspaceId;
@@ -96,7 +96,7 @@ void EditorApp::DrawMenuBar() {
         if (ImGui::MenuItem("Bake Navigation", nullptr, false, !playing)) ActiveScene()->Nav().Bake();
         ImGui::Separator();
         std::error_code sameEc;
-        bool isSample = fs::equivalent(Project::Root(), fs::path(ND_SOURCE_DIR) / "projects" / "Demo", sameEc) ||
+        bool isSample = fs::equivalent(Project::Root(), fs::path(EU_SOURCE_DIR) / "projects" / "Demo", sameEc) ||
                         Project::Info().name == "Ember Isle";
         if (ImGui::MenuItem("Rebuild Demo Scenes", nullptr, false, !playing && isSample)) {
             demo::BuildDemoProject(Project::Root());
@@ -105,7 +105,7 @@ void EditorApp::DrawMenuBar() {
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Help")) {
-        if (ImGui::MenuItem("About 9divine")) m_AboutPopup = true;
+        if (ImGui::MenuItem("About Euphoria Engine")) m_AboutPopup = true;
         ImGui::EndMenu();
     }
     // Status on the right
@@ -186,12 +186,12 @@ void EditorApp::DrawEntityNode(Entity e) {
     // Drag to re-parent
     if (ImGui::BeginDragDropSource()) {
         uint64_t id = e.GetUUID();
-        ImGui::SetDragDropPayload("ND_ENTITY", &id, sizeof(id));
+        ImGui::SetDragDropPayload("EU_ENTITY", &id, sizeof(id));
         ImGui::Text("%s", tag.name.c_str());
         ImGui::EndDragDropSource();
     }
     if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ND_ENTITY")) {
+        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("EU_ENTITY")) {
             Entity child = scene->FindByUUID(*(const uint64_t*)p->Data);
             if (child && child != e) { scene->SetParent(child, e); Commit(); }
         }
@@ -247,10 +247,10 @@ void EditorApp::DrawHierarchy() {
     // Drop on empty space = unparent
     ImGui::Dummy(ImGui::GetContentRegionAvail());
     if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ND_ENTITY")) {
+        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("EU_ENTITY")) {
             if (Entity child = scene->FindByUUID(*(const uint64_t*)p->Data)) { scene->SetParent(child, Entity()); Commit(); }
         }
-        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ND_ASSET")) {
+        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("EU_ASSET")) {
             CreateFromAsset(std::string((const char*)p->Data, p->DataSize), SpawnPoint());
         }
         ImGui::EndDragDropTarget();
@@ -329,7 +329,7 @@ void EditorApp::DrawAssetBrowser() {
                 else if (AssetManager::IsAudioFile(rel)) Audio::PlayOneShot(rel);
             }
             if (!dir && ImGui::BeginDragDropSource()) {
-                ImGui::SetDragDropPayload("ND_ASSET", rel.data(), rel.size());
+                ImGui::SetDragDropPayload("EU_ASSET", rel.data(), rel.size());
                 ImGui::Text("%s", rel.c_str());
                 ImGui::EndDragDropSource();
             }
@@ -591,7 +591,7 @@ void EditorApp::DrawPopups() {
     if (m_OpenScenePopup) { ImGui::OpenPopup("Open Scene"); m_OpenScenePopup = false; }
     if (m_SaveAsPopup) { ImGui::OpenPopup("Save Scene As"); m_SaveAsPopup = false; }
     if (m_BuildPopup) { ImGui::OpenPopup("Build Game"); m_BuildPopup = false; }
-    if (m_AboutPopup) { ImGui::OpenPopup("About 9divine"); m_AboutPopup = false; }
+    if (m_AboutPopup) { ImGui::OpenPopup("About Euphoria Engine"); m_AboutPopup = false; }
     if (m_ConfirmQuit) { ImGui::OpenPopup("Unsaved Changes"); m_ConfirmQuit = false; }
 
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -636,8 +636,8 @@ void EditorApp::DrawPopups() {
         ImGui::EndPopup();
     }
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    if (ImGui::BeginPopupModal("About 9divine", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("9divine 0.1");
+    if (ImGui::BeginPopupModal("About Euphoria Engine", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Euphoria Engine 0.1");
         ImGui::TextDisabled("C++17 / OpenGL 3.3 game engine with an ImGui editor.");
         ImGui::Separator();
         ImGui::BulletText("ECS, forward renderer with shadows, terrain, water, particles");
@@ -665,4 +665,4 @@ void EditorApp::DrawPopups() {
     }
 }
 
-} // namespace nd::editor
+} // namespace eu::editor

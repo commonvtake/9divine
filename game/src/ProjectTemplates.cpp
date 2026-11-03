@@ -1,9 +1,9 @@
 #include "ProjectTemplates.h"
-#include <nd/9divine.h>
-#include <nd/scene/SceneSerializer.h>
-#include <nd/core/FileSystem.h>
+#include <euphoria/Euphoria.h>
+#include <euphoria/scene/SceneSerializer.h>
+#include <euphoria/core/FileSystem.h>
 
-using namespace nd;
+using namespace eu;
 
 namespace templates {
 
@@ -25,7 +25,7 @@ bool FromKey(const std::string& key, Template& out) {
     return false;
 }
 
-static fs::path SampleDir() { return fs::path(ND_SOURCE_DIR) / "projects" / "Demo"; }
+static fs::path SampleDir() { return fs::path(EU_SOURCE_DIR) / "projects" / "Demo"; }
 bool SampleAvailable() { return fs::exists(SampleDir() / "project.json"); }
 
 bool IsValidProjectName(const std::string& name, std::string* why) {
@@ -204,7 +204,7 @@ bool CreateProject(const fs::path& dirIn, const std::string& name, Template t, s
         } catch (...) {}
         FileSystem::WriteText(dir / ".gitignore", "Builds/\n");
         if (!Project::Load(dir)) { error = "The copied sample couldn't be loaded."; return false; }
-        ND_INFO("Created project '{}' from the Ember Isle sample in {}", name, dir.string());
+        EU_INFO("Created project '{}' from the Ember Isle sample in {}", name, dir.string());
         return true;
     }
 
@@ -214,7 +214,7 @@ bool CreateProject(const fs::path& dirIn, const std::string& name, Template t, s
     if (t == Template::Empty) BuildEmptyScene(scene);
     else BuildStarterScene(scene, name);
     if (!SceneSerializer(scene).Save("Scenes/Main.scene")) { error = "Couldn't save the starting scene."; return false; }
-    ND_INFO("Created project '{}' ({} template) in {}", name, t == Template::Empty ? "Empty" : "3D Starter", dir.string());
+    EU_INFO("Created project '{}' ({} template) in {}", name, t == Template::Empty ? "Empty" : "3D Starter", dir.string());
     return true;
 }
 

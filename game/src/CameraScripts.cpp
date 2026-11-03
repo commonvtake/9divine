@@ -1,8 +1,8 @@
 // Camera behaviours.
-#include <nd/9divine.h>
+#include <euphoria/Euphoria.h>
 #include "GameManager.h"
 
-using namespace nd;
+using namespace eu;
 
 // Orbit camera that follows a target, avoids clipping through geometry, and zooms.
 class ThirdPersonCamera : public ScriptableEntity {
@@ -50,7 +50,7 @@ public:
         tr.LookAt(pivot);
     }
 };
-ND_SCRIPT(ThirdPersonCamera)
+EU_SCRIPT(ThirdPersonCamera)
 
 // Free-fly camera for spectating / debugging (WASD + mouse, Q/E up/down).
 class FlyCamera : public ScriptableEntity {
@@ -79,4 +79,4 @@ public:
         t.position += move * s * dt;
     }
 };
-ND_SCRIPT(FlyCamera)
+EU_SCRIPT(FlyCamera)

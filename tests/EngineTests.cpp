@@ -1,12 +1,12 @@
 // Headless unit tests for engine systems (no window or GPU needed).
-// Run:  ctest --output-on-failure    or    ./9divine-tests
-#include <nd/9divine.h>
-#include <nd/scene/SceneSerializer.h>
-#include <nd/core/Json.h>
+// Run:  ctest --output-on-failure    or    ./euphoria-tests
+#include <euphoria/Euphoria.h>
+#include <euphoria/scene/SceneSerializer.h>
+#include <euphoria/core/Json.h>
 #include <cstdio>
 #include <cmath>
 
-using namespace nd;
+using namespace eu;
 
 static int g_Failures = 0, g_Checks = 0;
 #define CHECK(cond) do { g_Checks++; if (!(cond)) { g_Failures++; std::printf("    FAIL %s:%d  %s\n", __FILE__, __LINE__, #cond); } } while (0)
@@ -359,7 +359,7 @@ TEST(Save_ValuesAndSceneSnapshot) {
 }
 
 int main() {
-    std::printf("9divine engine tests\n");
+    std::printf("Euphoria engine tests\n");
     for (auto& t : Tests()) {
         int before = g_Failures;
         t.fn();
