@@ -347,6 +347,18 @@ void EditorApp::DrawComponents(Entity e) {
         if (clips.empty()) ImGui::TextDisabled("needs a skinned model");
         else { std::string all; for (auto& c : clips) all += c + "  "; ImGui::TextWrapped("%s", all.c_str()); }
         Next();
+        if (!clips.empty()) {
+            // Builds an idle/walk/run blend space + jump state from clip names (Blender actions
+            // named Idle, Walk, Run, Jump work out of the box). Works with PlayerController.
+            Label("");
+            if (ImGui::Button("Auto-setup locomotion")) {
+                if (SetupLocomotion(a, clips)) { g_Changed = true; if (a.runtime) a.runtime.reset(); }
+                else EU_WARN("No idle/walk/run clips found in {}", mr->mesh);
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Finds Idle / Walk / Run / Jump clips by name and builds the states.\nDrive it with the Speed (float) and Grounded (bool) parameters.");
+            Next();
+        }
         Label("Default state");
         if (ImGui::BeginCombo("##def", a.defaultState.c_str())) {
             for (auto& s : a.states) if (ImGui::Selectable(s.name.c_str(), s.name == a.defaultState)) { a.defaultState = s.name; g_Changed = true; }

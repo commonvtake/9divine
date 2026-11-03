@@ -27,5 +27,6 @@ private:
     float m_Invulnerable = 0.0f;
     float m_HurtFlash = 0.0f;
     bool m_Dead = false;
+    float m_AirTime = 0.0f;         // seconds since last on the ground
     eu::vec3 m_LastPos{ 0.0f };
 };
