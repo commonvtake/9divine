@@ -217,9 +217,18 @@ void EditorApp::DrawComponents(Entity e) {
         PBool("Visible", m.visible);
         PBool("Toon shading", m.toon);
         if (m.toon) {
+            Label("Preset");
+            const char* presets[] = { "Soft cel", "No More Heroes", "Killer7" };
+            if (ImGui::BeginCombo("##preset", "Apply...")) {
+                for (int i = 0; i < 3; i++)
+                    if (ImGui::Selectable(presets[i])) { ApplyToonPreset(m, (ToonPreset)i); g_Changed = true; }
+                ImGui::EndCombo();
+            }
+            Next();
             PInt("Bands", m.toonBands, 0.05f, 2, 8);
             PFloat("Band softness", m.toonSoftness, 0.002f, 0.0f, 0.5f);
             PColor3("Shadow color", m.toonShadowColor);
+            PFloat("Shadow fill", m.toonShadowFill, 0.01f, 0.0f, 1.0f);
             PFloat("Rim light", m.toonRim, 0.01f, 0.0f, 2.0f);
         }
         PBool("Outline", m.outline);

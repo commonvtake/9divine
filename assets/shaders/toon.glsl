@@ -3,12 +3,14 @@
 //
 // Instead of a smooth N.L gradient, each light's contribution is snapped into a few flat
 // bands. The darkest band is tinted with uToonShadowColor (a cool purple by default) rather
-// than going grey, and cast shadows are folded into the light term *before* banding, so
-// they read as the same flat shapes as the form shading.
+// than going grey - or, with uToonShadowFill = 1, replaced by that color outright, which gives
+// Killer7's solid black shadows. Cast shadows are folded into the light term *before* banding,
+// so they read as the same flat shapes as the form shading.
 
 uniform float uToonBands;        // number of light steps, >= 2
 uniform float uToonSoftness;     // width of the blend at each band edge (0 = hard)
 uniform vec3  uToonShadowColor;  // sRGB tint for the darkest band
+uniform float uToonShadowFill;   // 0 = shadow is the albedo tinted, 1 = shadow is solid uToonShadowColor (Killer7)
 uniform float uToonRim;          // strength of the rim highlight
 
 // Snaps x in [0,1] to one of `bands` evenly spaced levels with a small smooth transition.
@@ -30,11 +32,6 @@ float ToonSpec(vec3 N, vec3 L, vec3 V, float shininess) {
     return smoothstep(0.5 - w, 0.5 + w, s);
 }
 
-vec3 ToonLightTerm(vec3 albedo, vec3 shadowTint, float level) {
-    // Lerp from the tinted shadow color to full albedo across the bands.
-    return albedo * mix(shadowTint, vec3(1.0), level);
-}
-
 vec3 ComputeToonLighting(vec3 albedo, vec3 N, vec3 P, float specular, float shininess) {
     vec3 V = normalize(uCameraPos - P);
     vec3 shadowTint = ToLinear(uToonShadowColor);
@@ -47,7 +44,9 @@ vec3 ComputeToonLighting(vec3 albedo, vec3 N, vec3 P, float specular, float shin
         float ndl = max(dot(N, L), 0.0);
         float light = ndl * ShadowFactor(P, N);
         float level = ToonBand(light);
-        color += ToonLightTerm(albedo, shadowTint, level) * uSunColor;
+        vec3 lit = color + albedo * uSunColor;
+        vec3 shade = mix(color + albedo * shadowTint * uSunColor, shadowTint, uToonShadowFill);
+        color = mix(shade, lit, level);
         // Specular and rim only appear on the lit side.
         float litMask = step(0.001, level);
         color += ToonSpec(N, L, V, shininess) * specular * uSunColor * litMask;

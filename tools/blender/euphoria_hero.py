@@ -165,23 +165,49 @@ def box(material, bone, center, size):
     return part.finish()
 
 
+def taper(material, bone, lo, lo_size, hi, hi_size):
+    """A box whose bottom rectangle (centre lo, size x/z) and top rectangle (centre hi) differ:
+    collars, hair spikes, wedges."""
+    part = Part(material, bone)
+    for c, (sx, sz) in ((lo, lo_size), (hi, hi_size)):
+        for i in range(4):
+            part.verts.append((c[0] + (sx / 2 if i & 1 else -sx / 2), c[1], c[2] + (sz / 2 if i & 2 else -sz / 2)))
+    part.polys = [[0, 1, 3, 2], [4, 5, 7, 6], [0, 1, 5, 4], [2, 3, 7, 6], [0, 2, 6, 4], [1, 3, 7, 5]]
+    return part.finish()
+
+
 def build_parts():
     P = []
-    # Torso
+    # Torso: trousers, an open jacket with a short hem and popped collar, shirt showing through
     P.append(loft("Pants", "Hips", [((0, 0.84, 0), 0.155, 0.10), ((0, 1.01, 0), 0.165, 0.11)], 8, 22.5))
-    P.append(loft("Jacket", "Spine", [((0, 0.96, 0), 0.168, 0.118), ((0, 1.23, 0.0), 0.165, 0.112)], 8, 22.5))
-    P.append(loft("Jacket", "Chest", [((0, 1.20, 0), 0.17, 0.115), ((0, 1.42, 0), 0.215, 0.128), ((0, 1.52, -0.005), 0.165, 0.10)], 8, 22.5))
-    P.append(box("Shirt", "Spine", (0, 1.11, 0.104), (0.10, 0.25, 0.03)))     # open jacket shows the shirt
-    P.append(box("Shirt", "Chest", (0, 1.33, 0.115), (0.12, 0.25, 0.03)))
-    # Neck, head, hair, glasses
+    P.append(loft("Jacket", "Hips", [((0, 0.87, -0.005), 0.182, 0.128), ((0, 1.0, 0), 0.172, 0.12)], 8, 22.5))   # hem
+    P.append(loft("Jacket", "Spine", [((0, 0.96, 0), 0.168, 0.118), ((0, 1.23, 0.0), 0.162, 0.112)], 8, 22.5))
+    P.append(loft("Jacket", "Chest", [((0, 1.20, 0), 0.165, 0.115), ((0, 1.42, 0), 0.215, 0.128), ((0, 1.52, -0.005), 0.165, 0.10)], 8, 22.5))
+    P.append(box("Shirt", "Spine", (0, 1.11, 0.104), (0.10, 0.25, 0.03)))
+    P.append(taper("Shirt", "Chest", (0, 1.21, 0.112), (0.10, 0.03), (0, 1.47, 0.11), (0.15, 0.03)))  # V of the open jacket
+    for sx in (1.0, -1.0):
+        P.append(taper("Jacket", "Chest", (0.075 * sx, 1.47, -0.01), (0.05, 0.13), (0.115 * sx, 1.63, -0.025), (0.035, 0.15)))
+    P.append(taper("Jacket", "Chest", (0, 1.48, -0.085), (0.15, 0.035), (0, 1.635, -0.105), (0.19, 0.03)))
+    # Neck and head (angular jaw, chin pushed forward)
     P.append(loft("Skin", "Neck", [((0, 1.47, 0.0), 0.05, 0.05), ((0, 1.62, 0.0), 0.048, 0.05)], 6))
-    P.append(loft("Skin", "Head", [((0, 1.585, 0.012), 0.072, 0.075), ((0, 1.66, 0.008), 0.098, 0.105),
-                                   ((0, 1.78, 0.0), 0.104, 0.11), ((0, 1.83, -0.005), 0.08, 0.088)], 8, 22.5))
-    P.append(loft("Hair", "Head", [((0, 1.755, -0.012), 0.113, 0.12), ((0, 1.86, -0.004), 0.10, 0.108),
-                                   ((0, 1.935, 0.02), 0.045, 0.06)], 8, 22.5))
-    P.append(box("Hair", "Head", (0, 1.69, -0.085), (0.18, 0.15, 0.05)))      # back of the hair
-    P.append(box("Lens", "Head", (0, 1.715, 0.104), (0.19, 0.042, 0.02)))     # sunglasses
-    P.append(box("Skin", "Head", (0, 1.672, 0.112), (0.026, 0.045, 0.03)))    # nose
+    P.append(loft("Skin", "Head", [((0, 1.585, 0.025), 0.055, 0.06), ((0, 1.655, 0.01), 0.09, 0.1),
+                                   ((0, 1.765, 0.0), 0.097, 0.108), ((0, 1.83, -0.005), 0.078, 0.088)], 8, 22.5))
+    P.append(box("Skin", "Head", (0, 1.672, 0.11), (0.024, 0.045, 0.03)))    # nose
+    # Hair: a cap plus swept-back spikes and sideburns
+    P.append(loft("Hair", "Head", [((0, 1.755, -0.014), 0.108, 0.118), ((0, 1.85, -0.008), 0.098, 0.106)], 8, 22.5))
+    P.append(box("Hair", "Head", (0, 1.70, -0.082), (0.17, 0.15, 0.05)))
+    for lo, size, hi in (((0, 1.84, 0.045), (0.09, 0.07), (0, 1.99, 0.06)),       # front quiff
+                         ((0, 1.845, -0.02), (0.10, 0.09), (0, 2.0, -0.09)),
+                         ((0.055, 1.83, -0.01), (0.07, 0.08), (0.13, 1.96, -0.07)),
+                         ((-0.055, 1.83, -0.01), (0.07, 0.08), (-0.13, 1.96, -0.07)),
+                         ((0, 1.81, -0.07), (0.13, 0.07), (0, 1.89, -0.18))):
+        P.append(taper("Hair", "Head", lo, size, hi, (0.012, 0.012)))
+    for sx in (1.0, -1.0):
+        P.append(box("Hair", "Head", (0.093 * sx, 1.70, 0.0), (0.02, 0.09, 0.05)))   # sideburns
+    # Aviator-ish sunglasses: two lenses and a bridge
+    for sx in (1.0, -1.0):
+        P.append(taper("Lens", "Head", (0.044 * sx, 1.696, 0.1), (0.066, 0.016), (0.046 * sx, 1.733, 0.103), (0.072, 0.016)))
+    P.append(box("Hair", "Head", (0, 1.728, 0.108), (0.03, 0.008, 0.01)))
     for side, sx in (("L", 1.0), ("R", -1.0)):
         x = lambda v: v * sx
         # Arms: jacket sleeves, hands

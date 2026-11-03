@@ -1,4 +1,5 @@
 #include "ProjectTemplates.h"
+#include "Characters.h"
 #include <euphoria/Euphoria.h>
 #include <euphoria/scene/SceneSerializer.h>
 #include <euphoria/core/FileSystem.h>
@@ -96,7 +97,7 @@ void BuildEmptyScene(Scene& s) {
     Box(s, "Ground", { 0, -0.5f, 0 }, { 40, 1, 40 }, { 0.72f, 0.75f, 0.78f, 1 });
 }
 
-void BuildStarterScene(Scene& s, const std::string& title) {
+void BuildStarterScene(Scene& s, const std::string& title, bool hero) {
     s.name = "Main";
     AddSun(s);
     Box(s, "Ground", { 0, -0.5f, 0 }, { 60, 1, 60 }, { 0.55f, 0.68f, 0.5f, 1 });
@@ -136,14 +137,26 @@ void BuildStarterScene(Scene& s, const std::string& title) {
     player.Add<AudioListenerComponent>();
     player.Add<SaveableComponent>();
     player.Add<NetworkIdentityComponent>();
-    Child(s, player, "Body", "builtin:capsule", { 0, 0.9f, 0 }, vec3(0.9f), { 0.95f, 0.95f, 0.97f, 1 });
-    Child(s, player, "Nose", "builtin:cube", { 0, 1.35f, -0.42f }, { 0.25f, 0.18f, 0.25f }, { 0.25f, 0.75f, 0.6f, 1 });
+    Entity model;
+    if (hero) {
+        // The animated Hero (Idle/Walk/Run/Jump), copied into the project's Models folder
+        model = characters::AddHeroModel(s, player);
+    } else {
+        Child(s, player, "Body", "builtin:capsule", { 0, 0.9f, 0 }, vec3(0.9f), { 0.95f, 0.95f, 0.97f, 1 });
+        Child(s, player, "Nose", "builtin:cube", { 0, 1.35f, -0.42f }, { 0.25f, 0.18f, 0.25f }, { 0.25f, 0.75f, 0.6f, 1 });
+    }
 
     Entity cam = s.CreateEntity("Main Camera");
     cam.Transform().position = { 0, 3, 10 };
     cam.Add<CameraComponent>();
     Script(cam, "ThirdPersonCamera", { { "Target", (uint64_t)player.GetUUID() }, { "Distance", 6.0f } });
-    Script(player, "PlayerController", { { "Camera", (uint64_t)cam.GetUUID() } });
+    json controller = { { "Camera", (uint64_t)cam.GetUUID() } };
+    if (model) {
+        controller["Model"] = (uint64_t)model.GetUUID();
+        controller["Move Speed"] = 3.5f;
+        controller["Sprint Speed"] = 7.0f;
+    }
+    Script(player, "PlayerController", controller);
 
     Entity gm = s.CreateEntity("GameManager");
     Script(gm, "GameManager", { { "Title", title }, { "Player", (uint64_t)player.GetUUID() } });
@@ -212,7 +225,18 @@ bool CreateProject(const fs::path& dirIn, const std::string& name, Template t, s
     if (!Project::Load(dir)) { error = "The new project couldn't be loaded."; return false; }
     Scene scene;
     if (t == Template::Empty) BuildEmptyScene(scene);
-    else BuildStarterScene(scene, name);
+    else {
+        // Give the starter the animated Hero when the sample's model is available.
+        bool hero = false;
+        fs::path src = SampleDir() / "Models" / "Hero";
+        if (fs::exists(src / "Hero.glb")) {
+            std::error_code cec;
+            fs::create_directories(dir / "Models" / "Hero", cec);
+            fs::copy(src, dir / "Models" / "Hero", fs::copy_options::recursive | fs::copy_options::overwrite_existing, cec);
+            hero = !cec;
+        }
+        BuildStarterScene(scene, name, hero);
+    }
     if (!SceneSerializer(scene).Save("Scenes/Main.scene")) { error = "Couldn't save the starting scene."; return false; }
     EU_INFO("Created project '{}' ({} template) in {}", name, t == Template::Empty ? "Empty" : "3D Starter", dir.string());
     return true;

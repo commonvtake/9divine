@@ -417,6 +417,7 @@ TEST(Toon_SettingsSerialize) {
     mr.toonBands = 2;
     mr.toonSoftness = 0.0f;
     mr.toonShadowColor = { 0.2f, 0.1f, 0.4f };
+    mr.toonShadowFill = 0.75f;
     mr.toonRim = 0.6f;
     mr.outline = true;
     mr.outlineWidth = 4.0f;
@@ -432,6 +433,7 @@ TEST(Toon_SettingsSerialize) {
     CHECK(h.toonBands == 2);
     CHECK(h.toonSoftness == 0.0f);
     CHECK(h.toonShadowColor == vec3(0.2f, 0.1f, 0.4f));
+    CHECK(h.toonShadowFill == 0.75f);
     CHECK(h.toonRim == 0.6f);
     CHECK(h.outline);
     CHECK(h.outlineWidth == 4.0f);

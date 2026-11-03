@@ -60,6 +60,7 @@ struct MeshRendererComponent {
     int toonBands = 3;                      // number of light steps (2 = hard two-tone)
     float toonSoftness = 0.02f;             // blur at band edges (0 = razor sharp)
     vec3 toonShadowColor{ 0.45f, 0.40f, 0.62f }; // sRGB tint multiplied into the darkest band
+    float toonShadowFill = 0.0f;            // 0 = tinted albedo, 1 = solid shadow color (Killer7)
     float toonRim = 0.25f;                  // hard rim light on the lit side (0 = off)
     // Ink outline drawn with an inverted hull (works with or without toon shading).
     bool outline = false;
@@ -70,6 +71,30 @@ struct MeshRendererComponent {
     std::string loadedMesh;
     uint32_t loadedVersion = 0;
 };
+
+// One-click looks for MeshRendererComponent's toon settings.
+enum class ToonPreset {
+    SoftCel,        // 3 bands, cool purple shadows, rim light, ink outline (the default)
+    NoMoreHeroes,   // 2 hard bands, near-black shadows that keep a hint of the texture, thin ink line
+    Killer7,        // 2 hard bands, solid black shadows, no outline
+};
+inline void ApplyToonPreset(MeshRendererComponent& m, ToonPreset p) {
+    m.toon = true;
+    switch (p) {
+    case ToonPreset::SoftCel:
+        m.toonBands = 3; m.toonSoftness = 0.02f; m.toonShadowColor = { 0.45f, 0.40f, 0.62f }; m.toonShadowFill = 0.0f;
+        m.toonRim = 0.25f; m.outline = true; m.outlineWidth = 3.0f; m.outlineColor = { 0.04f, 0.03f, 0.05f, 1.0f };
+        break;
+    case ToonPreset::NoMoreHeroes:
+        m.toonBands = 2; m.toonSoftness = 0.0f; m.toonShadowColor = { 0.12f, 0.08f, 0.12f }; m.toonShadowFill = 0.65f;
+        m.toonRim = 0.0f; m.outline = true; m.outlineWidth = 1.5f; m.outlineColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+        break;
+    case ToonPreset::Killer7:
+        m.toonBands = 2; m.toonSoftness = 0.0f; m.toonShadowColor = { 0.0f, 0.0f, 0.0f }; m.toonShadowFill = 1.0f;
+        m.toonRim = 0.0f; m.outline = false;
+        break;
+    }
+}
 
 struct CameraComponent {
     bool primary = true;

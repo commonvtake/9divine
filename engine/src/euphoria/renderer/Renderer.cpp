@@ -374,6 +374,7 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
                 s->SetFloat("uToonBands", (float)glm::clamp(d.mr->toonBands, 2, 8));
                 s->SetFloat("uToonSoftness", glm::clamp(d.mr->toonSoftness, 0.0f, 0.5f));
                 s->SetVec3("uToonShadowColor", d.mr->toonShadowColor);
+                s->SetFloat("uToonShadowFill", glm::clamp(d.mr->toonShadowFill, 0.0f, 1.0f));
                 s->SetFloat("uToonRim", d.mr->toonRim);
             }
             s->SetMat4("uModel", d.world);

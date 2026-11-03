@@ -42,7 +42,7 @@ json SceneSerializer::SerializeEntity(Entity e) {
         // Only written when used, so existing scene files stay unchanged.
         if (c->toon || c->outline)
             j["meshRenderer"]["toon"] = { { "enabled", c->toon }, { "bands", c->toonBands }, { "softness", c->toonSoftness },
-                                          { "shadowColor", c->toonShadowColor }, { "rim", c->toonRim }, { "outline", c->outline },
+                                          { "shadowColor", c->toonShadowColor }, { "shadowFill", c->toonShadowFill }, { "rim", c->toonRim }, { "outline", c->outline },
                                           { "outlineWidth", c->outlineWidth }, { "outlineColor", c->outlineColor } };
     }
     if (auto* c = e.TryGet<CameraComponent>())
@@ -164,6 +164,7 @@ Entity SceneSerializer::DeserializeEntity(Scene& scene, const json& j, std::unor
             c.toonBands = JGet(jt, "bands", c.toonBands);
             c.toonSoftness = JGet(jt, "softness", c.toonSoftness);
             c.toonShadowColor = JGet(jt, "shadowColor", c.toonShadowColor);
+            c.toonShadowFill = JGet(jt, "shadowFill", c.toonShadowFill);
             c.toonRim = JGet(jt, "rim", c.toonRim);
             c.outline = JGet(jt, "outline", c.outline);
             c.outlineWidth = JGet(jt, "outlineWidth", c.outlineWidth);
