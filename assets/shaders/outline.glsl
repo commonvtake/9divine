@@ -35,12 +35,14 @@ void main() {
     vWorldPos = world.xyz;
 
     vec4 clip = uViewProj * world;
-    vec2 clipN = (uViewProj * vec4(worldN, 0.0)).xy;
-    float len = length(clipN);
+    // Direction of the normal on screen, measured in pixels. (Normalizing in NDC instead would
+    // skew it on non-square screens, where one NDC unit is more pixels wide than tall.)
+    vec2 dirPx = (uViewProj * vec4(worldN, 0.0)).xy * uViewportSize;
+    float len = length(dirPx);
     if (len > 1e-6) {
         // Full width up close, tapering to 35% far away so distant objects don't turn to ink.
         float taper = clamp(12.0 / max(clip.w, 1e-3), 0.35, 1.0);
-        vec2 offsetNdc = (clipN / len) * (uOutlineWidth * taper) * 2.0 / uViewportSize;
+        vec2 offsetNdc = (dirPx / len) * (uOutlineWidth * taper) * 2.0 / uViewportSize;
         clip.xy += offsetNdc * clip.w;   // multiply by w so the offset survives the perspective divide
     }
     gl_Position = clip;

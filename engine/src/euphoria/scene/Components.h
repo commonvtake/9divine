@@ -63,7 +63,7 @@ struct MeshRendererComponent {
     float toonRim = 0.25f;                  // hard rim light on the lit side (0 = off)
     // Ink outline drawn with an inverted hull (works with or without toon shading).
     bool outline = false;
-    float outlineWidth = 2.5f;              // in pixels at close range, thinner with distance
+    float outlineWidth = 3.0f;              // in pixels at close range, thinner with distance
     vec4 outlineColor{ 0.04f, 0.03f, 0.05f, 1.0f };
     // runtime
     Ref<Model> model;

@@ -87,16 +87,29 @@ A **forward renderer** with these passes:
 1. **Shadow pass** – one orthographic shadow map for the first directional light. The light frustum is centred in front of the camera and **snapped to whole texels** so shadows don't shimmer as the camera moves. Polygon offset + normal-offset sampling remove acne. Sampling uses hardware depth comparison (`sampler2DShadow`) with a 3×3 PCF kernel and fades out at the map's edge.
 2. **Main pass** into an off-screen framebuffer with two colour attachments: `RGBA8` colour and `R32I` entity IDs (used for mouse picking in the editor).
    - Procedural sky (fullscreen triangle; view rays reconstructed from the inverse view-projection).
-   - Opaque meshes (Blinn-Phong, up to 8 point lights sorted by distance + 4 spot lights, hemisphere ambient). Skinned meshes use a `SKINNED` shader variant.
+   - Opaque meshes (Blinn-Phong, up to 8 point lights sorted by distance + 4 spot lights, hemisphere ambient). Skinned meshes use a `SKINNED` shader variant; toon meshes use a `TOON` variant (see below).
+   - Ink outlines for meshes that want them (inverted hull, see below).
    - Terrain (height/slope based material blend), instanced trees, instanced wind-animated grass with distance fade.
    - Water (vertex waves with analytic normals, Fresnel, sun glint), alpha-blended.
    - Particles (instanced billboards, additive or sorted alpha).
    - Debug lines.
 3. **Game UI** batch on top.
 
-Shaders are single files with `#type vertex` / `#type fragment` sections, an `#include` preprocessor and compile-time variants (`SKINNED`, `INSTANCED`) cached per define set. Colours are authored in sRGB and converted to linear in the shader; output goes through ACES tone mapping + gamma.
+Shaders are single files with `#type vertex` / `#type fragment` sections, an `#include` preprocessor and compile-time variants (`SKINNED`, `INSTANCED`, `TOON`) cached per define set. Colours are authored in sRGB and converted to linear in the shader; output goes through ACES tone mapping + gamma.
 
 Non-opaque passes mask out the ID attachment with `glColorMaski` so transparent effects never break picking.
+
+### Toon shading and outlines
+`assets/shaders/toon.glsl`, `assets/shaders/outline.glsl`
+
+Any Mesh Renderer can switch to cel shading (the No More Heroes / Jet Set Radio look) with two independent settings:
+
+- **Banded lighting.** The `TOON` variant of `lit.glsl` still computes N·L per light, but snaps it into N flat steps (`ToonBand`) with an optional tiny blend at each edge. The cast-shadow term is multiplied in *before* snapping, so shadows land in the same flat bands as the form shading instead of being a separate soft gradient. The darkest band is multiplied by a tint (cool purple by default) rather than going grey, which is most of what makes it read as illustrated. Specular becomes a hard-edged blob, and a thin rim light picks out the lit silhouette.
+- **Ink outlines (inverted hull).** After the opaque pass, outlined meshes are drawn again with `outline.glsl`: front faces are culled and each vertex is pushed outward, so only the back faces of a slightly larger shell show, as a solid line around the silhouette. The push happens in **clip space along the normal's on-screen direction**, measured in pixels, so lines have a consistent thickness regardless of the object's size or scale; they taper to 35% with distance so far-away props don't turn into ink blots.
+
+The classic problem with inverted hulls is hard edges: a cube's corners have three copies of each vertex with three different normals, so pushing along them tears the hull open. `Mesh::ComputeOutlineNormals` fixes this at load time by welding vertices by position and averaging **angle-weighted** face normals (independent of triangulation), stored as a separate vertex attribute (location 9) so the main vertex layout is unchanged. Skinned meshes skin this normal along with the position.
+
+Outlines write the entity ID too, so clicking an outline in the editor selects the object.
 
 **Frustum culling** uses planes extracted from the view-projection matrix (Gribb–Hartmann) and transformed AABBs.
 
