@@ -215,6 +215,18 @@ void EditorApp::DrawComponents(Entity e) {
         PColor3("Emissive", m.emissive, true);
         PBool("Cast shadows", m.castShadows);
         PBool("Visible", m.visible);
+        PBool("Toon shading", m.toon);
+        if (m.toon) {
+            PInt("Bands", m.toonBands, 0.05f, 2, 8);
+            PFloat("Band softness", m.toonSoftness, 0.002f, 0.0f, 0.5f);
+            PColor3("Shadow color", m.toonShadowColor);
+            PFloat("Rim light", m.toonRim, 0.01f, 0.0f, 2.0f);
+        }
+        PBool("Outline", m.outline);
+        if (m.outline) {
+            PFloat("Outline width", m.outlineWidth, 0.05f, 0.0f, 20.0f, "%.1f px");
+            PColor4("Outline color", m.outlineColor);
+        }
     });
 
     Section<CameraComponent>(e, "Camera", [&](CameraComponent& c) {

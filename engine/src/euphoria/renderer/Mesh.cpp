@@ -2,6 +2,7 @@
 #include "euphoria/renderer/GL.h"
 #include "euphoria/core/Profiler.h"
 #include <cmath>
+#include <unordered_map>
 
 namespace eu {
 
@@ -30,6 +31,15 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     glVertexAttribIPointer(3, 4, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex, joints));
     glEnableVertexAttribArray(4);
     glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, weights));
+
+    // Outline normals live in their own buffer so the main vertex layout stays unchanged.
+    // (Locations 5-8 are reserved for per-instance matrices.)
+    std::vector<vec3> outline = ComputeOutlineNormals(vertices, indices);
+    glGenBuffers(1, &m_OutlineVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_OutlineVBO);
+    glBufferData(GL_ARRAY_BUFFER, outline.size() * sizeof(vec3), outline.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(9);
+    glVertexAttribPointer(9, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
     glBindVertexArray(0);
 }
 
@@ -37,6 +47,7 @@ Mesh::~Mesh() {
     if (!g_GLContextAlive) return;
     glDeleteBuffers(1, &m_VBO);
     glDeleteBuffers(1, &m_IBO);
+    glDeleteBuffers(1, &m_OutlineVBO);
     glDeleteVertexArrays(1, &m_VAO);
 }
 
@@ -70,6 +81,58 @@ void Mesh::AttachInstanceBuffer(uint32_t vbo) {
         glVertexAttribDivisor(5 + i, 1);
     }
     glBindVertexArray(0);
+}
+
+std::vector<vec3> Mesh::ComputeOutlineNormals(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
+    // 1. Weld vertices by position (quantized to 0.1 mm) so split normals share one group.
+    struct Key {
+        int64_t x, y, z;
+        bool operator==(const Key& o) const { return x == o.x && y == o.y && z == o.z; }
+    };
+    struct KeyHash {
+        size_t operator()(const Key& k) const {
+            return std::hash<int64_t>()(k.x * 73856093LL ^ k.y * 19349663LL ^ k.z * 83492791LL);
+        }
+    };
+    const float q = 10000.0f;
+    std::unordered_map<Key, uint32_t, KeyHash> groups;
+    groups.reserve(vertices.size());
+    std::vector<uint32_t> groupOf(vertices.size());
+    for (size_t i = 0; i < vertices.size(); i++) {
+        const vec3& p = vertices[i].position;
+        Key k{ (int64_t)std::llround(p.x * q), (int64_t)std::llround(p.y * q), (int64_t)std::llround(p.z * q) };
+        auto [it, inserted] = groups.emplace(k, (uint32_t)groups.size());
+        groupOf[i] = it->second;
+    }
+
+    // 2. Accumulate angle-weighted face normals per group. Weighting by the corner angle makes
+    //    the result independent of how a face was triangulated.
+    std::vector<vec3> sums(groups.size(), vec3(0.0f));
+    for (size_t t = 0; t + 2 < indices.size(); t += 3) {
+        uint32_t id[3] = { indices[t], indices[t + 1], indices[t + 2] };
+        if (id[0] >= vertices.size() || id[1] >= vertices.size() || id[2] >= vertices.size()) continue;
+        vec3 p[3] = { vertices[id[0]].position, vertices[id[1]].position, vertices[id[2]].position };
+        vec3 n = glm::cross(p[1] - p[0], p[2] - p[0]);
+        float len = glm::length(n);
+        if (len < 1e-12f) continue;
+        n /= len;
+        for (int c = 0; c < 3; c++) {
+            vec3 e1 = p[(c + 1) % 3] - p[c], e2 = p[(c + 2) % 3] - p[c];
+            float l1 = glm::length(e1), l2 = glm::length(e2);
+            if (l1 < 1e-9f || l2 < 1e-9f) continue;
+            float angle = std::acos(glm::clamp(glm::dot(e1, e2) / (l1 * l2), -1.0f, 1.0f));
+            sums[groupOf[id[c]]] += n * angle;
+        }
+    }
+
+    // 3. Normalize; fall back to the vertex's own normal for degenerate groups.
+    std::vector<vec3> out(vertices.size());
+    for (size_t i = 0; i < vertices.size(); i++) {
+        vec3 s = sums[groupOf[i]];
+        float len = glm::length(s);
+        out[i] = len > 1e-6f ? s / len : vertices[i].normal;
+    }
+    return out;
 }
 
 void Mesh::ComputeNormals(std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
