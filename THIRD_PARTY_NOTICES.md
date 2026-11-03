@@ -1,6 +1,6 @@
 # Third-party software
 
-9divine bundles the following libraries in `third_party/`. Each folder contains the library's own license file.
+Euphoria Engine bundles the following libraries in `third_party/`. Each folder contains the library's own license file.
 
 | Library | Version | License | Used for |
 |---|---|---|---|

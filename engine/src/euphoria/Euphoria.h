@@ -1,0 +1,22 @@
+#pragma once
+// Umbrella header for gameplay code: #include <euphoria/Euphoria.h>
+
+#include "euphoria/core/Base.h"
+#include "euphoria/core/Log.h"
+#include "euphoria/core/Input.h"
+#include "euphoria/core/Application.h"
+#include "euphoria/core/Profiler.h"
+#include "euphoria/scene/Scene.h"
+#include "euphoria/scene/Entity.h"
+#include "euphoria/scene/Components.h"
+#include "euphoria/scene/ScriptableEntity.h"
+#include "euphoria/scene/SceneManager.h"
+#include "euphoria/physics/Physics.h"
+#include "euphoria/audio/Audio.h"
+#include "euphoria/ai/Navigation.h"
+#include "euphoria/ui/GameUI.h"
+#include "euphoria/particles/Particles.h"
+#include "euphoria/save/SaveGame.h"
+#include "euphoria/net/Network.h"
+#include "euphoria/renderer/DebugDraw.h"
+#include "euphoria/terrain/Terrain.h"

@@ -1,13 +1,13 @@
 #pragma once
-#include <nd/9divine.h>
-#include <nd/core/FileSystem.h>
-#include <nd/renderer/Framebuffer.h>
-#include <nd/renderer/Renderer.h>
+#include <euphoria/Euphoria.h>
+#include <euphoria/core/FileSystem.h>
+#include <euphoria/renderer/Framebuffer.h>
+#include <euphoria/renderer/Renderer.h>
 #include "EditorCamera.h"
 #include "ProjectHub.h"
 #include <functional>
 
-namespace nd::editor {
+namespace eu::editor {
 
 enum class PlayState { Edit, Play };
 
@@ -167,4 +167,4 @@ public:
     bool newProjectOnStart = false;
 };
 
-} // namespace nd::editor
+} // namespace eu::editor

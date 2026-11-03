@@ -1,9 +1,9 @@
 // AI examples: a state-machine enemy and a behaviour-tree wildlife NPC.
-#include <nd/9divine.h>
+#include <euphoria/Euphoria.h>
 #include "GameManager.h"
 #include "PlayerController.h"
 
-using namespace nd;
+using namespace eu;
 
 // Shade: patrols, chases the player when it sees them, attacks up close.
 // Demonstrates StateMachine + NavAgent pathfinding.
@@ -108,7 +108,7 @@ private:
     uint32_t m_Seed = 1;
     float m_Wait = 0.0f, m_AttackTimer = 0.0f, m_Pulse = 0.0f;
 };
-ND_SCRIPT(EnemyAI)
+EU_SCRIPT(EnemyAI)
 
 // Fox: wanders between random spots, sits and looks around, and runs away from a
 // sprinting player. Demonstrates behaviour trees + animation parameters.
@@ -174,4 +174,4 @@ private:
     vec3 m_Home{ 0.0f };
     uint32_t m_Seed = 7;
 };
-ND_SCRIPT(FoxWanderer)
+EU_SCRIPT(FoxWanderer)

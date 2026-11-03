@@ -1,9 +1,9 @@
 // Small world behaviours: collectibles, campfire checkpoints, portals, platforms.
-#include <nd/9divine.h>
+#include <euphoria/Euphoria.h>
 #include "GameManager.h"
 #include "PlayerController.h"
 
-using namespace nd;
+using namespace eu;
 
 // Floating ember: spins, bobs, and is collected when the player touches it.
 class Ember : public ScriptableEntity {
@@ -28,7 +28,7 @@ private:
     float m_Base = 0.0f, m_Time = 0.0f, m_Phase = 0.0f;
     bool m_Collected = false;
 };
-ND_SCRIPT(Ember)
+EU_SCRIPT(Ember)
 
 // Campfire: flickering light; standing next to it heals and saves a checkpoint.
 class Campfire : public ScriptableEntity {
@@ -62,7 +62,7 @@ private:
     bool m_PlayerInside = false;
     Entity m_Player;
 };
-ND_SCRIPT(Campfire)
+EU_SCRIPT(Campfire)
 
 // Loads another scene when the player walks in.
 class Portal : public ScriptableEntity {
@@ -76,7 +76,7 @@ public:
         if (other.Get<TagComponent>().tag == "Player" && !targetScene.empty()) SceneManager::LoadScene(targetScene);
     }
 };
-ND_SCRIPT(Portal)
+EU_SCRIPT(Portal)
 
 // Rotates an object continuously.
 class Spinner : public ScriptableEntity {
@@ -89,7 +89,7 @@ public:
         Transform().rotation = glm::normalize(Transform().rotation * glm::angleAxis(glm::radians(degreesPerSecond * dt), glm::normalize(axis)));
     }
 };
-ND_SCRIPT(Spinner)
+EU_SCRIPT(Spinner)
 
 // Kinematic platform that moves back and forth (pushes rigid bodies standing on it).
 class MovingPlatform : public ScriptableEntity {
@@ -109,7 +109,7 @@ private:
     vec3 m_Start{ 0.0f };
     float m_Time = 0.0f;
 };
-ND_SCRIPT(MovingPlatform)
+EU_SCRIPT(MovingPlatform)
 
 // Arena toy: fires physics balls where the camera looks (Fire action).
 class BallLauncher : public ScriptableEntity {
@@ -140,4 +140,4 @@ private:
     float m_Cooldown = 0.0f;
     std::vector<Entity> m_Spawned;
 };
-ND_SCRIPT(BallLauncher)
+EU_SCRIPT(BallLauncher)

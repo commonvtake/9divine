@@ -1,13 +1,13 @@
 // "Build Game": packages a standalone, shareable copy of the project.
 //
 //   <output>/
-//     <ProjectName>(.exe)   the 9divine Player runtime, renamed
+//     <ProjectName>(.exe)   the Euphoria Player runtime, renamed
 //     game.json             tells the player where the project lives
 //     EngineAssets/         shaders + fonts
 //     Game/                 the project (scenes, models, audio, input map...)
 #include "EditorApp.h"
 
-namespace nd::editor {
+namespace eu::editor {
 
 static std::string SafeName(std::string n) {
     for (auto& c : n) if (!std::isalnum((unsigned char)c) && c != '-' && c != '_') c = '_';
@@ -16,16 +16,16 @@ static std::string SafeName(std::string n) {
 
 bool EditorApp::BuildGame(const fs::path& out, std::string& log) {
     log.clear();
-    auto say = [&](const std::string& s) { log += s + "\n"; ND_INFO("[Build] {}", s); };
+    auto say = [&](const std::string& s) { log += s + "\n"; EU_INFO("[Build] {}", s); };
     std::error_code ec;
 #ifdef _WIN32
     const std::string exeExt = ".exe";
 #else
     const std::string exeExt = "";
 #endif
-    fs::path player = Platform::ExecutableDir() / ("9divine-player" + exeExt);
+    fs::path player = Platform::ExecutableDir() / ("euphoria-player" + exeExt);
     if (!fs::exists(player)) {
-        say("ERROR: 9divine-player" + exeExt + " not found next to the editor. Build the NineDivinePlayer target first.");
+        say("ERROR: euphoria-player" + exeExt + " not found next to the editor. Build the EuphoriaPlayer target first.");
         return false;
     }
     if (fs::exists(out / "Game", ec)) fs::remove_all(out / "Game", ec);
@@ -76,4 +76,4 @@ bool EditorApp::BuildGame(const fs::path& out, std::string& log) {
     return true;
 }
 
-} // namespace nd::editor
+} // namespace eu::editor

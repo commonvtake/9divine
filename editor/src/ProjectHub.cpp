@@ -3,14 +3,14 @@
 #include "EditorApp.h"
 #include "ProjectHub.h"
 #include "ProjectTemplates.h"
-#include <nd/assets/AssetManager.h>
-#include <nd/core/Json.h>
+#include <euphoria/assets/AssetManager.h>
+#include <euphoria/core/Json.h>
 #include <imgui.h>
 #include <imgui_stdlib.h>
 #include <ctime>
 #include <chrono>
 
-namespace nd::editor {
+namespace eu::editor {
 
 // ======================================================================== helpers
 bool IsProjectFolder(const fs::path& dir) {
@@ -149,7 +149,7 @@ bool FolderBrowser::Draw(const char* popupId, const char* confirmLabel, bool req
         auto& e = m_Entries[i];
         ImGui::PushID(i);
         if (e.isProject) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.45f, 0.9f, 0.7f, 1.0f));
-        std::string label = (e.isProject ? "[9divine project]  " : "") + e.name;
+        std::string label = (e.isProject ? "[Euphoria project]  " : "") + e.name;
         if (ImGui::Selectable(label.c_str(), m_Selected == i, ImGuiSelectableFlags_AllowDoubleClick)) {
             m_Selected = i;
             if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
@@ -195,7 +195,7 @@ void EditorApp::RequestProjectChange(std::function<void()> action) {
 bool EditorApp::OpenProject(const fs::path& dir) {
     if (m_State == PlayState::Play) StopPlay();
     if (!IsProjectFolder(dir) || !Project::Load(dir)) {
-        m_ProjectError = "No 9divine project was found in:\n" + dir.string();
+        m_ProjectError = "No Euphoria project was found in:\n" + dir.string();
         m_ShowProjectError = true;
         // Keep the previously open project active
         if (m_ProjectOpen) Project::Load(m_ProjectDir);
@@ -217,7 +217,7 @@ bool EditorApp::OpenProject(const fs::path& dir) {
     std::string start = Project::Info().startScene;
     if (start.empty() || !OpenScene(start)) NewScene();
     m_Recent.Add(Project::Root(), Project::Info().name);
-    ND_INFO("Opened project '{}' ({})", Project::Info().name, Project::Root().string());
+    EU_INFO("Opened project '{}' ({})", Project::Info().name, Project::Root().string());
     UpdateTitle();
     return true;
 }
@@ -235,7 +235,7 @@ void EditorApp::CloseProject() {
 
 void EditorApp::BeginNewProject() {
     m_NewProjectName = "MyGame";
-    if (m_NewProjectLocation.empty()) m_NewProjectLocation = (Platform::DocumentsDir() / "9divine Projects").string();
+    if (m_NewProjectLocation.empty()) m_NewProjectLocation = (Platform::DocumentsDir() / "Euphoria Projects").string();
     // Pick a name that doesn't exist yet
     for (int i = 2; fs::exists(fs::path(m_NewProjectLocation) / m_NewProjectName) && i < 100; i++) m_NewProjectName = "MyGame" + std::to_string(i);
     m_NewProjectTemplate = 1;   // 3D Starter
@@ -381,7 +381,7 @@ void EditorApp::DrawProjectHub() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(28, 32));
     ImGui::BeginChild("##sidebar", ImVec2(sidebar, 0), false, ImGuiWindowFlags_AlwaysUseWindowPadding);
     if (title) ImGui::PushFont(title);
-    ImGui::TextColored(ImVec4(0.42f, 0.85f, 0.66f, 1.0f), "9divine");
+    ImGui::TextColored(ImVec4(0.42f, 0.85f, 0.66f, 1.0f), "Euphoria Engine");
     if (title) ImGui::PopFont();
     ImGui::TextDisabled("Game Engine  v0.1");
     ImGui::Dummy(ImVec2(0, 30));
@@ -398,7 +398,7 @@ void EditorApp::DrawProjectHub() {
     bool sample = templates::SampleAvailable();
     ImGui::BeginDisabled(!sample);
     if (ImGui::Button("Open Sample: Ember Isle", big)) {
-        fs::path dir = fs::path(ND_SOURCE_DIR) / "projects" / "Demo";
+        fs::path dir = fs::path(EU_SOURCE_DIR) / "projects" / "Demo";
         RequestProjectChange([this, dir] { OpenProject(dir); });
     }
     ImGui::EndDisabled();
@@ -470,4 +470,4 @@ void EditorApp::DrawProjectHub() {
     ImGui::End();
 }
 
-} // namespace nd::editor
+} // namespace eu::editor

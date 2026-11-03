@@ -1,11 +1,11 @@
 #include "EditorApp.h"
-#include <nd/scene/SceneSerializer.h>
-#include <nd/assets/AssetManager.h>
-#include <nd/renderer/GL.h>
+#include <euphoria/scene/SceneSerializer.h>
+#include <euphoria/assets/AssetManager.h>
+#include <euphoria/renderer/GL.h>
 #include <imgui.h>
 #include <ImGuizmo.h>
 
-namespace nd::editor {
+namespace eu::editor {
 
 EditorApp::EditorApp(const AppConfig& config, fs::path projectDir) : Application(config), m_ProjectDir(std::move(projectDir)) {}
 
@@ -30,15 +30,15 @@ void EditorApp::OnInit() {
     SceneManager::onQuitRequested = [this] { if (m_State == PlayState::Play) StopPlay(); };
     m_RenderOptions.showLightGizmos = true;
     m_Recent.Load();
-    m_NewProjectLocation = (Platform::DocumentsDir() / "9divine Projects").string();
+    m_NewProjectLocation = (Platform::DocumentsDir() / "Euphoria Projects").string();
 
     if (!m_ProjectDir.empty()) OpenProject(m_ProjectDir);
     if (!m_ProjectOpen) {
         UpdateTitle();
         if (newProjectOnStart) BeginNewProject();
-        ND_INFO("9divine Project Hub ready.");
+        EU_INFO("Euphoria Project Hub ready.");
     } else {
-        ND_INFO("9divine Editor ready. Press Play (Ctrl+P) to run the game.");
+        EU_INFO("Euphoria Editor ready. Press Play (Ctrl+P) to run the game.");
     }
 }
 
@@ -56,8 +56,8 @@ bool EditorApp::OnCloseRequested() {
 }
 
 void EditorApp::UpdateTitle() {
-    if (!m_ProjectOpen) { SetTitle("9divine - Project Hub"); return; }
-    std::string title = "9divine Editor - " + Project::Info().name + " - " + (m_EditorScene ? m_EditorScene->name : std::string("")) +
+    if (!m_ProjectOpen) { SetTitle("Euphoria Engine - Project Hub"); return; }
+    std::string title = "Euphoria Editor - " + Project::Info().name + " - " + (m_EditorScene ? m_EditorScene->name : std::string("")) +
                         (m_EditorScene && !m_EditorScene->path.empty() ? " (" + m_EditorScene->path + ")" : "") + (m_Dirty ? " *" : "");
     if (m_State == PlayState::Play) title += "  [PLAYING]";
     SetTitle(title);
@@ -119,7 +119,7 @@ bool EditorApp::SaveScene() {
 }
 
 bool EditorApp::SaveSceneAs(const std::string& path) {
-    if (m_State == PlayState::Play) { ND_WARN("Stop play mode before saving"); return false; }
+    if (m_State == PlayState::Play) { EU_WARN("Stop play mode before saving"); return false; }
     std::string p = path;
     if (fs::path(p).extension() != ".scene") p += ".scene";
     if (m_EditorScene->name == "Untitled") m_EditorScene->name = fs::path(p).stem().string();
@@ -366,4 +366,4 @@ void EditorApp::OnImGui() {
     }
 }
 
-} // namespace nd::editor
+} // namespace eu::editor

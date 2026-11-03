@@ -1,7 +1,7 @@
 #include "GameManager.h"
 #include "PlayerController.h"
 
-using namespace nd;
+using namespace eu;
 
 GameManager* GameManager::s_Instance = nullptr;
 
@@ -53,7 +53,7 @@ void GameManager::OnUpdate(float dt) {
 
 void GameManager::CollectEmber() {
     m_Collected++;
-    ND_INFO("Ember collected ({}/{})", m_Collected, m_Total);
+    EU_INFO("Ember collected ({}/{})", m_Collected, m_Total);
     Audio::PlayOneShot("Audio/coin.wav", 0.7f);
     if (Network::IsActive()) Network::Send("ember", { { "count", m_Collected } });
     if (m_Collected >= m_Total && !m_Won) {
@@ -149,4 +149,4 @@ void GameManager::DrawPauseMenu() {
     if (button("Quit")) { SetPaused(false); SceneManager::RequestQuit(); }
 }
 
-ND_SCRIPT(GameManager)
+EU_SCRIPT(GameManager)

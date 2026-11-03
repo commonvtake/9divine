@@ -1,6 +1,6 @@
 <div align="center">
 
-# 9divine
+# Euphoria Engine
 
 **A 3D game engine and editor written from scratch in C++17 and OpenGL 3.3.**
 
@@ -63,25 +63,25 @@ All third-party libraries are vendored in `third_party/`, so no package manager 
 ```bat
 cmake -S . -B build
 cmake --build build --config Release
-build\bin\9divine-editor.exe
+build\bin\euphoria-editor.exe
 ```
-Or open the folder in Visual Studio ("Open a local folder") and pick `9divine-editor.exe` as the startup item.
+Or open the folder in Visual Studio ("Open a local folder") and pick `euphoria-editor.exe` as the startup item.
 
 **Linux**
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
-./build/bin/9divine-editor
+./build/bin/euphoria-editor
 ```
 
 Run the tests with `ctest --test-dir build -C Release --output-on-failure`.
 
 ### Create a project
-Launching `9divine-editor` opens the **Project Hub**:
+Launching `euphoria-editor` opens the **Project Hub**:
 
 ![Project Hub](docs/images/new_project.png)
 
-- **New Project** – pick a template, a name and a folder (defaults to `Documents/9divine Projects`):
+- **New Project** – pick a template, a name and a folder (defaults to `Documents/Euphoria Projects`):
   - **Empty** – camera, sun and a ground plane.
   - **3D Starter** – a playable third-person character with camera, physics props, HUD and pause menu.
   - **Ember Isle (Sample)** – your own editable copy of the full demo game.
@@ -93,9 +93,9 @@ Inside the editor, **File → New Project / Open Project / Recent Projects / Clo
 A project is a folder with `project.json`, `input.json`, `Scenes/`, `Models/`, `Textures/` and `Audio/`. Gameplay scripts are C++ in `game/src` and are available to every project.
 
 ### Play the demo
-- **Editor:** click **Open Sample: Ember Isle** in the hub (or run `9divine-editor projects/Demo`). Press **Play** (Ctrl+P).
-- **Standalone:** `9divine-player` runs the game directly.
-- **Multiplayer:** start one copy with `9divine-player --host` and another with `9divine-player --join 127.0.0.1` (or use the in-game pause menu).
+- **Editor:** click **Open Sample: Ember Isle** in the hub (or run `euphoria-editor projects/Demo`). Press **Play** (Ctrl+P).
+- **Standalone:** `euphoria-player` runs the game directly.
+- **Multiplayer:** start one copy with `euphoria-player --host` and another with `euphoria-player --join 127.0.0.1` (or use the in-game pause menu).
 
 | Action | Keyboard / Mouse | Gamepad |
 |---|---|---|
@@ -120,11 +120,11 @@ A project is a folder with `project.json`, `input.json`, `Scenes/`, `Models/`, `
 
 ## Writing gameplay code
 
-Scripts are C++ classes in `game/src`. Every `.cpp` there is compiled into both the editor and the player, and `ND_SCRIPT` registers the class so scenes can reference it by name.
+Scripts are C++ classes in `game/src`. Every `.cpp` there is compiled into both the editor and the player, and `EU_SCRIPT` registers the class so scenes can reference it by name.
 
 ```cpp
-#include <nd/9divine.h>
-using namespace nd;
+#include <euphoria/Euphoria.h>
+using namespace eu;
 
 class Coin : public ScriptableEntity {
 public:
@@ -147,7 +147,7 @@ public:
         UI::Text({ 40, 40 }, "Coins: " + std::to_string(SaveGame::GetInt("coins")), 36);
     }
 };
-ND_SCRIPT(Coin)
+EU_SCRIPT(Coin)
 ```
 
 Then add a **Scripts** component in the inspector and pick `Coin`. See [`game/src`](game/src) for complete examples: a third-person controller, an orbit camera, a state-machine enemy, a behaviour-tree animal, checkpoints and a ball launcher.
@@ -157,12 +157,12 @@ Then add a **Scripts** component in the inspector and pick `Coin`. See [`game/sr
 ```mermaid
 flowchart TB
     subgraph Apps
-        Editor[9divine-editor<br/>ImGui docking editor]
-        Player[9divine-player<br/>standalone runtime]
-        Tests[9divine-tests]
+        Editor[euphoria-editor<br/>ImGui docking editor]
+        Player[euphoria-player<br/>standalone runtime]
+        Tests[euphoria-tests]
     end
     Game[game/ - your C++ scripts]
-    subgraph Engine[NineDivineEngine static library]
+    subgraph Engine[EuphoriaEngine static library]
         Core[core: Application, Input, Log,<br/>Profiler, FileSystem, Project]
         Scene[scene: ECS Registry, Components,<br/>Scene, Serializer, SceneManager, Scripts]
         Renderer[renderer: Shader, Mesh, Texture,<br/>Framebuffer, Renderer, DebugDraw]
@@ -200,7 +200,7 @@ A deeper walkthrough of each subsystem and the design decisions behind it is in 
 ## Repository layout
 
 ```
-engine/src/nd/      the engine (core, scene, renderer, physics, animation, audio, ai, ...)
+engine/src/euphoria/      the engine (core, scene, renderer, physics, animation, audio, ai, ...)
 editor/src/         the editor application
 player/src/         the standalone runtime used by exported games
 game/src/           gameplay scripts + the demo project generator
@@ -215,15 +215,15 @@ docs/               architecture notes, roadmap, screenshots
 
 | Command | |
 |---|---|
-| `9divine-editor` | Open the Project Hub |
-| `9divine-editor [projectDir]` | Open a project (an empty or new folder becomes an Empty project) |
-| `9divine-editor --new-project` | Open the hub straight to the New Project dialog |
-| `9divine-editor --create-project <dir> [--template empty\|starter\|sample] [--name "My Game"]` | Create a project from a template and open it |
-| `9divine-editor --play` | Open and immediately enter play mode |
-| `9divine-editor [projectDir] --export <dir>` | Build a standalone game without opening the editor |
-| `9divine-player [projectDir]` | Run a project |
-| `9divine-player --host [port]` / `--join <ip> [port]` | Start or join multiplayer |
-| `9divine-player --build-demo <dir>` | Regenerate the sample project |
+| `euphoria-editor` | Open the Project Hub |
+| `euphoria-editor [projectDir]` | Open a project (an empty or new folder becomes an Empty project) |
+| `euphoria-editor --new-project` | Open the hub straight to the New Project dialog |
+| `euphoria-editor --create-project <dir> [--template empty\|starter\|sample] [--name "My Game"]` | Create a project from a template and open it |
+| `euphoria-editor --play` | Open and immediately enter play mode |
+| `euphoria-editor [projectDir] --export <dir>` | Build a standalone game without opening the editor |
+| `euphoria-player [projectDir]` | Run a project |
+| `euphoria-player --host [port]` / `--join <ip> [port]` | Start or join multiplayer |
+| `euphoria-player --build-demo <dir>` | Regenerate the sample project |
 | `--width W --height H --fullscreen --no-vsync` | Window options |
 | `--screenshot file.png --screenshot-frame N` | Save frame N and exit (automated testing) |
 

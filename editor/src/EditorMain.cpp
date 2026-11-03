@@ -1,15 +1,15 @@
-// 9divine Editor entry point.
+// Euphoria Editor entry point.
 //
-//   9divine-editor                                   open the Project Hub
-//   9divine-editor <projectDir>                      open a project (an empty folder becomes a new project)
-//   9divine-editor --new-project                     open the hub's New Project dialog
-//   9divine-editor --create-project <dir> [--template empty|starter|sample] [--name "My Game"]
-//   9divine-editor <projectDir> --export <outDir>    build a standalone game without opening a window
-//   9divine-editor <projectDir> --play               open and enter play mode
+//   euphoria-editor                                   open the Project Hub
+//   euphoria-editor <projectDir>                      open a project (an empty folder becomes a new project)
+//   euphoria-editor --new-project                     open the hub's New Project dialog
+//   euphoria-editor --create-project <dir> [--template empty|starter|sample] [--name "My Game"]
+//   euphoria-editor <projectDir> --export <outDir>    build a standalone game without opening a window
+//   euphoria-editor <projectDir> --play               open and enter play mode
 #include "EditorApp.h"
 #include "ProjectTemplates.h"
 
-using namespace nd;
+using namespace eu;
 
 static std::string NameFromFolder(const fs::path& dir) {
     std::string n = fs::absolute(dir).lexically_normal().filename().string();
@@ -21,7 +21,7 @@ static std::string NameFromFolder(const fs::path& dir) {
 
 int main(int argc, char** argv) {
     AppConfig base;
-    base.title = "9divine Editor";
+    base.title = "Euphoria Editor";
     base.width = 1600;
     base.height = 900;
     base.enableImGui = true;
@@ -67,13 +67,13 @@ int main(int argc, char** argv) {
     if (!project.empty() && !fs::exists(project / "project.json")) {
         std::string error;
         if (!templates::CreateProject(project, NameFromFolder(project), templates::Template::Empty, error)) {
-            std::fprintf(stderr, "'%s' is not a 9divine project: %s\n", project.string().c_str(), error.c_str());
+            std::fprintf(stderr, "'%s' is not a Euphoria project: %s\n", project.string().c_str(), error.c_str());
             return 1;
         }
     }
 
     if (!exportDir.empty()) {
-        if (project.empty()) project = fs::path(ND_SOURCE_DIR) / "projects" / "Demo";
+        if (project.empty()) project = fs::path(EU_SOURCE_DIR) / "projects" / "Demo";
         if (!Project::Load(project)) return 1;
         std::string log;
         bool ok = editor::EditorApp::BuildGame(exportDir, log);

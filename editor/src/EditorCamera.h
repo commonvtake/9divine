@@ -1,8 +1,8 @@
 #pragma once
-#include <nd/core/Base.h>
-#include <nd/renderer/Renderer.h>
+#include <euphoria/core/Base.h>
+#include <euphoria/renderer/Renderer.h>
 
-namespace nd::editor {
+namespace eu::editor {
 
 // Scene-view camera:  RMB + WASD/QE fly, Alt+LMB orbit, MMB pan, wheel zoom, F to focus.
 class EditorCamera {
@@ -29,4 +29,4 @@ private:
     quat Orientation() const;
 };
 
-} // namespace nd::editor
+} // namespace eu::editor

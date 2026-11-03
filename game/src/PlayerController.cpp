@@ -1,7 +1,7 @@
 #include "PlayerController.h"
 #include "GameManager.h"
 
-using namespace nd;
+using namespace eu;
 
 void PlayerController::Reflect(FieldVisitor& v) {
     v.Float("Move Speed", moveSpeed);
@@ -87,7 +87,7 @@ void PlayerController::OnUpdate(float dt) {
 void PlayerController::TakeDamage(float amount, const vec3& from) {
     if (m_Invulnerable > 0.0f || m_Dead) return;
     health -= amount;
-    ND_INFO("Player hit for {} (health {})", amount, health);
+    EU_INFO("Player hit for {} (health {})", amount, health);
     m_Invulnerable = 0.8f;
     m_HurtFlash = 1.0f;
     Audio::PlayOneShot("Audio/hit.wav", 0.8f);
@@ -102,9 +102,9 @@ void PlayerController::TakeDamage(float amount, const vec3& from) {
 void PlayerController::Die() {
     if (m_Dead) return;
     m_Dead = true;
-    ND_INFO("Player died - respawning");
+    EU_INFO("Player died - respawning");
     if (SaveGame::SlotExists(SaveGame::kCheckpointSlot) && SaveGame::LoadCheckpoint()) return;
     SceneManager::ReloadActive();
 }
 
-ND_SCRIPT(PlayerController)
+EU_SCRIPT(PlayerController)

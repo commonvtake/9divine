@@ -1,6 +1,6 @@
-# 9divine – Architecture
+# Euphoria Engine – Architecture
 
-This document explains how each part of the engine works and why it was built that way. It's meant to be read alongside the code (`engine/src/nd/`).
+This document explains how each part of the engine works and why it was built that way. It's meant to be read alongside the code (`engine/src/euphoria/`).
 
 ## Contents
 1. [Application & main loop](#1-application--main-loop)
@@ -68,7 +68,7 @@ A **sparse set** per component type:
 ## 4. Scripting
 `scene/ScriptableEntity.h`
 
-Gameplay is written in C++. A script derives from `ScriptableEntity` and overrides lifecycle methods. `ND_SCRIPT(MyScript)` creates a static registrar that adds a factory to `ScriptRegistry`, so scenes can store scripts **by class name**.
+Gameplay is written in C++. A script derives from `ScriptableEntity` and overrides lifecycle methods. `EU_SCRIPT(MyScript)` creates a static registrar that adds a factory to `ScriptRegistry`, so scenes can store scripts **by class name**.
 
 The `game/` target is a CMake **OBJECT library**: with a static library the linker would drop translation units that nothing references, and the static registrars would never run.
 
@@ -206,7 +206,7 @@ Copies the player executable (renamed after the project), the engine's shaders a
 ## 19. Profiling and debugging
 `core/Profiler.cpp`, `renderer/DebugDraw.cpp`
 
-`ND_PROFILE_SCOPE("Name")` records RAII timings into per-system averages; the renderer counts draw calls and triangles; process memory is read from the OS. `DebugDraw` collects lines (boxes, spheres, paths, grids) from anywhere during the frame and draws them in one call. Collider and nav-grid overlays are toggles in the editor.
+`EU_PROFILE_SCOPE("Name")` records RAII timings into per-system averages; the renderer counts draw calls and triangles; process memory is read from the OS. `DebugDraw` collects lines (boxes, spheres, paths, grids) from anywhere during the frame and draws them in one call. Collider and nav-grid overlays are toggles in the editor.
 
 ## 20. Known limitations
 Honest list of simplifications – each is a good next project (see [ROADMAP.md](ROADMAP.md)):

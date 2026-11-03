@@ -1,21 +1,21 @@
-// 9divine Player - the runtime used by exported games.
+// Euphoria Player - the runtime used by exported games.
 //
-//   9divine-player                       runs the game described by game.json next to the exe
-//   9divine-player <projectDir>          runs a project folder directly
-//   9divine-player --build-demo <dir>    regenerates the sample project
-//   9divine-player --host [port]         start hosting a multiplayer session
-//   9divine-player --join <ip> [port]    join a session
+//   euphoria-player                       runs the game described by game.json next to the exe
+//   euphoria-player <projectDir>          runs a project folder directly
+//   euphoria-player --build-demo <dir>    regenerates the sample project
+//   euphoria-player --host [port]         start hosting a multiplayer session
+//   euphoria-player --join <ip> [port]    join a session
 //   F3 = stats overlay, F11 = fullscreen, F12 = screenshot
-#include <nd/9divine.h>
-#include <nd/core/FileSystem.h>
-#include <nd/renderer/Renderer.h>
-#include <nd/renderer/Framebuffer.h>
-#include <nd/assets/AssetManager.h>
+#include <euphoria/Euphoria.h>
+#include <euphoria/core/FileSystem.h>
+#include <euphoria/renderer/Renderer.h>
+#include <euphoria/renderer/Framebuffer.h>
+#include <euphoria/assets/AssetManager.h>
 #include <imgui.h>
 #include "DemoBuilder.h"
 #include <cstring>
 
-using namespace nd;
+using namespace eu;
 
 class GamePlayer : public Application {
 public:
@@ -32,7 +32,7 @@ protected:
 
         auto scene = SceneManager::LoadNow(Project::Info().startScene);
         if (!scene) {
-            ND_ERROR("Start scene '{}' could not be loaded", Project::Info().startScene);
+            EU_ERROR("Start scene '{}' could not be loaded", Project::Info().startScene);
             scene = MakeRef<Scene>();
         }
         SceneManager::SetActive(scene);
@@ -108,13 +108,13 @@ private:
 int main(int argc, char** argv) {
     for (int i = 1; i < argc; i++) {
         if (std::strcmp(argv[i], "--build-demo") == 0) {
-            fs::path dir = i + 1 < argc ? fs::path(argv[i + 1]) : fs::path(ND_SOURCE_DIR) / "projects" / "Demo";
+            fs::path dir = i + 1 < argc ? fs::path(argv[i + 1]) : fs::path(EU_SOURCE_DIR) / "projects" / "Demo";
             return demo::BuildDemoProject(dir) ? 0 : 1;
         }
     }
 
     AppConfig base;
-    base.title = "9divine Game";
+    base.title = "Euphoria Game";
     base.enableImGui = true;
     AppConfig cfg = ParseCommandLine(argc, argv, base, nullptr);
 
@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
     else if (auto text = FileSystem::ReadText(Platform::ExecutableDir() / "game.json")) {
         try { project = Platform::ExecutableDir() / json::parse(*text).value("project", "Game"); } catch (...) {}
     }
-    if (project.empty()) project = fs::path(ND_SOURCE_DIR) / "projects" / "Demo";
+    if (project.empty()) project = fs::path(EU_SOURCE_DIR) / "projects" / "Demo";
     if (!Project::Load(project)) return 1;
 
     auto& info = Project::Info();

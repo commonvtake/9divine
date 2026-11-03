@@ -1,10 +1,10 @@
 #include "EditorApp.h"
-#include <nd/assets/AssetManager.h>
+#include <euphoria/assets/AssetManager.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
 
-namespace nd::editor {
+namespace eu::editor {
 
 namespace {
 
@@ -67,7 +67,7 @@ bool PAsset(const char* l, std::string& path, bool (*accept)(const std::string&)
     ImGui::PushID(l);
     bool c = ImGui::InputTextWithHint("##v", "drop an asset here", &path);
     if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ND_ASSET")) {
+        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("EU_ASSET")) {
             std::string s((const char*)p->Data, p->DataSize);
             if (!accept || accept(s)) { path = s; c = true; }
         }
@@ -87,7 +87,7 @@ bool EntityRefWidget(const char* l, uint64_t& uuid, Scene& scene) {
     std::string text = e ? e.Name() : (uuid ? "(missing)" : "None");
     if (ImGui::Button(text.c_str(), ImVec2(ImGui::GetContentRegionAvail().x - 26, 0))) ImGui::OpenPopup("pick");
     if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ND_ENTITY")) { uuid = *(const uint64_t*)p->Data; c = true; }
+        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("EU_ENTITY")) { uuid = *(const uint64_t*)p->Data; c = true; }
         ImGui::EndDragDropTarget();
     }
     ImGui::SameLine(0, 2);
@@ -194,7 +194,7 @@ void EditorApp::DrawComponents(Entity e) {
             ImGui::EndCombo();
         }
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ND_ASSET")) {
+            if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("EU_ASSET")) {
                 std::string s((const char*)p->Data, p->DataSize);
                 if (IsModel(s)) { m.mesh = s; g_Changed = true; }
             }
@@ -645,4 +645,4 @@ void EditorApp::DrawAddComponentMenu(Entity e) {
     ImGui::EndPopup();
 }
 
-} // namespace nd::editor
+} // namespace eu::editor

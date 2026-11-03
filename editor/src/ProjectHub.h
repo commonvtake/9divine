@@ -1,11 +1,11 @@
 #pragma once
 // Project Hub helpers: recent-project list and an in-editor folder browser.
-#include <nd/core/FileSystem.h>
+#include <euphoria/core/FileSystem.h>
 #include <string>
 #include <vector>
 #include <cstdint>
 
-namespace nd::editor {
+namespace eu::editor {
 
 struct RecentProject {
     std::string path;      // absolute, generic separators
@@ -51,4 +51,4 @@ private:
 std::string FormatLastOpened(int64_t seconds);
 bool IsProjectFolder(const fs::path& dir);
 
-} // namespace nd::editor
+} // namespace eu::editor
