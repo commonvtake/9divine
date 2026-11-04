@@ -96,6 +96,23 @@ void EditorApp::RenderViewport() {
 }
 
 void EditorApp::DrawToolbar() {
+    // Three groups (tools | play controls | view options) laid out as a flow: each group is
+    // measured first and wraps to a new row when it doesn't fit, so nothing ever overlaps
+    // however narrow the viewport gets (e.g. when the Inspector is dragged wide).
+    const ImGuiStyle& style = ImGui::GetStyle();
+    auto buttonWidth = [&](const char* label) { return ImGui::CalcTextSize(label, nullptr, true).x + style.FramePadding.x * 2.0f; };
+    auto groupWidth = [&](std::initializer_list<const char*> labels) {
+        float w = 0.0f;
+        for (const char* l : labels) w += buttonWidth(l) + style.ItemSpacing.x;
+        return w - style.ItemSpacing.x;
+    };
+    const float right = ImGui::GetWindowContentRegionMax().x;
+    // Place the next group on this row at `x` if it fits before `right`, else start a new row.
+    auto placeGroup = [&](float width, float preferredX) {
+        float cur = ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x + style.ItemSpacing.x;
+        float x = std::max(cur, preferredX);
+        if (x + width <= right) ImGui::SameLine(x);
+    };
     auto toolButton = [](const char* label, bool active, const char* tip) {
         if (active) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
         bool pressed = ImGui::Button(label);
@@ -103,39 +120,48 @@ void EditorApp::DrawToolbar() {
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tip);
         return pressed;
     };
-    if (toolButton("Select", m_GizmoOp == 0, "No gizmo (Q)")) m_GizmoOp = 0;
-    ImGui::SameLine();
-    if (toolButton("Move", m_GizmoOp == 1, "Translate (W)")) m_GizmoOp = 1;
-    ImGui::SameLine();
-    if (toolButton("Rotate", m_GizmoOp == 2, "Rotate (E)")) m_GizmoOp = 2;
-    ImGui::SameLine();
-    if (toolButton("Scale", m_GizmoOp == 3, "Scale (R)")) m_GizmoOp = 3;
-    ImGui::SameLine();
-    if (toolButton(m_GizmoLocal ? "Local" : "World", false, "Gizmo space")) m_GizmoLocal = !m_GizmoLocal;
-    ImGui::SameLine();
-    if (toolButton("Snap", m_Snap, "Snap to grid (hold Ctrl while dragging)")) m_Snap = !m_Snap;
+    // Lays out one button, wrapping inside a group too if a single button can't fit.
+    bool first = true;
+    auto flow = [&](const char* label) {
+        if (!first) {
+            float next = ImGui::GetItemRectMax().x - ImGui::GetWindowPos().x + style.ItemSpacing.x;
+            if (next + buttonWidth(label) <= right) ImGui::SameLine();
+        }
+        first = false;
+    };
 
-    // Play controls (centered)
-    float playWidth = 230.0f;
-    ImGui::SameLine(std::max(ImGui::GetCursorPosX() + 20.0f, (ImGui::GetWindowWidth() - playWidth) * 0.5f));
+    // --- tools
+    const char* space = m_GizmoLocal ? "Local" : "World";
+    flow("Select"); if (toolButton("Select", m_GizmoOp == 0, "No gizmo (Q)")) m_GizmoOp = 0;
+    flow("Move"); if (toolButton("Move", m_GizmoOp == 1, "Translate (W)")) m_GizmoOp = 1;
+    flow("Rotate"); if (toolButton("Rotate", m_GizmoOp == 2, "Rotate (E)")) m_GizmoOp = 2;
+    flow("Scale"); if (toolButton("Scale", m_GizmoOp == 3, "Scale (R)")) m_GizmoOp = 3;
+    flow(space); if (toolButton(space, false, "Gizmo space")) m_GizmoLocal = !m_GizmoLocal;
+    flow("Snap"); if (toolButton("Snap", m_Snap, "Snap to grid (hold Ctrl while dragging)")) m_Snap = !m_Snap;
+
+    // --- play controls (centered when there's room)
     bool playing = m_State == PlayState::Play;
+    const char* playLabel = playing ? "  Stop  " : "  Play  ";
+    const char* viewLabel = m_GameView ? "Game View" : "Scene View";
+    float playWidth = groupWidth({ playLabel, "Pause", "Step", viewLabel });
+    placeGroup(playWidth, (ImGui::GetWindowWidth() - playWidth) * 0.5f);
+    first = true;
+    flow(playLabel);
     if (playing) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.55f, 0.4f, 1.0f));
-    if (ImGui::Button(playing ? "  Stop  " : "  Play  ")) { if (playing) StopPlay(); else StartPlay(); }
+    if (ImGui::Button(playLabel)) { if (playing) StopPlay(); else StartPlay(); }
     if (playing) ImGui::PopStyleColor();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ctrl+P");
-    ImGui::SameLine();
     ImGui::BeginDisabled(!playing);
     auto scene = ActiveScene();
     bool paused = playing && scene && scene->IsPaused();
-    if (toolButton("Pause", paused, "Pause the game")) scene->SetPaused(!paused);
-    ImGui::SameLine();
-    if (toolButton("Step", false, "Advance one frame while paused")) { scene->SetPaused(true); scene->Step(1); }
-    ImGui::SameLine();
-    if (toolButton(m_GameView ? "Game View" : "Scene View", false, "Switch between the game camera and the editor camera")) m_GameView = !m_GameView;
+    flow("Pause"); if (toolButton("Pause", paused, "Pause the game") && scene) scene->SetPaused(!paused);
+    flow("Step"); if (toolButton("Step", false, "Advance one frame while paused") && scene) { scene->SetPaused(true); scene->Step(1); }
+    flow(viewLabel); if (toolButton(viewLabel, false, "Switch between the game camera and the editor camera")) m_GameView = !m_GameView;
     ImGui::EndDisabled();
 
-    // View options (right)
-    ImGui::SameLine(ImGui::GetWindowWidth() - 90.0f);
+    // --- view options (right-aligned when there's room)
+    float viewWidth = buttonWidth("View ...");
+    placeGroup(viewWidth, right - viewWidth);
     if (ImGui::Button("View ...")) ImGui::OpenPopup("ViewOptions");
     if (ImGui::BeginPopup("ViewOptions")) {
         ImGui::Checkbox("Grid", &m_ShowGrid);
