@@ -24,8 +24,15 @@ struct RenderOptions {
 };
 
 struct RenderSettings {
-    int shadowMapSize = 2048;
-    float shadowDistance = 70.0f;
+    int shadowMapSize = 2048;          // per cascade
+    int shadowCascades = 3;            // 1-4: more = sharper shadows far away
+    float shadowDistance = 150.0f;
+    float shadowSoftness = 1.5f;       // PCF filter radius in texels
+    bool ssao = true;
+    bool bloom = true;
+    bool fxaa = true;
+    bool reflections = true;           // live reflection cubemap around the camera
+    int reflectionSize = 128;          // cubemap face resolution
     float grassDistance = 70.0f;
     bool shadows = true;
     bool grass = true;

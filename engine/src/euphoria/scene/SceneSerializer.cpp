@@ -395,6 +395,10 @@ json SceneSerializer::ToJson() {
     j["environment"] = { { "skyTop", env.skyTop }, { "skyHorizon", env.skyHorizon }, { "groundColor", env.groundColor },
                          { "ambient", env.ambientIntensity }, { "fog", env.fog }, { "fogColor", env.fogColor }, { "fogDensity", env.fogDensity },
                          { "exposure", env.exposure }, { "gravity", env.gravity } };
+    j["environment"]["post"] = { { "reflections", env.reflectionIntensity }, { "ssao", env.ssaoStrength }, { "ssaoRadius", env.ssaoRadius },
+                                 { "bloom", env.bloomIntensity }, { "bloomThreshold", env.bloomThreshold }, { "contrast", env.contrast },
+                                 { "saturation", env.saturation }, { "temperature", env.temperature }, { "tint", env.tint },
+                                 { "vignette", env.vignette } };
     auto& ns = m_Scene.Nav().settings;
     j["navigation"] = { { "cellSize", ns.cellSize }, { "agentRadius", ns.agentRadius }, { "agentHeight", ns.agentHeight }, { "maxSlope", ns.maxSlope },
                         { "maxStep", ns.maxStep }, { "minWalkableHeight", ns.minWalkableHeight } };
@@ -422,6 +426,19 @@ bool SceneSerializer::FromJson(const json& j) {
         env.fogDensity = JGet(je, "fogDensity", env.fogDensity);
         env.exposure = JGet(je, "exposure", env.exposure);
         env.gravity = JGet(je, "gravity", env.gravity);
+        if (je.contains("post")) {
+            auto& jp = je["post"];
+            env.reflectionIntensity = JGet(jp, "reflections", env.reflectionIntensity);
+            env.ssaoStrength = JGet(jp, "ssao", env.ssaoStrength);
+            env.ssaoRadius = JGet(jp, "ssaoRadius", env.ssaoRadius);
+            env.bloomIntensity = JGet(jp, "bloom", env.bloomIntensity);
+            env.bloomThreshold = JGet(jp, "bloomThreshold", env.bloomThreshold);
+            env.contrast = JGet(jp, "contrast", env.contrast);
+            env.saturation = JGet(jp, "saturation", env.saturation);
+            env.temperature = JGet(jp, "temperature", env.temperature);
+            env.tint = JGet(jp, "tint", env.tint);
+            env.vignette = JGet(jp, "vignette", env.vignette);
+        }
     }
     if (j.contains("navigation")) {
         auto& jn = j["navigation"];

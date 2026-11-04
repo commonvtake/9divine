@@ -426,6 +426,28 @@ void EditorApp::DrawSceneSettings() {
             mark(ImGui::DragFloat("Fog density", &env.fogDensity, 0.0002f, 0.0f, 0.1f, "%.4f"));
         }
     }
+    if (ImGui::CollapsingHeader("Post Processing", ImGuiTreeNodeFlags_DefaultOpen)) {
+        mark(ImGui::SliderFloat("Reflections", &env.reflectionIntensity, 0.0f, 2.0f));
+        mark(ImGui::SliderFloat("Ambient occlusion", &env.ssaoStrength, 0.0f, 2.0f));
+        if (env.ssaoStrength > 0.0f) mark(ImGui::SliderFloat("AO radius", &env.ssaoRadius, 0.1f, 3.0f));
+        mark(ImGui::SliderFloat("Bloom", &env.bloomIntensity, 0.0f, 0.5f));
+        if (env.bloomIntensity > 0.0f) mark(ImGui::SliderFloat("Bloom threshold", &env.bloomThreshold, 0.0f, 4.0f));
+        ImGui::SeparatorText("Color grading");
+        mark(ImGui::SliderFloat("Contrast", &env.contrast, 0.5f, 1.5f));
+        mark(ImGui::SliderFloat("Saturation", &env.saturation, 0.0f, 2.0f));
+        mark(ImGui::SliderFloat("Temperature", &env.temperature, -1.0f, 1.0f));
+        mark(ImGui::SliderFloat("Tint", &env.tint, -1.0f, 1.0f));
+        mark(ImGui::SliderFloat("Vignette", &env.vignette, 0.0f, 1.0f));
+        auto& rs = Renderer::Settings();
+        ImGui::SeparatorText("Quality (all scenes)");
+        ImGui::SliderInt("Shadow cascades", &rs.shadowCascades, 1, 4);
+        ImGui::SliderFloat("Shadow distance", &rs.shadowDistance, 20.0f, 400.0f);
+        ImGui::SliderFloat("Shadow softness", &rs.shadowSoftness, 0.0f, 4.0f);
+        ImGui::Checkbox("SSAO", &rs.ssao); ImGui::SameLine();
+        ImGui::Checkbox("Bloom##q", &rs.bloom); ImGui::SameLine();
+        ImGui::Checkbox("FXAA", &rs.fxaa); ImGui::SameLine();
+        ImGui::Checkbox("Reflections##q", &rs.reflections);
+    }
     if (ImGui::CollapsingHeader("Physics")) mark(ImGui::DragFloat3("Gravity", glm::value_ptr(env.gravity), 0.1f));
     if (ImGui::CollapsingHeader("Navigation")) {
         auto& ns = scene->Nav().settings;

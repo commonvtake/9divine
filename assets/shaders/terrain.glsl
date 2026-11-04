@@ -48,7 +48,7 @@ void main() {
     vec3 rock = ToLinear(uRock) * (0.8 + 0.4 * n);
     c = mix(c, rock, smoothstep(0.28, 0.45, slope + (n - 0.5) * 0.1));
     c = mix(c, ToLinear(uSnow), smoothstep(uSnowHeight - 1.0, uSnowHeight + 1.0, h + n * 1.5) * (1.0 - smoothstep(0.4, 0.6, slope)));
-    vec3 lit = ComputeLighting(c, N, vWorldPos, 0.05, 16.0);
+    vec3 lit = ComputePBR(c, 0.0, 0.92, 1.0, N, vWorldPos);   // grass, sand and rock are matte
     lit = ApplyFog(lit, vWorldPos);
     oColor = vec4(Tonemap(lit), 1.0);
     oID = uEntityID;

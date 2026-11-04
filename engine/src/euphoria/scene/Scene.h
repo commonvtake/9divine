@@ -23,6 +23,18 @@ struct SceneEnvironment {
     float fogDensity = 0.006f;
     float exposure = 1.0f;
     vec3 gravity{ 0.0f, -20.0f, 0.0f };
+
+    // --- Post processing & image (per scene; quality switches live in RenderSettings) ---
+    float reflectionIntensity = 1.0f;  // how strongly surfaces reflect the captured surroundings
+    float ssaoStrength = 0.8f;         // ambient occlusion: 0 = off
+    float ssaoRadius = 0.6f;           // world units
+    float bloomIntensity = 0.06f;      // 0 = off
+    float bloomThreshold = 1.0f;       // brightness (after exposure) where glow starts
+    float contrast = 1.05f;            // color grading
+    float saturation = 1.05f;
+    float temperature = 0.0f;          // -1 cool ... +1 warm
+    float tint = 0.0f;                 // -1 green ... +1 magenta
+    float vignette = 0.22f;
 };
 
 class Scene {

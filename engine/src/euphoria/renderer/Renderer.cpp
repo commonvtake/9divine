@@ -4,6 +4,7 @@
 #include "euphoria/renderer/Framebuffer.h"
 #include "euphoria/renderer/DebugDraw.h"
 #include "euphoria/renderer/Mesh.h"
+#include "euphoria/renderer/PostProcess.h"
 #include "euphoria/scene/Scene.h"
 #include "euphoria/scene/Entity.h"
 #include "euphoria/assets/AssetManager.h"
@@ -25,6 +26,9 @@ bool g_GLContextAlive = true;
 
 namespace {
 
+constexpr int kMaxCascades = 4;
+constexpr int kShadowUnit = 5, kEnvUnit = 6;
+
 struct LightData {
     bool hasSun = false;
     vec3 sunDir{ -0.4f, -1.0f, -0.3f };
@@ -36,21 +40,130 @@ struct LightData {
     int spotCount = 0;
     vec3 spotPos[4], spotDir[4], spotColor[4];
     float spotRange[4], spotCos[4];
-    mat4 lightSpace{ 1.0f };
+    // Cascaded shadows
     bool shadows = false;
+    int cascadeCount = 0;
+    mat4 cascadeMats[kMaxCascades];
+    float cascadeEnds[kMaxCascades] = {};
+    float cascadeTexel[kMaxCascades] = {};
+};
+
+// Depth texture array with one layer per cascade, compared in hardware (sampler2DArrayShadow).
+struct ShadowCascades {
+    uint32_t fbo = 0, tex = 0;
+    int size = 0;
+    void Ensure(int s) {
+        if (tex && s == size) return;
+        Release();
+        size = s;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, tex);
+        glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT24, s, s, kMaxCascades, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        float border[] = { 1, 1, 1, 1 };
+        glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, border);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+        glGenFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tex, 0, 0);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+    void BindLayer(int layer) const {
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tex, 0, layer);
+        glViewport(0, 0, size, size);
+    }
+    void Release() {
+        if (tex && g_GLContextAlive) { glDeleteTextures(1, &tex); glDeleteFramebuffers(1, &fbo); }
+        tex = fbo = 0;
+        size = 0;
+    }
+};
+
+// A cubemap of the surroundings, re-captured around the camera one face per frame (so a
+// full refresh costs a sixth of a scene render per frame). Rendered into `back` while
+// shaders sample `front`, then swapped - never reading and writing the same texture.
+struct ReflectionProbe {
+    uint32_t cube[2] = { 0, 0 };
+    uint32_t fbo = 0, depthRb = 0;
+    int size = 0, front = 0, nextFace = 0, mipCount = 1;
+    vec3 capturePos{ 0.0f };
+    bool valid = false;           // front has a complete capture
+    void Ensure(int s) {
+        if (cube[0] && s == size) return;
+        Release();
+        size = s;
+        mipCount = 1 + (int)std::floor(std::log2((float)s));
+        glGenTextures(2, cube);
+        for (uint32_t c : cube) {
+            glBindTexture(GL_TEXTURE_CUBE_MAP, c);
+            for (int f = 0; f < 6; f++)
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + f, 0, GL_RGBA16F, s, s, 0, GL_RGBA, GL_FLOAT, nullptr);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+            glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+        }
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+        glGenRenderbuffers(1, &depthRb);
+        glBindRenderbuffer(GL_RENDERBUFFER, depthRb);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, s, s);
+        glGenFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRb);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        valid = false;
+        nextFace = 0;
+    }
+    void Release() {
+        if (cube[0] && g_GLContextAlive) {
+            glDeleteTextures(2, cube);
+            glDeleteRenderbuffers(1, &depthRb);
+            glDeleteFramebuffers(1, &fbo);
+        }
+        cube[0] = cube[1] = fbo = depthRb = 0;
+        size = 0;
+        valid = false;
+    }
+    uint32_t Front() const { return cube[front]; }
+    uint32_t Back() const { return cube[1 - front]; }
+    // Camera for cube face f (standard GL face orientation).
+    static RenderCamera FaceCamera(const vec3& pos, int f) {
+        static const vec3 dirs[6] = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
+        static const vec3 ups[6] = { { 0, -1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 }, { 0, -1, 0 }, { 0, -1, 0 } };
+        RenderCamera c;
+        c.position = pos;
+        c.view = glm::lookAt(pos, pos + dirs[f], ups[f]);
+        c.nearClip = 0.1f;
+        c.farClip = 600.0f;
+        c.projection = glm::perspective(glm::radians(90.0f), 1.0f, c.nearClip, c.farClip);
+        return c;
+    }
 };
 
 struct RendererData {
     std::map<std::string, Ref<Shader>> shaders;
-    Scope<Framebuffer> shadowFB;
+    ShadowCascades cascades;
+    ReflectionProbe probe;
+    Scope<Framebuffer> hdr;           // RGBA16F scene color, R32I ids, depth
     uint32_t emptyVAO = 0;
     uint32_t lineVAO = 0, lineVBO = 0;
     size_t lineCapacity = 0;
     Ref<Mesh> waterGrid;
+    vec3 skySH[9];
 };
 RendererData* s_Data = nullptr;
 
 vec3 SRGBToLinear(const vec3& c) { return glm::pow(glm::max(c, vec3(0.0f)), vec3(2.2f)); }
+vec3 Forward(const RenderCamera& c) { return -vec3(glm::inverse(c.view)[2]); }
 
 struct Frustum {
     vec4 planes[6];
@@ -82,36 +195,34 @@ AABB TransformAABB(const AABB& b, const mat4& m) {
     return out;
 }
 
-void ApplyLights(Shader& s, const LightData& L, const SceneEnvironment& env, const RenderCamera& cam) {
-    s.SetVec3("uCameraPos", cam.position);
-    s.SetInt("uHasSun", L.hasSun ? 1 : 0);
-    s.SetVec3("uSunDir", glm::normalize(L.sunDir));
-    s.SetVec3("uSunColor", L.sunColor);
-    s.SetVec3("uSkyTop", env.skyTop);
-    s.SetVec3("uSkyHorizon", env.skyHorizon);
-    s.SetVec3("uGroundColor", env.groundColor);
-    s.SetFloat("uAmbient", env.ambientIntensity);
-    s.SetInt("uPointCount", L.pointCount);
-    if (L.pointCount > 0) {
-        s.SetVec3Array("uPointPos", L.pointPos, L.pointCount);
-        s.SetVec3Array("uPointColor", L.pointColor, L.pointCount);
-        s.SetFloatArray("uPointRange", L.pointRange, L.pointCount);
+// ---------------------------------------------------------------- sky lighting
+// The procedural sky's radiance in direction d (must match sky.glsl, minus the sun disc,
+// which is lit directly).
+vec3 SkyRadiance(const SceneEnvironment& env, const vec3& d) {
+    vec3 hor = SRGBToLinear(env.skyHorizon), top = SRGBToLinear(env.skyTop), gnd = SRGBToLinear(env.groundColor);
+    if (d.y >= 0.0f) return glm::mix(hor, top, std::pow(glm::clamp(d.y, 0.0f, 1.0f), 0.6f));
+    return glm::mix(hor, gnd, glm::clamp(-d.y * 3.0f, 0.0f, 1.0f));
+}
+
+// Projects the sky onto 9 SH coefficients and pre-convolves them with the clamped cosine
+// lobe (Ramamoorthi & Hanrahan), so the shader's evaluation is irradiance / PI: a uniform
+// sky of radiance L gives exactly L, matching the previous hemisphere ambient's scale.
+void ComputeSkySH(const SceneEnvironment& env, vec3 out[9]) {
+    for (int i = 0; i < 9; i++) out[i] = vec3(0.0f);
+    const int n = 512;
+    const float golden = 3.14159265f * (3.0f - std::sqrt(5.0f));
+    for (int i = 0; i < n; i++) {                       // Fibonacci sphere: even coverage
+        float y = 1.0f - (i + 0.5f) * 2.0f / n, r = std::sqrt(1.0f - y * y), phi = golden * i;
+        vec3 d(std::cos(phi) * r, y, std::sin(phi) * r);
+        vec3 L = SkyRadiance(env, d);
+        float b[9] = { 0.282095f, 0.488603f * d.y, 0.488603f * d.z, 0.488603f * d.x,
+                       1.092548f * d.x * d.y, 1.092548f * d.y * d.z, 0.315392f * (3.0f * d.z * d.z - 1.0f),
+                       1.092548f * d.x * d.z, 0.546274f * (d.x * d.x - d.y * d.y) };
+        for (int k = 0; k < 9; k++) out[k] += L * b[k];
     }
-    s.SetInt("uSpotCount", L.spotCount);
-    if (L.spotCount > 0) {
-        s.SetVec3Array("uSpotPos", L.spotPos, L.spotCount);
-        s.SetVec3Array("uSpotDir", L.spotDir, L.spotCount);
-        s.SetVec3Array("uSpotColor", L.spotColor, L.spotCount);
-        s.SetFloatArray("uSpotRange", L.spotRange, L.spotCount);
-        s.SetFloatArray("uSpotCos", L.spotCos, L.spotCount);
-    }
-    s.SetInt("uHasShadows", L.shadows ? 1 : 0);
-    s.SetMat4("uLightSpace", L.lightSpace);
-    s.SetInt("uShadowMap", 5);
-    s.SetInt("uFog", env.fog ? 1 : 0);
-    s.SetVec3("uFogColor", env.fogColor);
-    s.SetFloat("uFogDensity", env.fogDensity);
-    s.SetFloat("uExposure", env.exposure);
+    const float w = 4.0f * 3.14159265f / n;
+    const float band[9] = { 1.0f, 2.0f / 3.0f, 2.0f / 3.0f, 2.0f / 3.0f, 0.25f, 0.25f, 0.25f, 0.25f, 0.25f };
+    for (int k = 0; k < 9; k++) out[k] *= w * band[k];
 }
 
 // Everything that affects how a mesh renderer looks, for automatic batching. Two renderers
@@ -145,11 +256,568 @@ bool SameLook(const MeshRendererComponent& a, const MeshRendererComponent& b) {
     return same;
 }
 
+
+// ---------------------------------------------------------------- per-frame data
+struct DrawItem {
+    EntityId id;
+    mat4 world;
+    MeshRendererComponent* mr;
+    AnimatorComponent* anim;
+    bool skinned;                 // animated pose available this frame
+};
+struct TerrainItem { EntityId id; mat4 world; TerrainComponent* t; };
+
+struct Frame {
+    Scene* scene;
+    const SceneEnvironment* env;
+    LightData L;
+    std::vector<DrawItem> items;
+    std::vector<TerrainItem> terrains;
+    bool envMap = false;          // a reflection cubemap is bound on kEnvUnit
+    float time = 0.0f;
+};
+
+// What a DrawWorld call includes. The main view gets everything; reflection faces skip the
+// costly or view-dependent parts.
+struct PassFlags {
+    bool ids = true;              // target has an entity-ID attachment at location 1
+    bool outlines = true, grass = true, water = true, particles = true;
+};
+
+void ApplyLights(Shader& s, const Frame& F, const RenderCamera& cam) {
+    const LightData& L = F.L;
+    const SceneEnvironment& env = *F.env;
+    s.SetVec3("uCameraPos", cam.position);
+    s.SetVec3("uCameraForward", Forward(cam));
+    s.SetInt("uHasSun", L.hasSun ? 1 : 0);
+    s.SetVec3("uSunDir", glm::normalize(L.sunDir));
+    s.SetVec3("uSunColor", L.sunColor);
+    s.SetVec3("uSkyTop", env.skyTop);
+    s.SetVec3("uSkyHorizon", env.skyHorizon);
+    s.SetVec3("uGroundColor", env.groundColor);
+    s.SetFloat("uAmbient", env.ambientIntensity);
+    s.SetVec3Array("uSkySH", s_Data->skySH, 9);
+    s.SetInt("uHasSkySH", 1);
+    s.SetInt("uPointCount", L.pointCount);
+    if (L.pointCount > 0) {
+        s.SetVec3Array("uPointPos", L.pointPos, L.pointCount);
+        s.SetVec3Array("uPointColor", L.pointColor, L.pointCount);
+        s.SetFloatArray("uPointRange", L.pointRange, L.pointCount);
+    }
+    s.SetInt("uSpotCount", L.spotCount);
+    if (L.spotCount > 0) {
+        s.SetVec3Array("uSpotPos", L.spotPos, L.spotCount);
+        s.SetVec3Array("uSpotDir", L.spotDir, L.spotCount);
+        s.SetVec3Array("uSpotColor", L.spotColor, L.spotCount);
+        s.SetFloatArray("uSpotRange", L.spotRange, L.spotCount);
+        s.SetFloatArray("uSpotCos", L.spotCos, L.spotCount);
+    }
+    s.SetInt("uHasShadows", L.shadows ? 1 : 0);
+    s.SetInt("uShadowMap", kShadowUnit);
+    if (L.shadows) {
+        s.SetInt("uCascadeCount", L.cascadeCount);
+        s.SetMat4Array("uCascadeMats", L.cascadeMats, L.cascadeCount);
+        s.SetFloatArray("uCascadeEnds", L.cascadeEnds, L.cascadeCount);
+        s.SetFloatArray("uCascadeTexel", L.cascadeTexel, L.cascadeCount);
+        s.SetFloat("uShadowSoftness", Renderer::Settings().shadowSoftness);
+    }
+    s.SetInt("uEnvMap", kEnvUnit);
+    s.SetInt("uHasEnvMap", F.envMap ? 1 : 0);
+    s.SetFloat("uEnvMaxLod", (float)std::max(0, s_Data->probe.mipCount - 3));
+    s.SetFloat("uReflectionIntensity", env.reflectionIntensity);
+    s.SetInt("uFog", env.fog ? 1 : 0);
+    s.SetVec3("uFogColor", env.fogColor);
+    s.SetFloat("uFogDensity", env.fogDensity);
+    s.SetFloat("uExposure", env.exposure);
+}
+
 void EnsureModel(MeshRendererComponent& mr) {
     if (!mr.model || mr.loadedMesh != mr.mesh || mr.loadedVersion != AssetManager::Version()) {
         mr.model = AssetManager::GetModel(mr.mesh);
         mr.loadedMesh = mr.mesh;
         mr.loadedVersion = AssetManager::Version();
+    }
+}
+
+// ---------------------------------------------------------------- cascaded shadows
+// Splits [near, shadowDistance] between cascades (mix of uniform and logarithmic splits),
+// fits each slice of the view frustum with a bounding sphere - rotation-invariant, so the
+// shadow doesn't swim when the camera turns - and snaps it to whole texels so it doesn't
+// shimmer when the camera moves.
+void SetupCascades(LightData& L, const RenderCamera& cam) {
+    const auto& rs = Renderer::Settings();
+    int count = glm::clamp(rs.shadowCascades, 1, kMaxCascades);
+    float n = std::max(cam.nearClip, 0.05f), f = std::min(rs.shadowDistance, cam.farClip);
+    mat4 invViewProj = glm::inverse(cam.projection * cam.view);
+    auto ndcZ = [&](float d) {
+        vec4 c = cam.projection * vec4(0, 0, -d, 1);
+        return c.z / c.w;
+    };
+    vec3 dir = glm::normalize(L.sunDir);
+    vec3 up = std::abs(dir.y) > 0.99f ? vec3(0, 0, 1) : vec3(0, 1, 0);
+    float prev = n;
+    for (int i = 0; i < count; i++) {
+        float t = (i + 1) / (float)count;
+        float split = glm::mix(n + (f - n) * t, n * std::pow(f / n, t), 0.75f);
+        vec3 corners[8];
+        int k = 0;
+        for (float z : { ndcZ(prev), ndcZ(split) })
+            for (int c = 0; c < 4; c++) {
+                vec4 p = invViewProj * vec4((c & 1) ? 1.0f : -1.0f, (c & 2) ? 1.0f : -1.0f, z, 1.0f);
+                corners[k++] = vec3(p) / p.w;
+            }
+        vec3 center(0.0f);
+        for (auto& c : corners) center += c;
+        center /= 8.0f;
+        float radius = 0.0f;
+        for (auto& c : corners) radius = std::max(radius, glm::length(c - center));
+        radius = std::ceil(radius * 16.0f) / 16.0f;
+        mat4 lightView = glm::lookAt(center - dir * (radius + 150.0f), center, up);
+        float texel = 2.0f * radius / rs.shadowMapSize;
+        vec4 lc = lightView * vec4(center, 1.0f);
+        vec2 snapped = glm::floor(vec2(lc) / texel) * texel;
+        lightView = glm::translate(mat4(1.0f), vec3(snapped - vec2(lc), 0.0f)) * lightView;
+        mat4 lightProj = glm::ortho(-radius, radius, -radius, radius, 1.0f, 2.0f * radius + 300.0f);
+        L.cascadeMats[i] = lightProj * lightView;
+        L.cascadeEnds[i] = split;
+        L.cascadeTexel[i] = texel;
+        prev = split;
+    }
+    L.cascadeCount = count;
+}
+
+void ShadowPass(Frame& F) {
+    EU_PROFILE_SCOPE("Shadows");
+    auto& rs = Renderer::Settings();
+    auto& C = s_Data->cascades;
+    C.Ensure(rs.shadowMapSize);
+    auto sh = Renderer::GetShader("shadow.glsl");
+    auto shSkin = Renderer::GetShader("shadow.glsl", { "SKINNED" });
+    auto shInst = Renderer::GetShader("shadow.glsl", { "INSTANCED" });
+
+    // Static casters sharing a model are drawn as one instanced call per sub-mesh.
+    std::unordered_map<const Model*, std::vector<const DrawItem*>> groups;
+    for (auto& d : F.items)
+        if (d.mr->castShadows && !d.skinned && !d.mr->model->IsSkinned()) groups[d.mr->model.get()].push_back(&d);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.5f, 2.0f);
+    std::vector<mat4> worlds;
+    std::vector<int> ids;
+    for (int c = 0; c < F.L.cascadeCount; c++) {
+        C.BindLayer(c);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        const mat4& ls = F.L.cascadeMats[c];
+        Frustum lightFrustum(ls);
+        for (auto& [model, group] : groups) {
+            worlds.clear();
+            ids.clear();
+            for (auto* d : group)
+                if (lightFrustum.Visible(TransformAABB(model->bounds, d->world))) { worlds.push_back(d->world); ids.push_back((int)d->id); }
+            if (worlds.empty()) continue;
+            if (worlds.size() >= 2 && rs.batching) {
+                shInst->Bind();
+                shInst->SetMat4("uLightSpace", ls);
+                shInst->SetMat4("uModel", mat4(1.0f));
+                for (auto& sm : model->meshes) sm.mesh->DrawBatch(worlds.data(), ids.data(), (int)worlds.size());
+            } else {
+                sh->Bind();
+                sh->SetMat4("uLightSpace", ls);
+                for (auto& w : worlds) {
+                    sh->SetMat4("uModel", w);
+                    for (auto& sm : model->meshes) sm.mesh->Draw();
+                }
+            }
+        }
+        for (auto& d : F.items) {
+            if (!d.mr->castShadows || (!d.skinned && !d.mr->model->IsSkinned())) continue;   // static ones done above
+            Shader& s = d.skinned ? *shSkin : *sh;
+            s.Bind();
+            s.SetMat4("uLightSpace", ls);
+            s.SetMat4("uModel", d.world);
+            if (d.skinned) {
+                auto& m = d.anim->runtime->skinMatrices;
+                s.SetMat4Array("uBones", m.data(), (int)std::min<size_t>(m.size(), 100));
+            }
+            for (auto& sm : d.mr->model->meshes) sm.mesh->Draw();
+        }
+        for (auto& t : F.terrains) {
+            sh->Bind();
+            sh->SetMat4("uLightSpace", ls);
+            sh->SetMat4("uModel", t.world);
+            t.t->runtime->mesh->Draw();
+            shInst->Bind();
+            shInst->SetMat4("uLightSpace", ls);
+            shInst->SetMat4("uModel", t.world);
+            for (auto& tb : t.t->runtime->trees) tb.mesh->DrawInstanced(tb.count);
+        }
+    }
+    glDisable(GL_POLYGON_OFFSET_FILL);
+}
+
+// ---------------------------------------------------------------- world drawing
+// Draws sky, meshes, terrain, water and particles for `cam` into the bound framebuffer.
+// Used for the main view (into the HDR buffer) and for reflection cubemap faces.
+void DrawWorld(Frame& F, const RenderCamera& cam, const PassFlags& flags, int viewportW, int viewportH) {
+    const auto& rs = Renderer::Settings();
+    Registry& reg = F.scene->Reg();
+    const mat4 viewProj = cam.projection * cam.view;
+    Frustum frustum(viewProj);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glActiveTexture(GL_TEXTURE0 + kShadowUnit);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, s_Data->cascades.tex);
+    glActiveTexture(GL_TEXTURE0 + kEnvUnit);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, F.envMap ? s_Data->probe.Front() : 0);
+    glActiveTexture(GL_TEXTURE0);
+    // Only the main view has an entity-ID attachment (location 1); faces write color only.
+    auto idMask = [&](bool on) { if (flags.ids) glColorMaski(1, on, on, on, on); };
+
+    // Sky (no depth write, no id)
+    {
+        auto sky = Renderer::GetShader("sky.glsl");
+        sky->Bind();
+        ApplyLights(*sky, F, cam);
+        sky->SetMat4("uInvViewProj", glm::inverse(viewProj));
+        glDepthMask(GL_FALSE);
+        idMask(false);
+        glBindVertexArray(s_Data->emptyVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        idMask(true);
+        glDepthMask(GL_TRUE);
+    }
+
+    // Opaque meshes
+    std::vector<const DrawItem*> outlined;
+    {
+        EU_PROFILE_SCOPE("Opaque");
+        auto white = Texture2D::White();
+        auto flatNormal = Texture2D::FlatNormal();
+        // Variants: [toon][plain|skinned|batched]
+        Ref<Shader> variants[2][3] = {
+            { Renderer::GetShader("lit.glsl"), Renderer::GetShader("lit.glsl", { "SKINNED" }), Renderer::GetShader("lit.glsl", { "BATCHED" }) },
+            { Renderer::GetShader("lit.glsl", { "TOON" }), Renderer::GetShader("lit.glsl", { "SKINNED", "TOON" }),
+              Renderer::GetShader("lit.glsl", { "BATCHED", "TOON" }) },
+        };
+        enum { kPlain = 0, kSkinned = 1, kBatched = 2 };
+        Shader* bound = nullptr;
+        auto bindVariant = [&](bool toon, int kind) -> Shader* {
+            Shader* s = variants[toon ? 1 : 0][kind].get();
+            if (s != bound) {
+                s->Bind();
+                ApplyLights(*s, F, cam);
+                s->SetMat4("uViewProj", viewProj);
+                s->SetInt("uAlbedoMap", 0);
+                s->SetInt("uNormalMap", 1);
+                s->SetInt("uMetalRoughMap", 2);
+                s->SetInt("uOcclusionMap", 3);
+                bound = s;
+            }
+            return s;
+        };
+        auto setObjectUniforms = [&](Shader* s, const MeshRendererComponent& mr) {
+            if (!mr.toon) return;
+            s->SetFloat("uToonBands", (float)glm::clamp(mr.toonBands, 2, 8));
+            s->SetFloat("uToonSoftness", glm::clamp(mr.toonSoftness, 0.0f, 0.5f));
+            s->SetVec3("uToonShadowColor", mr.toonShadowColor);
+            s->SetFloat("uToonShadowFill", glm::clamp(mr.toonShadowFill, 0.0f, 1.0f));
+            s->SetFloat("uToonRim", mr.toonRim);
+        };
+        // Texture overrides set on the renderer (they win over the model's own maps).
+        struct Overrides { Ref<Texture2D> albedo, normal, metalRough; };
+        auto overridesOf = [](const MeshRendererComponent& mr) {
+            Overrides o;
+            if (!mr.texture.empty()) o.albedo = AssetManager::GetTexture(mr.texture);
+            if (!mr.normalMap.empty()) o.normal = AssetManager::GetTexture(mr.normalMap);
+            if (!mr.metallicRoughnessMap.empty()) o.metalRough = AssetManager::GetTexture(mr.metallicRoughnessMap);
+            return o;
+        };
+        // Sets one sub-mesh's material; returns whether it is double sided. With model
+        // materials on, the model's PBR factors are used; otherwise the renderer's.
+        auto setMaterial = [&](Shader* s, const MeshRendererComponent& mr, const SubMesh& sm, const Overrides& o) {
+            const MaterialData* mat = (mr.useModelMaterials && sm.material >= 0 && sm.material < (int)mr.model->materials.size())
+                                          ? &mr.model->materials[sm.material] : nullptr;
+            s->SetVec4("uColor", mr.color * (mat ? mat->baseColor : vec4(1.0f)));
+            s->SetFloat("uTiling", mr.tiling);
+            s->SetFloat("uMetallic", mat ? mat->metallic : mr.metallic);
+            s->SetFloat("uRoughness", mat ? mat->roughness : mr.roughness);
+            s->SetVec3("uEmissive", mr.emissive + (mat ? mat->emissive : vec3(0.0f)));
+            Ref<Texture2D> normal = o.normal ? o.normal : (mat ? mat->normalMap : nullptr);
+            s->SetFloat("uNormalScale", normal ? (o.normal ? mr.normalStrength : mat->normalScale * mr.normalStrength) : 0.0f);
+            (o.albedo ? o.albedo : (mat && mat->albedo ? mat->albedo : white))->Bind(0);
+            (normal ? normal : flatNormal)->Bind(1);
+            (o.metalRough ? o.metalRough : (mat && mat->metallicRoughnessMap ? mat->metallicRoughnessMap : white))->Bind(2);
+            (mat && mat->occlusionMap ? mat->occlusionMap : white)->Bind(3);
+            return mat && mat->doubleSided;
+        };
+
+        // Group visible, non-skinned items that look identical (same model, same material
+        // settings) so each group becomes a single instanced draw per sub-mesh.
+        std::vector<const DrawItem*> singles;
+        std::unordered_map<uint64_t, std::vector<std::vector<const DrawItem*>>> groups;
+        for (auto& d : F.items) {
+            if (!d.skinned && !d.mr->model->IsSkinned()) {
+                if (!frustum.Visible(TransformAABB(d.mr->model->bounds, d.world))) continue;
+            }
+            if (d.mr->outline && flags.outlines) outlined.push_back(&d);
+            if (d.skinned || d.mr->model->IsSkinned() || !rs.batching) { singles.push_back(&d); continue; }
+            auto& buckets = groups[BatchKey(*d.mr)];
+            bool placed = false;
+            for (auto& b : buckets)
+                if (SameLook(*b.front()->mr, *d.mr)) { b.push_back(&d); placed = true; break; }   // hash collision guard
+            if (!placed) buckets.push_back({ &d });
+        }
+
+        std::vector<mat4> batchWorlds;
+        std::vector<int> batchIds;
+        for (auto& [key, buckets] : groups) {
+            for (auto& b : buckets) {
+                if (b.size() < 2) { singles.push_back(b.front()); continue; }
+                const MeshRendererComponent& mr = *b.front()->mr;
+                batchWorlds.clear();
+                batchIds.clear();
+                for (auto* d : b) { batchWorlds.push_back(d->world); batchIds.push_back((int)d->id); }
+                Shader* s = bindVariant(mr.toon, kBatched);
+                setObjectUniforms(s, mr);
+                s->SetMat4("uModel", mat4(1.0f));
+                Overrides ov = overridesOf(mr);
+                for (auto& sm : mr.model->meshes) {
+                    bool ds = setMaterial(s, mr, sm, ov);
+                    if (ds) glDisable(GL_CULL_FACE);
+                    sm.mesh->DrawBatch(batchWorlds.data(), batchIds.data(), (int)b.size());
+                    if (ds) glEnable(GL_CULL_FACE);
+                }
+                if (flags.ids) Profiler::Stats().batchedObjects += (uint32_t)b.size();
+            }
+        }
+
+        for (const DrawItem* dp : singles) {
+            const DrawItem& d = *dp;
+            Shader* s = bindVariant(d.mr->toon, d.skinned ? kSkinned : kPlain);
+            setObjectUniforms(s, *d.mr);
+            s->SetMat4("uModel", d.world);
+            s->SetInt("uEntityID", (int)d.id);
+            if (d.skinned) {
+                auto& m = d.anim->runtime->skinMatrices;
+                s->SetMat4Array("uBones", m.data(), (int)std::min<size_t>(m.size(), 100));
+            }
+            Overrides ov = overridesOf(*d.mr);
+            for (auto& sm : d.mr->model->meshes) {
+                bool ds = setMaterial(s, *d.mr, sm, ov);
+                if (ds) glDisable(GL_CULL_FACE);
+                sm.mesh->Draw();
+                if (ds) glEnable(GL_CULL_FACE);
+            }
+        }
+    }
+
+    // Ink outlines (inverted hull): redraw outlined meshes inflated along their outline
+    // normals with front faces culled, so only the shell's back faces show around the edges.
+    if (!outlined.empty()) {
+        EU_PROFILE_SCOPE("Outlines");
+        auto os = Renderer::GetShader("outline.glsl");
+        auto osSkin = Renderer::GetShader("outline.glsl", { "SKINNED" });
+        vec2 viewport((float)viewportW, (float)viewportH);
+        glCullFace(GL_FRONT);
+        Shader* bound = nullptr;
+        for (const DrawItem* d : outlined) {
+            Shader* s = d->skinned ? osSkin.get() : os.get();
+            if (s != bound) {
+                s->Bind();
+                ApplyLights(*s, F, cam);   // camera position + fog for distance fading
+                s->SetMat4("uViewProj", viewProj);
+                s->SetVec2("uViewportSize", viewport);
+                bound = s;
+            }
+            s->SetMat4("uModel", d->world);
+            s->SetInt("uEntityID", (int)d->id);
+            s->SetFloat("uOutlineWidth", glm::max(d->mr->outlineWidth, 0.0f));
+            s->SetVec4("uOutlineColor", d->mr->outlineColor);
+            if (d->skinned) {
+                auto& m = d->anim->runtime->skinMatrices;
+                s->SetMat4Array("uBones", m.data(), (int)std::min<size_t>(m.size(), 100));
+            }
+            for (auto& sm : d->mr->model->meshes) sm.mesh->Draw();
+        }
+        glCullFace(GL_BACK);
+    }
+
+    // Terrain + foliage
+    if (!F.terrains.empty()) {
+        EU_PROFILE_SCOPE("Terrain");
+        auto ts = Renderer::GetShader("terrain.glsl");
+        auto treeShader = Renderer::GetShader("lit.glsl", { "INSTANCED" });
+        auto grassShader = Renderer::GetShader("grass.glsl");
+        auto white = Texture2D::White();
+        for (auto& t : F.terrains) {
+            TerrainComponent& tc = *t.t;
+            ts->Bind();
+            ApplyLights(*ts, F, cam);
+            ts->SetMat4("uViewProj", viewProj);
+            ts->SetMat4("uModel", t.world);
+            ts->SetVec3("uSand", tc.sandColor);
+            ts->SetVec3("uGrass", tc.grassColor);
+            ts->SetVec3("uRock", tc.rockColor);
+            ts->SetVec3("uSnow", tc.snowColor);
+            ts->SetFloat("uSandHeight", tc.sandHeight);
+            ts->SetFloat("uSnowHeight", tc.snowHeight);
+            ts->SetInt("uEntityID", (int)t.id);
+            tc.runtime->mesh->Draw();
+
+            if (!tc.runtime->trees.empty()) {
+                treeShader->Bind();
+                ApplyLights(*treeShader, F, cam);
+                treeShader->SetMat4("uViewProj", viewProj);
+                treeShader->SetMat4("uModel", t.world);
+                treeShader->SetInt("uAlbedoMap", 0);
+                treeShader->SetInt("uEntityID", (int)t.id);
+                treeShader->SetFloat("uTiling", 1.0f);
+                treeShader->SetFloat("uMetallic", 0.0f);
+                treeShader->SetFloat("uRoughness", 0.8f);
+                treeShader->SetFloat("uNormalScale", 0.0f);
+                treeShader->SetInt("uNormalMap", 1);
+                treeShader->SetInt("uMetalRoughMap", 2);
+                treeShader->SetInt("uOcclusionMap", 3);
+                Texture2D::FlatNormal()->Bind(1);
+                white->Bind(2);
+                white->Bind(3);
+                treeShader->SetVec3("uEmissive", vec3(0.0f));
+                for (auto& tb : tc.runtime->trees) {
+                    treeShader->SetVec4("uColor", tb.color);
+                    (tb.texture ? tb.texture : white)->Bind(0);
+                    tb.mesh->DrawInstanced(tb.count);
+                }
+            }
+            if (flags.grass && rs.grass && tc.grass && tc.runtime->grassCount > 0) {
+                glDisable(GL_CULL_FACE);
+                idMask(false);
+                grassShader->Bind();
+                ApplyLights(*grassShader, F, cam);
+                grassShader->SetMat4("uViewProj", viewProj);
+                grassShader->SetMat4("uModel", t.world);
+                grassShader->SetFloat("uTime", F.time);
+                grassShader->SetVec3("uCameraPosV", cam.position);
+                grassShader->SetFloat("uMaxDistance", rs.grassDistance);
+                grassShader->SetVec3("uGrassColor", tc.grassColor);
+                tc.runtime->grassMesh->DrawInstanced(tc.runtime->grassCount);
+                idMask(true);
+                glEnable(GL_CULL_FACE);
+            }
+        }
+    }
+
+    // ---- Transparent: water ----------------------------------------------
+    idMask(false);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    if (flags.water) {
+        auto ws = Renderer::GetShader("water.glsl");
+        bool bound = false;
+        reg.View<TransformComponent, WaterComponent>([&](EntityId id, TransformComponent&, WaterComponent& w) {
+            if (!F.scene->CachedActive(id)) return;
+            if (!bound) {
+                ws->Bind();
+                ApplyLights(*ws, F, cam);
+                ws->SetMat4("uViewProj", viewProj);
+                ws->SetFloat("uTime", F.time);
+                bound = true;
+            }
+            mat4 world = F.scene->CachedWorld(id) * glm::scale(mat4(1.0f), vec3(w.size.x, 1.0f, w.size.y));
+            ws->SetMat4("uModel", world);
+            ws->SetVec4("uShallow", w.shallowColor);
+            ws->SetVec4("uDeep", w.deepColor);
+            ws->SetFloat("uWaveHeight", w.waveHeight);
+            ws->SetFloat("uWaveScale", w.waveScale);
+            ws->SetFloat("uWaveSpeed", w.waveSpeed);
+            glDisable(GL_CULL_FACE);
+            s_Data->waterGrid->Draw();
+            glEnable(GL_CULL_FACE);
+        });
+    }
+
+    // ---- Particles --------------------------------------------------------
+    if (flags.particles) {
+        EU_PROFILE_SCOPE("Particles");
+        struct PE { ParticleEmitterComponent* e; mat4 world; float dist; };
+        std::vector<PE> emitters;
+        uint32_t total = 0;
+        reg.View<TransformComponent, ParticleEmitterComponent>([&](EntityId id, TransformComponent&, ParticleEmitterComponent& p) {
+            if (!p.runtime || p.runtime->particles.empty() || !F.scene->CachedActive(id)) return;
+            const mat4& w = F.scene->CachedWorld(id);
+            emitters.push_back({ &p, w, glm::distance(vec3(w[3]), cam.position) });
+            total += (uint32_t)p.runtime->particles.size();
+        });
+        Profiler::Stats().particles = total;
+        if (!emitters.empty()) {
+            std::sort(emitters.begin(), emitters.end(), [](const PE& a, const PE& b) { return a.dist > b.dist; });
+            auto ps = Renderer::GetShader("particle.glsl");
+            ps->Bind();
+            ApplyLights(*ps, F, cam);
+            ps->SetMat4("uViewProj", viewProj);
+            mat4 inv = glm::inverse(cam.view);
+            ps->SetVec3("uCamRight", vec3(inv[0]));
+            ps->SetVec3("uCamUp", vec3(inv[1]));
+            glDepthMask(GL_FALSE);
+            glDisable(GL_CULL_FACE);
+            for (auto& pe : emitters) {
+                int n = pe.e->runtime->PrepareDraw(*pe.e, pe.world, cam.position);
+                if (pe.e->additive) glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+                else glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                pe.e->runtime->quad->DrawInstanced(n);
+            }
+            glDepthMask(GL_TRUE);
+            glEnable(GL_CULL_FACE);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
+    }
+    glDisable(GL_BLEND);
+    idMask(true);
+    glBindVertexArray(0);
+}
+
+// Re-captures the reflection cubemap around `cam`: one face per frame normally, all six when
+// there is no valid capture yet (first frame, or after a teleport). Water is included, so the
+// lake reflects in glossy surfaces too.
+void UpdateReflectionProbe(Frame& F, const RenderCamera& cam) {
+    EU_PROFILE_SCOPE("Reflections");
+    auto& P = s_Data->probe;
+    P.Ensure(Renderer::Settings().reflectionSize);
+    if (P.nextFace == 0) P.capturePos = cam.position;
+    bool jumped = P.valid && glm::distance(P.capturePos, cam.position) > 25.0f;
+    if (jumped) { P.valid = false; P.nextFace = 0; P.capturePos = cam.position; }
+    int faces = P.valid ? 1 : 6;
+    PassFlags flags;
+    flags.ids = false;
+    flags.outlines = false;
+    flags.grass = false;
+    flags.particles = false;
+    glBindFramebuffer(GL_FRAMEBUFFER, P.fbo);
+    glViewport(0, 0, P.size, P.size);
+    vec3 clear = SRGBToLinear(F.env->skyHorizon);
+    for (int i = 0; i < faces; i++) {
+        int f = P.nextFace;
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + f, P.Back(), 0);
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glClearColor(clear.r, clear.g, clear.b, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        DrawWorld(F, ReflectionProbe::FaceCamera(P.capturePos, f), flags, P.size, P.size);
+        if (++P.nextFace == 6) {
+            P.nextFace = 0;
+            glBindTexture(GL_TEXTURE_CUBE_MAP, P.Back());
+            glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+            P.front = 1 - P.front;
+            P.valid = true;
+            F.envMap = true;
+        }
     }
 }
 
@@ -168,16 +836,16 @@ void Renderer::Init() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(DebugDraw::LineVertex), (void*)sizeof(vec3));
     glBindVertexArray(0);
-
-    FramebufferSpec spec;
-    spec.width = spec.height = s_Settings.shadowMapSize;
-    spec.attachments = { FBFormat::DepthTexture };
-    s_Data->shadowFB = MakeScope<Framebuffer>(spec);
     s_Data->waterGrid = Primitives::Plane(1.0f, 128);
+    PostProcess::Init();
 }
 
 void Renderer::Shutdown() {
     if (!s_Data) return;
+    PostProcess::Shutdown();
+    s_Data->cascades.Release();
+    s_Data->probe.Release();
+    s_Data->hdr.reset();
     glDeleteVertexArrays(1, &s_Data->emptyVAO);
     glDeleteVertexArrays(1, &s_Data->lineVAO);
     glDeleteBuffers(1, &s_Data->lineVBO);
@@ -221,25 +889,24 @@ RenderCamera Renderer::MakeCamera(const mat4& world, float fov, float aspect, fl
 void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& target, const RenderOptions& opt) {
     EU_PROFILE_SCOPE("Render");
     Registry& reg = scene.Reg();
-    const SceneEnvironment& env = scene.Environment();
-    const mat4 viewProj = cam.projection * cam.view;
-    const float time = (float)Time::Elapsed();
-    Frustum frustum(viewProj);
+    Frame F;
+    F.scene = &scene;
+    F.env = &scene.Environment();
+    F.time = (float)Time::Elapsed();
+    const int W = target.Width(), H = target.Height();
 
     // ---- Prepare: transforms, terrain meshes, model references -----------
     scene.CacheTransforms();
-    auto worldOf = [&](EntityId id) -> const mat4& { return scene.CachedWorld(id); };
-    auto activeOf = [&](EntityId id) { return scene.CachedActive(id); };
     reg.View<TerrainComponent>([&](EntityId, TerrainComponent& t) { TerrainSystem::Update(t); });
     reg.View<MeshRendererComponent>([&](EntityId, MeshRendererComponent& mr) { EnsureModel(mr); });
 
     // ---- Lights ------------------------------------------------------------
-    LightData L;
+    LightData& L = F.L;
     struct PL { vec3 pos, color; float range, dist; };
     std::vector<PL> points;
     reg.View<TransformComponent, LightComponent>([&](EntityId id, TransformComponent&, LightComponent& l) {
-        if (!activeOf(id)) return;
-        const mat4& w = worldOf(id);
+        if (!scene.CachedActive(id)) return;
+        const mat4& w = scene.CachedWorld(id);
         vec3 pos = vec3(w[3]);
         vec3 fwd = glm::normalize(vec3(w * vec4(0, 0, -1, 0)));
         vec3 color = SRGBToLinear(l.color) * l.intensity;
@@ -264,429 +931,100 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
         int i = L.pointCount++;
         L.pointPos[i] = p.pos; L.pointColor[i] = p.color; L.pointRange[i] = p.range;
     }
+    ComputeSkySH(*F.env, s_Data->skySH);
 
     // ---- Collect draw items ----------------------------------------------
-    struct DrawItem {
-        EntityId id;
-        mat4 world;
-        MeshRendererComponent* mr;
-        AnimatorComponent* anim;
-    };
-    std::vector<DrawItem> items;
     reg.View<TransformComponent, MeshRendererComponent>([&](EntityId id, TransformComponent&, MeshRendererComponent& mr) {
-        if (!mr.visible || !mr.model || !activeOf(id)) return;
-        DrawItem d{ id, worldOf(id), &mr, reg.TryGet<AnimatorComponent>(id) };
-        items.push_back(d);
+        if (!mr.visible || !mr.model || !scene.CachedActive(id)) return;
+        DrawItem d{ id, scene.CachedWorld(id), &mr, reg.TryGet<AnimatorComponent>(id), false };
+        d.skinned = mr.model->IsSkinned() && d.anim && d.anim->runtime && !d.anim->runtime->skinMatrices.empty();
+        F.items.push_back(d);
     });
-    struct TerrainItem { EntityId id; mat4 world; TerrainComponent* t; };
-    std::vector<TerrainItem> terrains;
     reg.View<TransformComponent, TerrainComponent>([&](EntityId id, TransformComponent&, TerrainComponent& t) {
-        if (!t.runtime || !t.runtime->mesh || !activeOf(id)) return;
-        terrains.push_back({ id, worldOf(id), &t });
+        if (!t.runtime || !t.runtime->mesh || !scene.CachedActive(id)) return;
+        F.terrains.push_back({ id, scene.CachedWorld(id), &t });
     });
 
-    auto isSkinned = [](const DrawItem& d) {
-        return d.mr->model->IsSkinned() && d.anim && d.anim->runtime && !d.anim->runtime->skinMatrices.empty();
-    };
-
-    // ---- Shadow pass -------------------------------------------------------
+    // ---- Shadows -----------------------------------------------------------
     L.shadows = L.hasSun && L.sunShadows && s_Settings.shadows;
     if (L.shadows) {
-        EU_PROFILE_SCOPE("Shadows");
-        if (s_Data->shadowFB->Width() != s_Settings.shadowMapSize) s_Data->shadowFB->Resize(s_Settings.shadowMapSize, s_Settings.shadowMapSize);
-        float dist = s_Settings.shadowDistance;
-        mat4 invView = glm::inverse(cam.view);
-        vec3 camFwd = -vec3(invView[2]);
-        vec3 center = cam.position + camFwd * dist * 0.4f;
-        vec3 dir = glm::normalize(L.sunDir);
-        vec3 up = std::abs(dir.y) > 0.99f ? vec3(0, 0, 1) : vec3(0, 1, 0);
-        mat4 lightView = glm::lookAt(center - dir * 150.0f, center, up);
-        // Snap to texels to avoid shimmering
-        float texel = (dist * 2.0f) / s_Settings.shadowMapSize;
-        vec4 lc = lightView * vec4(center, 1.0f);
-        vec2 snapped = glm::floor(vec2(lc) / texel) * texel;
-        lightView = glm::translate(mat4(1.0f), vec3(snapped - vec2(lc), 0.0f)) * lightView;
-        mat4 lightProj = glm::ortho(-dist, dist, -dist, dist, 1.0f, 400.0f);
-        L.lightSpace = lightProj * lightView;
-
-        s_Data->shadowFB->Bind();
-        glClear(GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
-        glDisable(GL_CULL_FACE);
-        glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(1.5f, 2.0f);
-
-        auto sh = GetShader("shadow.glsl");
-        auto shSkin = GetShader("shadow.glsl", { "SKINNED" });
-        auto shInst = GetShader("shadow.glsl", { "INSTANCED" });
-        // Static casters sharing a model are drawn as one instanced call per sub-mesh.
-        std::unordered_map<const Model*, std::vector<const DrawItem*>> casterGroups;
-        for (auto& d : items)
-            if (s_Settings.batching && d.mr->castShadows && !isSkinned(d) && !d.mr->model->IsSkinned()) casterGroups[d.mr->model.get()].push_back(&d);
-        std::vector<mat4> batchWorlds;
-        std::vector<int> batchIds;
-        for (auto& [model, group] : casterGroups) {
-            if (group.size() < 2) continue;
-            batchWorlds.clear();
-            batchIds.clear();
-            for (auto* d : group) { batchWorlds.push_back(d->world); batchIds.push_back((int)d->id); }
-            shInst->Bind();
-            shInst->SetMat4("uLightSpace", L.lightSpace);
-            shInst->SetMat4("uModel", mat4(1.0f));
-            for (auto& sm : model->meshes) sm.mesh->DrawBatch(batchWorlds.data(), batchIds.data(), (int)group.size());
-        }
-        for (auto& d : items) {
-            if (!d.mr->castShadows) continue;
-            bool skinned = isSkinned(d);
-            if (s_Settings.batching && !skinned && !d.mr->model->IsSkinned() && casterGroups[d.mr->model.get()].size() >= 2) continue;   // batched above
-            Shader& s = skinned ? *shSkin : *sh;
-            s.Bind();
-            s.SetMat4("uLightSpace", L.lightSpace);
-            s.SetMat4("uModel", d.world);
-            if (skinned) {
-                auto& m = d.anim->runtime->skinMatrices;
-                s.SetMat4Array("uBones", m.data(), (int)std::min<size_t>(m.size(), 100));
-            }
-            for (auto& sm : d.mr->model->meshes) sm.mesh->Draw();
-        }
-        for (auto& t : terrains) {
-            sh->Bind();
-            sh->SetMat4("uLightSpace", L.lightSpace);
-            sh->SetMat4("uModel", t.world);
-            t.t->runtime->mesh->Draw();
-            shInst->Bind();
-            shInst->SetMat4("uLightSpace", L.lightSpace);
-            shInst->SetMat4("uModel", t.world);
-            for (auto& tb : t.t->runtime->trees) tb.mesh->DrawInstanced(tb.count);
-        }
-        glDisable(GL_POLYGON_OFFSET_FILL);
+        SetupCascades(L, cam);
+        ShadowPass(F);
+    } else {
+        s_Data->cascades.Ensure(s_Settings.shadowMapSize);   // keep a valid texture bound
     }
 
-    // ---- Main pass --------------------------------------------------------
-    target.Bind();
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
-    glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    vec3 clear = glm::pow(env.skyHorizon, vec3(1.0f));
+    // ---- Reflections -------------------------------------------------------
+    F.envMap = s_Settings.reflections && s_Data->probe.valid;
+    if (s_Settings.reflections) UpdateReflectionProbe(F, cam);
+
+    // ---- Main pass into the HDR buffer ------------------------------------
+    if (!s_Data->hdr) {
+        FramebufferSpec spec;
+        spec.width = W;
+        spec.height = H;
+        spec.attachments = { FBFormat::RGBA16F, FBFormat::R32I, FBFormat::Depth24Stencil8 };
+        s_Data->hdr = MakeScope<Framebuffer>(spec);
+    }
+    Framebuffer& hdr = *s_Data->hdr;
+    hdr.Resize(W, H);
+    hdr.Bind();
+    vec3 clear = SRGBToLinear(F.env->skyHorizon);
     glClearColor(clear.r, clear.g, clear.b, 1.0f);
     glColorMaski(1, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glDepthMask(GL_TRUE);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    if (target.ColorCount() > 1) target.ClearAttachmentInt(1, -1);
-    glActiveTexture(GL_TEXTURE5);
-    glBindTexture(GL_TEXTURE_2D, s_Data->shadowFB->DepthAttachment());
+    hdr.ClearAttachmentInt(1, -1);
+    DrawWorld(F, cam, PassFlags{}, W, H);
 
-    // Sky (no depth write, no id)
+    // ---- Post: HDR -> target color; copy ids and depth across ------------
     {
-        auto sky = GetShader("sky.glsl");
-        sky->Bind();
-        ApplyLights(*sky, L, env, cam);
-        sky->SetMat4("uInvViewProj", glm::inverse(viewProj));
-        glDepthMask(GL_FALSE);
-        glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        glBindVertexArray(s_Data->emptyVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        glColorMaski(1, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glDepthMask(GL_TRUE);
+        // Post writes only color attachment 0 of the target.
+        glBindFramebuffer(GL_FRAMEBUFFER, target.Id());
+        GLenum only0 = GL_COLOR_ATTACHMENT0;
+        glDrawBuffers(1, &only0);
+        PostProcess::Inputs in;
+        in.hdrColor = hdr.ColorAttachment(0);
+        in.depth = hdr.DepthAttachment();
+        in.width = W;
+        in.height = H;
+        in.projection = cam.projection;
+        in.nearClip = cam.nearClip;
+        in.farClip = cam.farClip;
+        in.destFbo = target.Id();
+        PostProcess::Run(in, *F.env, s_Settings);
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, hdr.Id());
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.Id());
+        if (target.ColorCount() > 1) {
+            glReadBuffer(GL_COLOR_ATTACHMENT1);
+            GLenum only1[2] = { GL_NONE, GL_COLOR_ATTACHMENT1 };
+            glDrawBuffers(2, only1);
+            glBlitFramebuffer(0, 0, W, H, 0, 0, W, H, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        }
+        if (target.DepthAttachment())
+            glBlitFramebuffer(0, 0, W, H, 0, 0, W, H, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        std::vector<GLenum> all;
+        for (int i = 0; i < target.ColorCount(); i++) all.push_back(GL_COLOR_ATTACHMENT0 + i);
+        target.Bind();
+        glDrawBuffers((GLsizei)all.size(), all.data());
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
     }
 
-    // Opaque meshes
-    std::vector<const DrawItem*> outlined;
-    {
-        EU_PROFILE_SCOPE("Opaque");
-        auto white = Texture2D::White();
-        // Variants: [toon][skinned|batched]
-        Ref<Shader> variants[2][3] = {
-            { GetShader("lit.glsl"), GetShader("lit.glsl", { "SKINNED" }), GetShader("lit.glsl", { "BATCHED" }) },
-            { GetShader("lit.glsl", { "TOON" }), GetShader("lit.glsl", { "SKINNED", "TOON" }), GetShader("lit.glsl", { "BATCHED", "TOON" }) },
-        };
-        enum { kPlain = 0, kSkinned = 1, kBatched = 2 };
-        Shader* bound = nullptr;
-        auto bindVariant = [&](bool toon, int kind) -> Shader* {
-            Shader* s = variants[toon ? 1 : 0][kind].get();
-            if (s != bound) {
-                s->Bind();
-                ApplyLights(*s, L, env, cam);
-                s->SetMat4("uViewProj", viewProj);
-                s->SetInt("uAlbedoMap", 0);
-                s->SetInt("uNormalMap", 1);
-                s->SetInt("uMetalRoughMap", 2);
-                s->SetInt("uOcclusionMap", 3);
-                bound = s;
-            }
-            return s;
-        };
-        auto setObjectUniforms = [&](Shader* s, const MeshRendererComponent& mr) {
-            if (!mr.toon) return;
-            s->SetFloat("uToonBands", (float)glm::clamp(mr.toonBands, 2, 8));
-            s->SetFloat("uToonSoftness", glm::clamp(mr.toonSoftness, 0.0f, 0.5f));
-            s->SetVec3("uToonShadowColor", mr.toonShadowColor);
-            s->SetFloat("uToonShadowFill", glm::clamp(mr.toonShadowFill, 0.0f, 1.0f));
-            s->SetFloat("uToonRim", mr.toonRim);
-        };
-        auto flatNormal = Texture2D::FlatNormal();
-        // Texture overrides set on the renderer (they win over the model's own maps).
-        struct Overrides { Ref<Texture2D> albedo, normal, metalRough; };
-        auto overridesOf = [](const MeshRendererComponent& mr) {
-            Overrides o;
-            if (!mr.texture.empty()) o.albedo = AssetManager::GetTexture(mr.texture);
-            if (!mr.normalMap.empty()) o.normal = AssetManager::GetTexture(mr.normalMap);
-            if (!mr.metallicRoughnessMap.empty()) o.metalRough = AssetManager::GetTexture(mr.metallicRoughnessMap);
-            return o;
-        };
-        // Sets one sub-mesh's material; returns whether it is double sided. With model
-        // materials on, the model's PBR factors are used; otherwise the renderer's.
-        auto setMaterial = [&](Shader* s, const MeshRendererComponent& mr, const SubMesh& sm, const Overrides& o) {
-            const MaterialData* mat = (mr.useModelMaterials && sm.material >= 0 && sm.material < (int)mr.model->materials.size())
-                                          ? &mr.model->materials[sm.material] : nullptr;
-            s->SetVec4("uColor", mr.color * (mat ? mat->baseColor : vec4(1.0f)));
-            s->SetFloat("uTiling", mr.tiling);
-            s->SetFloat("uMetallic", mat ? mat->metallic : mr.metallic);
-            s->SetFloat("uRoughness", mat ? mat->roughness : mr.roughness);
-            s->SetVec3("uEmissive", mr.emissive + (mat ? mat->emissive : vec3(0.0f)));
-            Ref<Texture2D> normal = o.normal ? o.normal : (mat ? mat->normalMap : nullptr);
-            s->SetFloat("uNormalScale", normal ? (o.normal ? mr.normalStrength : mat->normalScale * mr.normalStrength) : 0.0f);
-            (o.albedo ? o.albedo : (mat && mat->albedo ? mat->albedo : white))->Bind(0);
-            (normal ? normal : flatNormal)->Bind(1);
-            (o.metalRough ? o.metalRough : (mat && mat->metallicRoughnessMap ? mat->metallicRoughnessMap : white))->Bind(2);
-            (mat && mat->occlusionMap ? mat->occlusionMap : white)->Bind(3);
-            return mat && mat->doubleSided;
-        };
-
-        // Group visible, non-skinned items that look identical (same model, same material
-        // settings) so each group becomes a single instanced draw per sub-mesh.
-        std::vector<const DrawItem*> singles;
-        std::unordered_map<uint64_t, std::vector<std::vector<const DrawItem*>>> groups;
-        for (auto& d : items) {
-            bool skinned = isSkinned(d);
-            if (!skinned && !d.mr->model->IsSkinned()) {
-                if (!frustum.Visible(TransformAABB(d.mr->model->bounds, d.world))) continue;
-            }
-            if (d.mr->outline) outlined.push_back(&d);
-            if (skinned || d.mr->model->IsSkinned() || !s_Settings.batching) { singles.push_back(&d); continue; }
-            auto& buckets = groups[BatchKey(*d.mr)];
-            bool placed = false;
-            for (auto& b : buckets)
-                if (SameLook(*b.front()->mr, *d.mr)) { b.push_back(&d); placed = true; break; }   // hash collision guard
-            if (!placed) buckets.push_back({ &d });
-        }
-
-        std::vector<mat4> batchWorlds;
-        std::vector<int> batchIds;
-        for (auto& [key, buckets] : groups) {
-            for (auto& b : buckets) {
-                if (b.size() < 2) { singles.push_back(b.front()); continue; }
-                const MeshRendererComponent& mr = *b.front()->mr;
-                batchWorlds.clear();
-                batchIds.clear();
-                for (auto* d : b) { batchWorlds.push_back(d->world); batchIds.push_back((int)d->id); }
-                Shader* s = bindVariant(mr.toon, kBatched);
-                setObjectUniforms(s, mr);
-                s->SetMat4("uModel", mat4(1.0f));
-                Overrides ov = overridesOf(mr);
-                for (auto& sm : mr.model->meshes) {
-                    bool ds = setMaterial(s, mr, sm, ov);
-                    if (ds) glDisable(GL_CULL_FACE);
-                    sm.mesh->DrawBatch(batchWorlds.data(), batchIds.data(), (int)b.size());
-                    if (ds) glEnable(GL_CULL_FACE);
-                }
-                Profiler::Stats().batchedObjects += (uint32_t)b.size();
-            }
-        }
-
-        for (const DrawItem* dp : singles) {
-            const DrawItem& d = *dp;
-            bool skinned = isSkinned(d);
-            Shader* s = bindVariant(d.mr->toon, skinned ? kSkinned : kPlain);
-            setObjectUniforms(s, *d.mr);
-            s->SetMat4("uModel", d.world);
-            s->SetInt("uEntityID", (int)d.id);
-            if (skinned) {
-                auto& m = d.anim->runtime->skinMatrices;
-                s->SetMat4Array("uBones", m.data(), (int)std::min<size_t>(m.size(), 100));
-            }
-            Overrides ov = overridesOf(*d.mr);
-            for (auto& sm : d.mr->model->meshes) {
-                bool ds = setMaterial(s, *d.mr, sm, ov);
-                if (ds) glDisable(GL_CULL_FACE);
-                sm.mesh->Draw();
-                if (ds) glEnable(GL_CULL_FACE);
-            }
-        }
-    }
-
-    // Ink outlines (inverted hull): redraw outlined meshes inflated along their outline
-    // normals with front faces culled, so only the shell's back faces show around the edges.
-    if (!outlined.empty()) {
-        EU_PROFILE_SCOPE("Outlines");
-        auto os = GetShader("outline.glsl");
-        auto osSkin = GetShader("outline.glsl", { "SKINNED" });
-        vec2 viewport((float)target.Width(), (float)target.Height());
-        glCullFace(GL_FRONT);
-        Shader* bound = nullptr;
-        for (const DrawItem* d : outlined) {
-            bool skinned = isSkinned(*d);
-            Shader* s = skinned ? osSkin.get() : os.get();
-            if (s != bound) {
-                s->Bind();
-                ApplyLights(*s, L, env, cam);   // camera position + fog for distance fading
-                s->SetMat4("uViewProj", viewProj);
-                s->SetVec2("uViewportSize", viewport);
-                bound = s;
-            }
-            s->SetMat4("uModel", d->world);
-            s->SetInt("uEntityID", (int)d->id);
-            s->SetFloat("uOutlineWidth", glm::max(d->mr->outlineWidth, 0.0f));
-            s->SetVec4("uOutlineColor", d->mr->outlineColor);
-            if (skinned) {
-                auto& m = d->anim->runtime->skinMatrices;
-                s->SetMat4Array("uBones", m.data(), (int)std::min<size_t>(m.size(), 100));
-            }
-            for (auto& sm : d->mr->model->meshes) sm.mesh->Draw();
-        }
-        glCullFace(GL_BACK);
-    }
-
-    // Terrain + foliage
-    if (!terrains.empty()) {
-        EU_PROFILE_SCOPE("Terrain");
-        auto ts = GetShader("terrain.glsl");
-        auto treeShader = GetShader("lit.glsl", { "INSTANCED" });
-        auto grassShader = GetShader("grass.glsl");
-        auto white = Texture2D::White();
-        for (auto& t : terrains) {
-            TerrainComponent& tc = *t.t;
-            ts->Bind();
-            ApplyLights(*ts, L, env, cam);
-            ts->SetMat4("uViewProj", viewProj);
-            ts->SetMat4("uModel", t.world);
-            ts->SetVec3("uSand", tc.sandColor);
-            ts->SetVec3("uGrass", tc.grassColor);
-            ts->SetVec3("uRock", tc.rockColor);
-            ts->SetVec3("uSnow", tc.snowColor);
-            ts->SetFloat("uSandHeight", tc.sandHeight);
-            ts->SetFloat("uSnowHeight", tc.snowHeight);
-            ts->SetInt("uEntityID", (int)t.id);
-            tc.runtime->mesh->Draw();
-
-            if (!tc.runtime->trees.empty()) {
-                treeShader->Bind();
-                ApplyLights(*treeShader, L, env, cam);
-                treeShader->SetMat4("uViewProj", viewProj);
-                treeShader->SetMat4("uModel", t.world);
-                treeShader->SetInt("uAlbedoMap", 0);
-                treeShader->SetInt("uEntityID", (int)t.id);
-                treeShader->SetFloat("uTiling", 1.0f);
-                treeShader->SetFloat("uMetallic", 0.0f);
-                treeShader->SetFloat("uRoughness", 0.8f);
-                treeShader->SetFloat("uNormalScale", 0.0f);
-                treeShader->SetInt("uNormalMap", 1);
-                treeShader->SetInt("uMetalRoughMap", 2);
-                treeShader->SetInt("uOcclusionMap", 3);
-                Texture2D::FlatNormal()->Bind(1);
-                white->Bind(2);
-                white->Bind(3);
-                treeShader->SetVec3("uEmissive", vec3(0.0f));
-                for (auto& tb : tc.runtime->trees) {
-                    treeShader->SetVec4("uColor", tb.color);
-                    (tb.texture ? tb.texture : white)->Bind(0);
-                    tb.mesh->DrawInstanced(tb.count);
-                }
-            }
-            if (s_Settings.grass && tc.grass && tc.runtime->grassCount > 0) {
-                glDisable(GL_CULL_FACE);
-                glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-                grassShader->Bind();
-                ApplyLights(*grassShader, L, env, cam);
-                grassShader->SetMat4("uViewProj", viewProj);
-                grassShader->SetMat4("uModel", t.world);
-                grassShader->SetFloat("uTime", time);
-                grassShader->SetVec3("uCameraPosV", cam.position);
-                grassShader->SetFloat("uMaxDistance", s_Settings.grassDistance);
-                grassShader->SetVec3("uGrassColor", tc.grassColor);
-                tc.runtime->grassMesh->DrawInstanced(tc.runtime->grassCount);
-                glColorMaski(1, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-                glEnable(GL_CULL_FACE);
-            }
-        }
-    }
-
-    // ---- Transparent: water ----------------------------------------------
-    glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    {
-        auto ws = GetShader("water.glsl");
-        bool bound = false;
-        reg.View<TransformComponent, WaterComponent>([&](EntityId id, TransformComponent&, WaterComponent& w) {
-            if (!activeOf(id)) return;
-            if (!bound) {
-                ws->Bind();
-                ApplyLights(*ws, L, env, cam);
-                ws->SetMat4("uViewProj", viewProj);
-                ws->SetFloat("uTime", time);
-                bound = true;
-            }
-            mat4 world = worldOf(id) * glm::scale(mat4(1.0f), vec3(w.size.x, 1.0f, w.size.y));
-            ws->SetMat4("uModel", world);
-            ws->SetVec4("uShallow", w.shallowColor);
-            ws->SetVec4("uDeep", w.deepColor);
-            ws->SetFloat("uWaveHeight", w.waveHeight);
-            ws->SetFloat("uWaveScale", w.waveScale);
-            ws->SetFloat("uWaveSpeed", w.waveSpeed);
-            glDisable(GL_CULL_FACE);
-            s_Data->waterGrid->Draw();
-            glEnable(GL_CULL_FACE);
-        });
-    }
-
-    // ---- Particles --------------------------------------------------------
-    {
-        EU_PROFILE_SCOPE("Particles");
-        struct PE { ParticleEmitterComponent* e; mat4 world; float dist; };
-        std::vector<PE> emitters;
-        uint32_t total = 0;
-        reg.View<TransformComponent, ParticleEmitterComponent>([&](EntityId id, TransformComponent&, ParticleEmitterComponent& p) {
-            if (!p.runtime || p.runtime->particles.empty() || !activeOf(id)) return;
-            const mat4& w = worldOf(id);
-            emitters.push_back({ &p, w, glm::distance(vec3(w[3]), cam.position) });
-            total += (uint32_t)p.runtime->particles.size();
-        });
-        Profiler::Stats().particles = total;
-        if (!emitters.empty()) {
-            std::sort(emitters.begin(), emitters.end(), [](const PE& a, const PE& b) { return a.dist > b.dist; });
-            auto ps = GetShader("particle.glsl");
-            ps->Bind();
-            ApplyLights(*ps, L, env, cam);
-            ps->SetMat4("uViewProj", viewProj);
-            mat4 inv = glm::inverse(cam.view);
-            ps->SetVec3("uCamRight", vec3(inv[0]));
-            ps->SetVec3("uCamUp", vec3(inv[1]));
-            glDepthMask(GL_FALSE);
-            glDisable(GL_CULL_FACE);
-            for (auto& pe : emitters) {
-                int n = pe.e->runtime->PrepareDraw(*pe.e, pe.world, cam.position);
-                if (pe.e->additive) glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-                else glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                pe.e->runtime->quad->DrawInstanced(n);
-            }
-            glDepthMask(GL_TRUE);
-            glEnable(GL_CULL_FACE);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        }
-    }
-
-    // ---- Debug lines ----------------------------------------------------
+    // ---- Debug lines (drawn on the final image, depth-tested) -------------
     if (opt.showColliders) scene.Physics().DebugDraw();
     if (opt.showNavGrid) scene.Nav().DebugDraw();
     auto& lines = DebugDraw::Lines();
     if (!lines.empty()) {
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
+        glDepthMask(GL_FALSE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glColorMaski(1, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
         auto ls = GetShader("line.glsl");
         ls->Bind();
-        ls->SetMat4("uViewProj", viewProj);
+        ls->SetMat4("uViewProj", cam.projection * cam.view);
         glBindVertexArray(s_Data->lineVAO);
         glBindBuffer(GL_ARRAY_BUFFER, s_Data->lineVBO);
         size_t bytes = lines.size() * sizeof(DebugDraw::LineVertex);
@@ -697,10 +1035,10 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
         glBufferSubData(GL_ARRAY_BUFFER, 0, bytes, lines.data());
         glDrawArrays(GL_LINES, 0, (GLsizei)lines.size());
         Profiler::AddDrawCall(0);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
     }
     DebugDraw::Clear();
-
-    glDisable(GL_BLEND);
     glColorMaski(1, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glBindVertexArray(0);
 }

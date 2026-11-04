@@ -57,12 +57,7 @@ layout(location = 0) out vec4 oColor;
 layout(location = 1) out int oID;
 void main() {
     // Outlines are unlit ink, but still fade into fog like everything else.
-    vec3 c = uOutlineColor.rgb;
-    if (uFog != 0) {
-        float d = length(vWorldPos - uCameraPos);
-        float f = clamp(1.0 - exp(-pow(d * uFogDensity, 1.6)), 0.0, 1.0);
-        c = mix(c, Tonemap(ToLinear(uFogColor)), f);
-    }
-    oColor = vec4(c, 1.0);
+    vec3 c = ApplyFog(ToLinear(uOutlineColor.rgb), vWorldPos);
+    oColor = vec4(Tonemap(c), 1.0);
     oID = uEntityID;   // clicking the outline selects the entity in the editor
 }

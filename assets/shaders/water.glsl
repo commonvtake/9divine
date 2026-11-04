@@ -38,8 +38,11 @@ void main() {
     float fresnel = pow(1.0 - max(dot(N, V), 0.0), 4.0);
     float facing = max(dot(N, V), 0.0);
     vec3 water = mix(ToLinear(uDeep.rgb), ToLinear(uShallow.rgb), facing * 0.6);
-    vec3 sky = mix(ToLinear(uSkyHorizon), ToLinear(uSkyTop), 0.4);
-    vec3 col = mix(water * (AmbientLight(vec3(0, 1, 0)) + 0.55), sky, fresnel * 0.45);
+    // Reflection of the real surroundings (terrain, trees, sky) from the environment cubemap.
+    vec3 R = reflect(-V, N);
+    R.y = abs(R.y);   // never reflect what's below the water plane
+    vec3 refl = EnvironmentColor(R, 0.04);
+    vec3 col = mix(water * (AmbientLight(vec3(0, 1, 0)) + 0.55), refl, 0.12 + fresnel * 0.6);
     if (uHasSun != 0) {
         vec3 L = normalize(-uSunDir);
         vec3 H = normalize(L + V);
