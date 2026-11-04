@@ -14,6 +14,7 @@ void Profiler::BeginFrame() {
     s_FrameStart = std::chrono::steady_clock::now();
     s_Stats.drawCalls = 0;
     s_Stats.batchedObjects = 0;
+    s_Stats.rtSamples = 0;
     s_Stats.triangles = 0;
     for (auto& s : s_Sections) s.ms = 0.0f;
 }

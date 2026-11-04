@@ -5,9 +5,11 @@
 //   euphoria-player --build-demo <dir>    regenerates the sample project
 //   euphoria-player --host [port]         start hosting a multiplayer session
 //   euphoria-player --join <ip> [port]    join a session
-//   F3 = stats overlay, F11 = fullscreen, F12 = screenshot
+//   euphoria-player --ray-traced          start in path-traced rendering
+//   F3 = stats overlay, F4 = toggle ray tracing, F11 = fullscreen, F12 = screenshot
 #include <euphoria/Euphoria.h>
 #include <euphoria/core/FileSystem.h>
+#include <euphoria/renderer/RayTracer.h>
 #include <euphoria/renderer/Renderer.h>
 #include <euphoria/renderer/Framebuffer.h>
 #include <euphoria/assets/AssetManager.h>
@@ -44,6 +46,10 @@ protected:
 
     void OnUpdate(float) override {
         if (Input::RawKeyPressed(Key::F3)) m_Overlay = !m_Overlay;
+        if (Input::RawKeyPressed(Key::F4)) {
+            Renderer::Settings().rayTraced = !Renderer::Settings().rayTraced;
+            EU_INFO("Rendering: {}", Renderer::Settings().rayTraced ? "ray traced" : "rasterized");
+        }
         if (Input::RawKeyPressed(Key::F11)) SetFullscreen(!IsFullscreen());
         if (Input::RawKeyPressed(Key::F12)) RequestScreenshot("screenshot_" + std::to_string(Time::FrameCount()) + ".png");
 
@@ -80,6 +86,8 @@ protected:
         ImGui::Text("%.0f FPS  (%.2f ms)", st.fps, st.frameMs);
         ImGui::PlotLines("##ft", Profiler::FrameHistory(), Profiler::kHistory, Profiler::HistoryOffset(), nullptr, 0.0f, 40.0f, ImVec2(240, 50));
         ImGui::Text("Draw calls: %u   Triangles: %llu", st.drawCalls, (unsigned long long)st.triangles);
+        if (Renderer::Settings().rayTraced)
+            ImGui::Text("Ray traced: %d samples/pixel, %zu triangles (F4 to switch)", st.rtSamples, RayTracer::TriangleCount());
         ImGui::Text("Entities: %u   Bodies: %u   Particles: %u", st.entities, st.physicsBodies, st.particles);
         ImGui::Text("Memory: %.1f MB", st.memoryBytes / (1024.0 * 1024.0));
         for (auto& s : Profiler::Sections()) ImGui::Text("  %-12s %.2f ms", s.name.c_str(), s.avgMs);
@@ -151,6 +159,7 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
         if (a == "--host") app.hostPort = (i + 1 < argc && isNum(argv[i + 1])) ? std::atoi(argv[++i]) : 7777;
+        if (a == "--ray-traced") Renderer::Settings().rayTraced = true;
         if (a == "--join" && i + 1 < argc) {
             app.joinAddress = argv[++i];
             if (i + 1 < argc && isNum(argv[i + 1])) app.joinPort = std::atoi(argv[++i]);

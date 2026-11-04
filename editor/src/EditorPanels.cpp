@@ -447,6 +447,10 @@ void EditorApp::DrawSceneSettings() {
         ImGui::Checkbox("Bloom##q", &rs.bloom); ImGui::SameLine();
         ImGui::Checkbox("FXAA", &rs.fxaa); ImGui::SameLine();
         ImGui::Checkbox("Reflections##q", &rs.reflections);
+        ImGui::SeparatorText("Ray tracing");
+        ImGui::Checkbox("Ray traced", &rs.rayTraced);
+        ImGui::SliderInt("Bounces", &rs.rtMaxBounces, 1, 8);
+        ImGui::SliderInt("Max samples", &rs.rtMaxSamples, 16, 16384);
     }
     if (ImGui::CollapsingHeader("Physics")) mark(ImGui::DragFloat3("Gravity", glm::value_ptr(env.gravity), 0.1f));
     if (ImGui::CollapsingHeader("Navigation")) {

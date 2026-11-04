@@ -5,6 +5,7 @@
 #include "euphoria/renderer/DebugDraw.h"
 #include "euphoria/renderer/Mesh.h"
 #include "euphoria/renderer/PostProcess.h"
+#include "euphoria/renderer/RayTracer.h"
 #include "euphoria/scene/Scene.h"
 #include "euphoria/scene/Entity.h"
 #include "euphoria/assets/AssetManager.h"
@@ -838,10 +839,12 @@ void Renderer::Init() {
     glBindVertexArray(0);
     s_Data->waterGrid = Primitives::Plane(1.0f, 128);
     PostProcess::Init();
+    RayTracer::Init();
 }
 
 void Renderer::Shutdown() {
     if (!s_Data) return;
+    RayTracer::Shutdown();
     PostProcess::Shutdown();
     s_Data->cascades.Release();
     s_Data->probe.Release();
@@ -945,6 +948,34 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
         F.terrains.push_back({ id, scene.CachedWorld(id), &t });
     });
 
+    // ---- HDR scene buffer ----------------------------------------------------
+    if (!s_Data->hdr) {
+        FramebufferSpec spec;
+        spec.width = W;
+        spec.height = H;
+        spec.attachments = { FBFormat::RGBA16F, FBFormat::R32I, FBFormat::Depth24Stencil8 };
+        s_Data->hdr = MakeScope<Framebuffer>(spec);
+    }
+    Framebuffer& hdr = *s_Data->hdr;
+    hdr.Resize(W, H);
+
+    if (s_Settings.rayTraced) {
+        // ---- Path traced ----------------------------------------------------
+        RayTracer::Lights rl;
+        rl.hasSun = L.hasSun;
+        rl.sunDir = L.sunDir;
+        rl.sunColor = L.sunColor;
+        rl.pointCount = L.pointCount;
+        for (int i = 0; i < L.pointCount; i++) { rl.pointPos[i] = L.pointPos[i]; rl.pointColor[i] = L.pointColor[i]; rl.pointRange[i] = L.pointRange[i]; }
+        rl.spotCount = L.spotCount;
+        for (int i = 0; i < L.spotCount; i++) {
+            rl.spotPos[i] = L.spotPos[i]; rl.spotDir[i] = L.spotDir[i]; rl.spotColor[i] = L.spotColor[i];
+            rl.spotRange[i] = L.spotRange[i]; rl.spotCos[i] = L.spotCos[i];
+        }
+        RayTracer::Render(scene, cam, rl, hdr);
+    } else {
+    RayTracer::Reset();   // switching back to ray tracing starts a fresh accumulation
+
     // ---- Shadows -----------------------------------------------------------
     L.shadows = L.hasSun && L.sunShadows && s_Settings.shadows;
     if (L.shadows) {
@@ -959,15 +990,6 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
     if (s_Settings.reflections) UpdateReflectionProbe(F, cam);
 
     // ---- Main pass into the HDR buffer ------------------------------------
-    if (!s_Data->hdr) {
-        FramebufferSpec spec;
-        spec.width = W;
-        spec.height = H;
-        spec.attachments = { FBFormat::RGBA16F, FBFormat::R32I, FBFormat::Depth24Stencil8 };
-        s_Data->hdr = MakeScope<Framebuffer>(spec);
-    }
-    Framebuffer& hdr = *s_Data->hdr;
-    hdr.Resize(W, H);
     hdr.Bind();
     vec3 clear = SRGBToLinear(F.env->skyHorizon);
     glClearColor(clear.r, clear.g, clear.b, 1.0f);
@@ -976,6 +998,7 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     hdr.ClearAttachmentInt(1, -1);
     DrawWorld(F, cam, PassFlags{}, W, H);
+    }   // rasterized
 
     // ---- Post: HDR -> target color; copy ids and depth across ------------
     {
@@ -992,7 +1015,9 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
         in.nearClip = cam.nearClip;
         in.farClip = cam.farClip;
         in.destFbo = target.Id();
-        PostProcess::Run(in, *F.env, s_Settings);
+        RenderSettings post = s_Settings;
+        if (s_Settings.rayTraced) post.ssao = false;   // path tracing already shades occlusion
+        PostProcess::Run(in, *F.env, post);
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, hdr.Id());
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.Id());

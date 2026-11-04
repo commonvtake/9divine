@@ -33,6 +33,10 @@ struct RenderSettings {
     bool fxaa = true;
     bool reflections = true;           // live reflection cubemap around the camera
     int reflectionSize = 128;          // cubemap face resolution
+    // Ray tracing (path traced instead of rasterized; accumulates while nothing moves)
+    bool rayTraced = false;
+    int rtMaxBounces = 4;
+    int rtMaxSamples = 4096;           // stop refining after this many samples per pixel
     float grassDistance = 70.0f;
     bool shadows = true;
     bool grass = true;
