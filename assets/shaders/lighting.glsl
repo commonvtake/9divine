@@ -56,26 +56,83 @@ vec3 AmbientLight(vec3 N) {
     return mix(ToLinear(uGroundColor), sky, t) * uAmbient;
 }
 
-vec3 ComputeLighting(vec3 albedo, vec3 N, vec3 P, float specular, float shininess) {
+// ---------------------------------------------------------------- PBR (Cook-Torrance)
+// GGX normal distribution, height-correlated Smith visibility, Schlick Fresnel. Light
+// intensities are "artist units": a white Lambert surface facing a light of intensity I gets
+// I, as with the old Blinn-Phong model, so existing scenes keep their brightness.
+const float PI = 3.14159265;
+
+float D_GGX(float NdH, float a) {
+    float a2 = a * a;
+    float d = NdH * NdH * (a2 - 1.0) + 1.0;
+    return a2 / (PI * d * d);
+}
+float V_SmithGGX(float NdV, float NdL, float a) {
+    float a2 = a * a;
+    float gv = NdL * sqrt(NdV * NdV * (1.0 - a2) + a2);
+    float gl = NdV * sqrt(NdL * NdL * (1.0 - a2) + a2);
+    return 0.5 / max(gv + gl, 1e-5);
+}
+vec3 F_Schlick(vec3 F0, float c) { return F0 + (1.0 - F0) * pow(1.0 - c, 5.0); }
+vec3 F_SchlickRoughness(vec3 F0, float c, float r) { return F0 + (max(vec3(1.0 - r), F0) - F0) * pow(1.0 - c, 5.0); }
+
+// One light's contribution. `radiance` = light color * intensity * attenuation * shadow.
+vec3 BRDF(vec3 albedo, float metallic, float roughness, vec3 N, vec3 V, vec3 L, vec3 radiance) {
+    float NdL = max(dot(N, L), 0.0);
+    if (NdL <= 0.0) return vec3(0.0);
+    vec3 H = normalize(L + V);
+    float NdV = max(dot(N, V), 1e-4), NdH = max(dot(N, H), 0.0), VdH = max(dot(V, H), 0.0);
+    float a = max(roughness * roughness, 0.002);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+    vec3 F = F_Schlick(F0, VdH);
+    vec3 spec = D_GGX(NdH, a) * V_SmithGGX(NdV, NdL, a) * F;
+    vec3 kd = (1.0 - F) * (1.0 - metallic);
+    return (kd * albedo + spec * PI) * radiance * NdL;
+}
+
+// Cheap analytic split-sum environment BRDF (Karis, "Mobile PBR").
+vec2 EnvBRDFApprox(float NdV, float roughness) {
+    const vec4 c0 = vec4(-1.0, -0.0275, -0.572, 0.022);
+    const vec4 c1 = vec4(1.0, 0.0425, 1.04, -0.04);
+    vec4 r = roughness * c0 + c1;
+    float a004 = min(r.x * r.x, exp2(-9.28 * NdV)) * r.x + r.y;
+    return vec2(-1.04, 1.04) * a004 + r.zw;
+}
+
+// What the surroundings look like in direction R, blurred by roughness: the procedural sky
+// above the horizon, the ground color below.
+vec3 EnvironmentColor(vec3 R, float roughness) {
+    vec3 top = ToLinear(uSkyTop), hor = ToLinear(uSkyHorizon), gnd = ToLinear(uGroundColor);
+    float t = R.y;
+    float blur = 0.15 + roughness * 0.85;
+    vec3 sky = mix(hor, top, smoothstep(0.0, 0.6 + blur * 0.4, t));
+    vec3 below = mix(hor, gnd, smoothstep(0.0, 0.15 + blur * 0.3, -t));
+    vec3 c = t >= 0.0 ? sky : below;
+    return mix(c, mix(hor, mix(top, gnd, 0.5), 0.5), blur * 0.5) * uAmbient;
+}
+
+vec3 ComputePBR(vec3 albedo, float metallic, float roughness, float ao, vec3 N, vec3 P) {
     vec3 V = normalize(uCameraPos - P);
-    vec3 color = albedo * AmbientLight(N);
+    float NdV = max(dot(N, V), 1e-4);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    // Ambient: diffuse from the sky hemisphere, specular from the environment.
+    vec3 F = F_SchlickRoughness(F0, NdV, roughness);
+    vec2 ab = EnvBRDFApprox(NdV, roughness);
+    vec3 diffuseAmb = albedo * (1.0 - F) * (1.0 - metallic) * AmbientLight(N);
+    vec3 specAmb = EnvironmentColor(reflect(-V, N), roughness) * (F0 * ab.x + ab.y);
+    vec3 color = (diffuseAmb + specAmb) * ao;
+
     if (uHasSun != 0) {
         vec3 L = normalize(-uSunDir);
-        float ndl = max(dot(N, L), 0.0);
-        vec3 H = normalize(L + V);
-        float spec = ndl > 0.0 ? pow(max(dot(N, H), 0.0), shininess) * specular : 0.0;
-        color += (albedo * ndl + vec3(spec)) * uSunColor * ShadowFactor(P, N);
+        color += BRDF(albedo, metallic, roughness, N, V, L, uSunColor * ShadowFactor(P, N));
     }
     for (int i = 0; i < uPointCount; i++) {
         vec3 Lv = uPointPos[i] - P;
         float d = length(Lv);
-        vec3 L = Lv / max(d, 1e-4);
         float x = d / uPointRange[i];
         float atten = pow(clamp(1.0 - x * x * x * x, 0.0, 1.0), 2.0) / (1.0 + d * d * 0.25);
-        float ndl = max(dot(N, L), 0.0);
-        vec3 H = normalize(L + V);
-        float spec = ndl > 0.0 ? pow(max(dot(N, H), 0.0), shininess) * specular : 0.0;
-        color += (albedo * ndl + vec3(spec)) * uPointColor[i] * atten;
+        color += BRDF(albedo, metallic, roughness, N, V, Lv / max(d, 1e-4), uPointColor[i] * atten);
     }
     for (int i = 0; i < uSpotCount; i++) {
         vec3 Lv = uSpotPos[i] - P;
@@ -84,10 +141,16 @@ vec3 ComputeLighting(vec3 albedo, vec3 N, vec3 P, float specular, float shinines
         float x = d / uSpotRange[i];
         float atten = pow(clamp(1.0 - x * x * x * x, 0.0, 1.0), 2.0) / (1.0 + d * d * 0.25);
         float cone = smoothstep(uSpotCos[i], uSpotCos[i] + 0.08, dot(-L, normalize(uSpotDir[i])));
-        float ndl = max(dot(N, L), 0.0);
-        color += albedo * ndl * uSpotColor[i] * atten * cone;
+        color += BRDF(albedo, metallic, roughness, N, V, L, uSpotColor[i] * atten * cone);
     }
     return color;
+}
+
+// Older entry point (terrain, foliage): a dielectric whose roughness comes from a Blinn-Phong
+// exponent.
+float RoughnessFromShininess(float n) { return clamp(pow(2.0 / (n + 2.0), 0.25), 0.03, 1.0); }
+vec3 ComputeLighting(vec3 albedo, vec3 N, vec3 P, float specular, float shininess) {
+    return ComputePBR(albedo, 0.0, RoughnessFromShininess(shininess), 1.0, N, P);
 }
 
 vec3 ApplyFog(vec3 c, vec3 P) {

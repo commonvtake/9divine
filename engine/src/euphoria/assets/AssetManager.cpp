@@ -178,10 +178,16 @@ Ref<Model> LoadGLTF(const std::string& path) {
             auto& pbr = m.pbr_metallic_roughness;
             md.baseColor = glm::make_vec4(pbr.base_color_factor);
             if (pbr.base_color_texture.texture) md.albedo = LoadGLTFImage(pbr.base_color_texture.texture->image, dir);
-            float rough = pbr.roughness_factor;
-            md.shininess = glm::mix(96.0f, 8.0f, rough);
-            md.specular = (1.0f - rough) * 0.5f;
+            md.metallic = pbr.metallic_factor;
+            md.roughness = pbr.roughness_factor;
+            if (pbr.metallic_roughness_texture.texture)
+                md.metallicRoughnessMap = LoadGLTFImage(pbr.metallic_roughness_texture.texture->image, dir);
         }
+        if (m.normal_texture.texture) {
+            md.normalMap = LoadGLTFImage(m.normal_texture.texture->image, dir);
+            md.normalScale = m.normal_texture.scale;
+        }
+        if (m.occlusion_texture.texture) md.occlusionMap = LoadGLTFImage(m.occlusion_texture.texture->image, dir);
         md.emissive = glm::make_vec3(m.emissive_factor);
         md.doubleSided = m.double_sided;
         // glTF colors are linear; our shaders expect sRGB-space inputs.
@@ -264,6 +270,11 @@ Ref<Model> LoadGLTF(const std::string& path) {
                         if (attr.index != 0) break;
                         cgltf_accessor_read_float(acc, v, f, 2);
                         verts[v].uv = { f[0], f[1] };
+                        break;
+                    case cgltf_attribute_type_tangent:
+                        if (attr.index != 0) break;
+                        cgltf_accessor_read_float(acc, v, f, 4);
+                        verts[v].tangent = vec4(glm::normalize(mat3(world) * vec3(f[0], f[1], f[2])), f[3] < 0.0f ? -1.0f : 1.0f);
                         break;
                     case cgltf_attribute_type_joints:
                         if (attr.index != 0 || !skinned) break;
@@ -363,9 +374,12 @@ Ref<Model> LoadOBJ(const std::string& path) {
         MaterialData md;
         md.name = m.name;
         md.baseColor = vec4(m.diffuse[0], m.diffuse[1], m.diffuse[2], m.dissolve);
-        md.shininess = std::max(2.0f, m.shininess);
-        md.specular = (m.specular[0] + m.specular[1] + m.specular[2]) / 3.0f;
+        md.roughness = RoughnessFromShininess(std::max(2.0f, m.shininess));
+        if (m.roughness > 0.0f) md.roughness = m.roughness;      // PBR extension (Pr)
+        md.metallic = m.metallic;                                // (Pm)
         if (!m.diffuse_texname.empty()) md.albedo = Texture2D::FromFile((dir / m.diffuse_texname).string());
+        if (!m.normal_texname.empty()) md.normalMap = Texture2D::FromFile((dir / m.normal_texname).string());
+        else if (!m.bump_texname.empty()) md.normalMap = Texture2D::FromFile((dir / m.bump_texname).string());
         model->materials.push_back(md);
     }
     // One submesh per material
@@ -427,6 +441,8 @@ Ref<Model> LoadFBX(const std::string& path) {
         const ufbx_material_map& base = m->pbr.base_color.has_value ? m->pbr.base_color : m->fbx.diffuse_color;
         md.baseColor = vec4((float)base.value_vec4.x, (float)base.value_vec4.y, (float)base.value_vec4.z, 1.0f);
         if (md.baseColor == vec4(0, 0, 0, 1)) md.baseColor = vec4(1.0f);
+        if (m->pbr.metalness.has_value) md.metallic = (float)m->pbr.metalness.value_real;
+        if (m->pbr.roughness.has_value) md.roughness = (float)m->pbr.roughness.value_real;
         const ufbx_texture* tex = base.texture;
         if (tex) {
             if (tex->content.size > 0) md.albedo = Texture2D::FromMemory(tex->content.data, tex->content.size);

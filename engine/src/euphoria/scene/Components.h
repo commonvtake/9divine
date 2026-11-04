@@ -50,8 +50,12 @@ struct MeshRendererComponent {
     vec4 color{ 1.0f };
     std::string texture;                    // optional albedo texture (project-relative)
     float tiling = 1.0f;
-    float specular = 0.25f;
-    float shininess = 32.0f;
+    // Physically based material (multiplied with the model's own material when used):
+    float metallic = 0.0f;                  // 0 = plastic/wood/skin, 1 = bare metal
+    float roughness = 0.5f;                 // 0 = mirror, 1 = chalk
+    std::string normalMap;                  // optional tangent-space normal map (project-relative)
+    float normalStrength = 1.0f;
+    std::string metallicRoughnessMap;       // optional, glTF packing: G = roughness, B = metallic
     vec3 emissive{ 0.0f };
     bool castShadows = true;
     bool visible = true;

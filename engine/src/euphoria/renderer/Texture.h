@@ -16,6 +16,7 @@ public:
     static Ref<Texture2D> FromMemory(const void* encoded, size_t size, const TextureSpec& spec = {});
     static Ref<Texture2D> FromPixels(int w, int h, int channels, const void* pixels, const TextureSpec& spec = {});
     static Ref<Texture2D> White();
+    static Ref<Texture2D> FlatNormal();   // 1x1 (0.5, 0.5, 1): a normal map that changes nothing
     static Ref<Texture2D> Checker();
 
     ~Texture2D();

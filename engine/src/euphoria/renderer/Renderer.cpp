@@ -125,7 +125,8 @@ uint64_t BatchKey(const MeshRendererComponent& m) {
     HashMix(h, m.model.get());
     HashMix(h, std::hash<std::string>()(m.texture));
     HashMix(h, m.useModelMaterials); HashMix(h, m.color); HashMix(h, m.tiling);
-    HashMix(h, m.specular); HashMix(h, m.shininess); HashMix(h, m.emissive);
+    HashMix(h, m.metallic); HashMix(h, m.roughness); HashMix(h, m.emissive); HashMix(h, m.normalStrength);
+    HashMix(h, std::hash<std::string>()(m.normalMap)); HashMix(h, std::hash<std::string>()(m.metallicRoughnessMap));
     HashMix(h, m.toon);
     if (m.toon) {
         HashMix(h, m.toonBands); HashMix(h, m.toonSoftness); HashMix(h, m.toonShadowColor);
@@ -135,7 +136,8 @@ uint64_t BatchKey(const MeshRendererComponent& m) {
 }
 bool SameLook(const MeshRendererComponent& a, const MeshRendererComponent& b) {
     bool same = a.model == b.model && a.texture == b.texture && a.useModelMaterials == b.useModelMaterials &&
-                a.color == b.color && a.tiling == b.tiling && a.specular == b.specular && a.shininess == b.shininess &&
+                a.color == b.color && a.tiling == b.tiling && a.metallic == b.metallic && a.roughness == b.roughness &&
+                a.normalMap == b.normalMap && a.normalStrength == b.normalStrength && a.metallicRoughnessMap == b.metallicRoughnessMap &&
                 a.emissive == b.emissive && a.toon == b.toon;
     if (same && a.toon)
         same = a.toonBands == b.toonBands && a.toonSoftness == b.toonSoftness && a.toonShadowColor == b.toonShadowColor &&
@@ -410,6 +412,9 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
                 ApplyLights(*s, L, env, cam);
                 s->SetMat4("uViewProj", viewProj);
                 s->SetInt("uAlbedoMap", 0);
+                s->SetInt("uNormalMap", 1);
+                s->SetInt("uMetalRoughMap", 2);
+                s->SetInt("uOcclusionMap", 3);
                 bound = s;
             }
             return s;
@@ -422,20 +427,33 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
             s->SetFloat("uToonShadowFill", glm::clamp(mr.toonShadowFill, 0.0f, 1.0f));
             s->SetFloat("uToonRim", mr.toonRim);
         };
-        // Sets one sub-mesh's material; returns whether it is double sided.
-        auto setMaterial = [&](Shader* s, const MeshRendererComponent& mr, const SubMesh& sm, const Ref<Texture2D>& overrideTex) {
+        auto flatNormal = Texture2D::FlatNormal();
+        // Texture overrides set on the renderer (they win over the model's own maps).
+        struct Overrides { Ref<Texture2D> albedo, normal, metalRough; };
+        auto overridesOf = [](const MeshRendererComponent& mr) {
+            Overrides o;
+            if (!mr.texture.empty()) o.albedo = AssetManager::GetTexture(mr.texture);
+            if (!mr.normalMap.empty()) o.normal = AssetManager::GetTexture(mr.normalMap);
+            if (!mr.metallicRoughnessMap.empty()) o.metalRough = AssetManager::GetTexture(mr.metallicRoughnessMap);
+            return o;
+        };
+        // Sets one sub-mesh's material; returns whether it is double sided. With model
+        // materials on, the model's PBR factors are used; otherwise the renderer's.
+        auto setMaterial = [&](Shader* s, const MeshRendererComponent& mr, const SubMesh& sm, const Overrides& o) {
             const MaterialData* mat = (mr.useModelMaterials && sm.material >= 0 && sm.material < (int)mr.model->materials.size())
                                           ? &mr.model->materials[sm.material] : nullptr;
             s->SetVec4("uColor", mr.color * (mat ? mat->baseColor : vec4(1.0f)));
             s->SetFloat("uTiling", mr.tiling);
-            s->SetFloat("uSpecular", mat ? mat->specular : mr.specular);
-            s->SetFloat("uShininess", mat ? mat->shininess : mr.shininess);
+            s->SetFloat("uMetallic", mat ? mat->metallic : mr.metallic);
+            s->SetFloat("uRoughness", mat ? mat->roughness : mr.roughness);
             s->SetVec3("uEmissive", mr.emissive + (mat ? mat->emissive : vec3(0.0f)));
-            (overrideTex ? overrideTex : (mat && mat->albedo ? mat->albedo : white))->Bind(0);
+            Ref<Texture2D> normal = o.normal ? o.normal : (mat ? mat->normalMap : nullptr);
+            s->SetFloat("uNormalScale", normal ? (o.normal ? mr.normalStrength : mat->normalScale * mr.normalStrength) : 0.0f);
+            (o.albedo ? o.albedo : (mat && mat->albedo ? mat->albedo : white))->Bind(0);
+            (normal ? normal : flatNormal)->Bind(1);
+            (o.metalRough ? o.metalRough : (mat && mat->metallicRoughnessMap ? mat->metallicRoughnessMap : white))->Bind(2);
+            (mat && mat->occlusionMap ? mat->occlusionMap : white)->Bind(3);
             return mat && mat->doubleSided;
-        };
-        auto overrideTexture = [](const MeshRendererComponent& mr) -> Ref<Texture2D> {
-            return mr.texture.empty() ? nullptr : AssetManager::GetTexture(mr.texture);
         };
 
         // Group visible, non-skinned items that look identical (same model, same material
@@ -468,9 +486,9 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
                 Shader* s = bindVariant(mr.toon, kBatched);
                 setObjectUniforms(s, mr);
                 s->SetMat4("uModel", mat4(1.0f));
-                Ref<Texture2D> overrideTex = overrideTexture(mr);
+                Overrides ov = overridesOf(mr);
                 for (auto& sm : mr.model->meshes) {
-                    bool ds = setMaterial(s, mr, sm, overrideTex);
+                    bool ds = setMaterial(s, mr, sm, ov);
                     if (ds) glDisable(GL_CULL_FACE);
                     sm.mesh->DrawBatch(batchWorlds.data(), batchIds.data(), (int)b.size());
                     if (ds) glEnable(GL_CULL_FACE);
@@ -490,9 +508,9 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
                 auto& m = d.anim->runtime->skinMatrices;
                 s->SetMat4Array("uBones", m.data(), (int)std::min<size_t>(m.size(), 100));
             }
-            Ref<Texture2D> overrideTex = overrideTexture(*d.mr);
+            Overrides ov = overridesOf(*d.mr);
             for (auto& sm : d.mr->model->meshes) {
-                bool ds = setMaterial(s, *d.mr, sm, overrideTex);
+                bool ds = setMaterial(s, *d.mr, sm, ov);
                 if (ds) glDisable(GL_CULL_FACE);
                 sm.mesh->Draw();
                 if (ds) glEnable(GL_CULL_FACE);
@@ -562,8 +580,15 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
                 treeShader->SetInt("uAlbedoMap", 0);
                 treeShader->SetInt("uEntityID", (int)t.id);
                 treeShader->SetFloat("uTiling", 1.0f);
-                treeShader->SetFloat("uSpecular", 0.05f);
-                treeShader->SetFloat("uShininess", 8.0f);
+                treeShader->SetFloat("uMetallic", 0.0f);
+                treeShader->SetFloat("uRoughness", 0.8f);
+                treeShader->SetFloat("uNormalScale", 0.0f);
+                treeShader->SetInt("uNormalMap", 1);
+                treeShader->SetInt("uMetalRoughMap", 2);
+                treeShader->SetInt("uOcclusionMap", 3);
+                Texture2D::FlatNormal()->Bind(1);
+                white->Bind(2);
+                white->Bind(3);
                 treeShader->SetVec3("uEmissive", vec3(0.0f));
                 for (auto& tb : tc.runtime->trees) {
                     treeShader->SetVec4("uColor", tb.color);

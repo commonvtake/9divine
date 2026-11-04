@@ -9,6 +9,7 @@ struct Vertex {
     vec2 uv{ 0.0f };
     ivec4 joints{ 0 };       // skinning: up to 4 bone indices
     vec4 weights{ 0.0f };    // skinning weights
+    vec4 tangent{ 0.0f };    // xyz = tangent, w = bitangent sign; all zero = generate from UVs
 };
 
 // A GPU mesh (VAO + VBO + IBO). CPU copies are kept for physics, picking and terrain editing.
@@ -38,6 +39,9 @@ public:
     bool IsSkinned() const { return m_Skinned; }
 
     static void ComputeNormals(std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+    // Per-vertex tangents from UV derivatives (accumulated per triangle, then Gram-Schmidt
+    // orthogonalized against the normal). Needed for normal mapping.
+    static void ComputeTangents(std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
 
     // Smoothed normals used to extrude ink outlines (vertex attribute 9). Vertices that share a
     // position - like the split corners of a cube - get one angle-weighted average, so pushing

@@ -210,8 +210,11 @@ void EditorApp::DrawComponents(Entity e) {
         PColor4("Color", m.color);
         PAsset("Texture", m.texture, IsTexture);
         PFloat("Tiling", m.tiling, 0.05f, 0.01f, 100.0f);
-        PFloat("Specular", m.specular, 0.01f, 0.0f, 2.0f);
-        PFloat("Shininess", m.shininess, 0.5f, 1.0f, 256.0f);
+        PFloat("Metallic", m.metallic, 0.01f, 0.0f, 1.0f);
+        PFloat("Roughness", m.roughness, 0.01f, 0.0f, 1.0f);
+        PAsset("Normal map", m.normalMap, IsTexture);
+        if (!m.normalMap.empty()) PFloat("Normal strength", m.normalStrength, 0.01f, 0.0f, 4.0f);
+        PAsset("Metal/rough map", m.metallicRoughnessMap, IsTexture);
         PColor3("Emissive", m.emissive, true);
         PBool("Cast shadows", m.castShadows);
         PBool("Visible", m.visible);

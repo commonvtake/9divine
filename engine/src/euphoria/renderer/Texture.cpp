@@ -70,6 +70,15 @@ Ref<Texture2D> Texture2D::White() {
     return white;
 }
 
+Ref<Texture2D> Texture2D::FlatNormal() {
+    static Ref<Texture2D> flat;
+    if (!flat) {
+        uint8_t px[4] = { 128, 128, 255, 255 };
+        flat = FromPixels(1, 1, 4, px, { true, false, true });
+    }
+    return flat;
+}
+
 Ref<Texture2D> Texture2D::Checker() {
     static Ref<Texture2D> checker;
     if (!checker) {

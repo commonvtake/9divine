@@ -116,8 +116,7 @@ void BuildStarterScene(Scene& s, const std::string& title, bool hero) {
     auto& bm = ball.Add<MeshRendererComponent>();
     bm.mesh = "builtin:sphere";
     bm.color = { 0.35f, 0.55f, 0.95f, 1 };
-    bm.specular = 0.8f;
-    bm.shininess = 64.0f;
+    bm.roughness = 0.2f;
     ball.Add<SphereColliderComponent>();
     auto& brb = ball.Add<RigidBodyComponent>();
     brb.mass = 0.6f;

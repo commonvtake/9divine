@@ -1,4 +1,5 @@
 #include "euphoria/scene/SceneSerializer.h"
+#include "euphoria/assets/Model.h"
 #include "euphoria/scene/ScriptableEntity.h"
 #include "euphoria/ai/Navigation.h"
 #include "euphoria/core/FileSystem.h"
@@ -37,8 +38,10 @@ json SceneSerializer::SerializeEntity(Entity e) {
 
     if (auto* c = e.TryGet<MeshRendererComponent>()) {
         j["meshRenderer"] = { { "mesh", c->mesh }, { "useModelMaterials", c->useModelMaterials }, { "color", c->color }, { "texture", c->texture },
-                              { "tiling", c->tiling }, { "specular", c->specular }, { "shininess", c->shininess }, { "emissive", c->emissive },
+                              { "tiling", c->tiling }, { "metallic", c->metallic }, { "roughness", c->roughness }, { "emissive", c->emissive },
                               { "castShadows", c->castShadows }, { "visible", c->visible } };
+        if (!c->normalMap.empty()) { j["meshRenderer"]["normalMap"] = c->normalMap; j["meshRenderer"]["normalStrength"] = c->normalStrength; }
+        if (!c->metallicRoughnessMap.empty()) j["meshRenderer"]["metallicRoughnessMap"] = c->metallicRoughnessMap;
         // Only written when used, so existing scene files stay unchanged.
         if (c->toon || c->outline)
             j["meshRenderer"]["toon"] = { { "enabled", c->toon }, { "bands", c->toonBands }, { "softness", c->toonSoftness },
@@ -153,8 +156,13 @@ Entity SceneSerializer::DeserializeEntity(Scene& scene, const json& j, std::unor
         c.color = JGet(jc, "color", c.color);
         c.texture = JGet<std::string>(jc, "texture", "");
         c.tiling = JGet(jc, "tiling", c.tiling);
-        c.specular = JGet(jc, "specular", c.specular);
-        c.shininess = JGet(jc, "shininess", c.shininess);
+        c.metallic = JGet(jc, "metallic", c.metallic);
+        // Scenes saved before PBR have "shininess" instead of "roughness": convert it.
+        if (jc.contains("roughness")) c.roughness = JGet(jc, "roughness", c.roughness);
+        else if (jc.contains("shininess")) c.roughness = RoughnessFromShininess(JGet(jc, "shininess", 32.0f));
+        c.normalMap = JGet<std::string>(jc, "normalMap", "");
+        c.normalStrength = JGet(jc, "normalStrength", c.normalStrength);
+        c.metallicRoughnessMap = JGet<std::string>(jc, "metallicRoughnessMap", "");
         c.emissive = JGet(jc, "emissive", c.emissive);
         c.castShadows = JGet(jc, "castShadows", c.castShadows);
         c.visible = JGet(jc, "visible", c.visible);
