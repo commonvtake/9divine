@@ -354,6 +354,7 @@ void EditorApp::OnImGui() {
     if (m_ShowSceneSettings) DrawSceneSettings();
     if (m_ShowInput) DrawInputSettings();
     if (m_ShowNetwork) DrawNetworkPanel();
+    if (m_ShowEventLog) DrawEventLog();
     if (m_ShowProject) DrawProjectSettings();
     if (m_ShowDemo) ImGui::ShowDemoWindow(&m_ShowDemo);
     DrawPopups();

@@ -22,6 +22,8 @@ const char* kParamTypes[] = { "Float", "Bool", "Trigger" };
 const char* kCondOps[] = { "Greater", "Less", "IsTrue", "IsFalse", "Trigger" };
 const char* kShapes[] = { "Point", "Sphere", "Box" };
 const char* kUITypes[] = { "Panel", "Text", "Button", "ProgressBar", "Image" };
+const char* kTriggerWhen[] = { "Start", "TriggerEnter", "TriggerExit", "CollisionEnter", "Event", "Timer", "InputAction" };
+const char* kTriggerDo[] = { "EmitEvent", "Move", "Rotate", "SetActive", "Destroy", "PlaySound", "SendMessage", "LoadScene", "Log" };
 const char* kAnchors[] = { "TopLeft", "Top", "TopRight", "Left", "Center", "Right", "BottomLeft", "Bottom", "BottomRight" };
 } // namespace
 
@@ -123,6 +125,14 @@ json SceneSerializer::SerializeEntity(Entity e) {
         j["network"] = { { "owner", c->owner }, { "syncTransform", c->syncTransform }, { "interpolate", c->interpolate } };
     if (auto* c = e.TryGet<SaveableComponent>())
         j["saveable"] = { { "transform", c->saveTransform }, { "scripts", c->saveScripts }, { "active", c->saveActive } };
+    if (auto* c = e.TryGet<EventTriggerComponent>()) {
+        json rules = json::array();
+        for (auto& r : c->rules)
+            rules.push_back({ { "when", EnumStr(r.when, kTriggerWhen) }, { "whenName", r.whenName }, { "tag", r.tagFilter },
+                              { "interval", r.interval }, { "do", EnumStr(r.action, kTriggerDo) }, { "target", r.target },
+                              { "param", r.param }, { "vector", r.vector }, { "duration", r.duration }, { "delay", r.delay }, { "once", r.once } });
+        j["eventTrigger"] = { { "rules", rules } };
+    }
     return j;
 }
 
@@ -383,6 +393,25 @@ Entity SceneSerializer::DeserializeEntity(Scene& scene, const json& j, std::unor
         c.saveTransform = JGet(jc, "transform", true);
         c.saveScripts = JGet(jc, "scripts", true);
         c.saveActive = JGet(jc, "active", true);
+    }
+    if (j.contains("eventTrigger")) {
+        auto& c = e.Add<EventTriggerComponent>();
+        for (auto& jr : j["eventTrigger"].value("rules", json::array())) {
+            EventRule r;
+            r.when = EnumFrom(jr, "when", r.when, kTriggerWhen);
+            r.whenName = JGet<std::string>(jr, "whenName", "");
+            r.tagFilter = JGet<std::string>(jr, "tag", "");
+            r.interval = JGet(jr, "interval", r.interval);
+            r.action = EnumFrom(jr, "do", r.action, kTriggerDo);
+            r.target = JGet<uint64_t>(jr, "target", 0);
+            if (remap && r.target && remap->count(r.target)) r.target = (*remap)[r.target];   // duplicated hierarchies
+            r.param = JGet<std::string>(jr, "param", "");
+            r.vector = JGet(jr, "vector", r.vector);
+            r.duration = JGet(jr, "duration", r.duration);
+            r.delay = JGet(jr, "delay", r.delay);
+            r.once = JGet(jr, "once", r.once);
+            c.rules.push_back(r);
+        }
     }
     return e;
 }

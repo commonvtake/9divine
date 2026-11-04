@@ -2,6 +2,7 @@
 #include "euphoria/scene/Entity.h"
 #include "euphoria/scene/ScriptableEntity.h"
 #include "euphoria/scene/SceneSerializer.h"
+#include "euphoria/scene/SceneManager.h"
 #include "euphoria/physics/Physics.h"
 #include "euphoria/ai/Navigation.h"
 #include "euphoria/audio/Audio.h"
@@ -14,6 +15,7 @@
 #include "euphoria/core/Profiler.h"
 #include "euphoria/core/Log.h"
 #include <cmath>
+#include <algorithm>
 
 namespace eu {
 
@@ -62,6 +64,7 @@ void Scene::DestroyImmediate(EntityId id) {
         sc->scripts.clear();
     }
     if (auto* as = e.TryGet<AudioSourceComponent>()) if (as->handle) { Audio::Stop(as->handle); as->handle = 0; }
+    m_Events.OffAll(e.GetUUID());   // its listeners and timers go with it
     m_UUIDMap.erase(e.GetUUID());
     m_Registry.Destroy(id);
 }
@@ -252,6 +255,9 @@ void Scene::OnRuntimeStart() {
         p.stream = a.music;
         a.handle = Audio::Play(a.clip, p);
     });
+    m_Events.Clear();
+    m_Tweens.clear();
+    ResetEventTriggers();
     InstantiateScripts();
 }
 
@@ -269,6 +275,9 @@ void Scene::OnRuntimeStop() {
         if (a.handle) Audio::Stop(a.handle);
         a.handle = 0;
     });
+    m_Events.Clear();
+    m_Tweens.clear();
+    ResetEventTriggers();
     m_Running = false;
 }
 
@@ -388,6 +397,7 @@ void Scene::OnUpdateRuntime(float dt) {
     }
     InstantiateScripts();
     UpdateScripts(dt);
+    UpdateEventTriggers(dt);
 
     // Fixed timestep physics
     m_FixedAccumulator += dt;
@@ -414,6 +424,12 @@ void Scene::OnUpdateRuntime(float dt) {
             };
             dispatch(a, b);
             dispatch(b, a);
+            if (ev.type != CollisionEvent::CollisionExit) {
+                TriggerWhen when = ev.type == CollisionEvent::TriggerEnter ? TriggerWhen::TriggerEnter
+                                 : ev.type == CollisionEvent::TriggerExit ? TriggerWhen::TriggerExit : TriggerWhen::CollisionEnter;
+                DispatchContactRules(a, b, when);
+                DispatchContactRules(b, a, when);
+            }
         }
         m_Physics->ClearEvents();
         m_FixedAccumulator -= kFixedStep;
@@ -426,6 +442,11 @@ void Scene::OnUpdateRuntime(float dt) {
     {
         EU_PROFILE_SCOPE("LateUpdate");
         ForEachScript(m_Registry, this, [&](ScriptInstance&, ScriptableEntity& inst) { inst.OnLateUpdate(dt); });
+    }
+    {
+        EU_PROFILE_SCOPE("Events");
+        m_Events.Update(dt);      // timers + queued events (from scripts, physics, triggers)
+        UpdateTweens(dt);
     }
     UpdateParticles(dt);
     UpdateAudio();
@@ -485,6 +506,148 @@ void Scene::RenderGameUI(int w, int h, const vec2& mouse, bool mouseDown, bool m
             ForEachScript(m_Registry, this, [&](ScriptInstance&, ScriptableEntity& inst) { inst.OnUIButton(name); });
     }
     UI::EndFrame();
+}
+
+// ----------------------------------------------------------------- Event Triggers
+void Scene::ResetEventTriggers() {
+    m_TriggersStarted = false;
+    m_Registry.View<EventTriggerComponent>([&](EntityId, EventTriggerComponent& et) {
+        for (auto& r : et.rules) { r.fired = false; r.subscription = 0; r.timer = 0.0f; }
+    });
+}
+
+void Scene::UpdateEventTriggers(float dt) {
+    EU_PROFILE_SCOPE("Event Triggers");
+    bool starting = !m_TriggersStarted;
+    m_TriggersStarted = true;
+    std::vector<std::pair<EntityId, size_t>> toFire;
+    m_Registry.View<EventTriggerComponent>([&](EntityId id, EventTriggerComponent& et) {
+        Entity owner(id, this);
+        if (!IsActiveInHierarchy(owner)) return;
+        UUID ownerId = owner.GetUUID();
+        for (size_t i = 0; i < et.rules.size(); i++) {
+            EventRule& r = et.rules[i];
+            switch (r.when) {
+            case TriggerWhen::Start: if (starting) toFire.push_back({ id, i }); break;
+            case TriggerWhen::Timer:
+                r.timer += dt;
+                if (r.timer >= std::max(r.interval, 0.01f)) { r.timer = 0.0f; toFire.push_back({ id, i }); }
+                break;
+            case TriggerWhen::InputAction:
+                if (!r.whenName.empty() && Input::GetActionPressed(r.whenName)) toFire.push_back({ id, i });
+                break;
+            case TriggerWhen::Event:
+                if (!r.subscription && !r.whenName.empty()) {
+                    r.subscription = m_Events.On(r.whenName, [this, ownerId, i](const Event&) {
+                        Entity o = FindByUUID(ownerId);
+                        if (!o || !IsActiveInHierarchy(o)) return;
+                        auto* c = o.TryGet<EventTriggerComponent>();
+                        if (c && i < c->rules.size()) FireRule(o, c->rules[i]);
+                    }, ownerId);
+                }
+                break;
+            default: break;
+            }
+        }
+    });
+    for (auto& [id, i] : toFire) {
+        Entity o(id, this);
+        if (auto* c = o.TryGet<EventTriggerComponent>(); c && i < c->rules.size()) FireRule(o, c->rules[i]);
+    }
+}
+
+void Scene::DispatchContactRules(Entity self, Entity other, TriggerWhen when) {
+    auto* et = self.TryGet<EventTriggerComponent>();
+    if (!et || !IsActiveInHierarchy(self)) return;
+    const std::string& tag = other.Get<TagComponent>().tag;
+    for (auto& r : et->rules)
+        if (r.when == when && (r.tagFilter.empty() || r.tagFilter == tag)) FireRule(self, r);
+}
+
+void Scene::FireRule(Entity owner, EventRule& rule) {
+    if (rule.once && rule.fired) return;
+    rule.fired = true;
+    UUID ownerId = owner.GetUUID();
+    if (rule.delay > 0.0f) {
+        EventRule copy = rule;
+        m_Events.Invoke(rule.delay, [this, ownerId, copy] { RunAction(ownerId, copy); }, ownerId);
+    } else {
+        RunAction(ownerId, rule);
+    }
+}
+
+void Scene::RunAction(UUID ownerId, const EventRule& r) {
+    Entity owner = FindByUUID(ownerId);
+    Entity target = r.target ? FindByUUID(r.target) : owner;
+    switch (r.action) {
+    case TriggerDo::EmitEvent:
+        if (!r.param.empty()) m_Events.Emit(r.param, json::object(), ownerId);
+        break;
+    case TriggerDo::Move:
+    case TriggerDo::Rotate: {
+        if (!target) break;
+        auto& t = target.Transform();
+        Tween tw;
+        tw.target = target.GetUUID();
+        tw.rotate = r.action == TriggerDo::Rotate;
+        tw.fromP = t.position;
+        tw.toP = t.position + r.vector;
+        tw.fromR = t.rotation;
+        tw.toR = glm::normalize(t.rotation * quat(glm::radians(r.vector)));
+        tw.duration = r.duration;
+        if (r.duration <= 0.0f) {
+            if (tw.rotate) t.rotation = tw.toR; else t.position = tw.toP;
+        } else {
+            // A new tween on the same target and channel replaces the old one
+            m_Tweens.erase(std::remove_if(m_Tweens.begin(), m_Tweens.end(),
+                                          [&](const Tween& o) { return o.target == tw.target && o.rotate == tw.rotate; }), m_Tweens.end());
+            m_Tweens.push_back(tw);
+        }
+        break;
+    }
+    case TriggerDo::SetActive:
+        if (!target) break;
+        {
+            bool& a = target.Get<TagComponent>().active;
+            a = r.param == "toggle" ? !a : r.param != "false";
+        }
+        break;
+    case TriggerDo::Destroy:
+        if (target) DestroyEntity(target);
+        break;
+    case TriggerDo::PlaySound:
+        if (!r.param.empty()) {
+            if (target) Audio::PlayOneShotAt(r.param, WorldPosition(target));
+            else Audio::PlayOneShot(r.param);
+        }
+        break;
+    case TriggerDo::SendMessage:
+        if (target) {
+            if (auto* sc = target.TryGet<ScriptComponent>())
+                for (auto& s : sc->scripts) if (s.instance) s.instance->OnMessage(r.param);
+        }
+        break;
+    case TriggerDo::LoadScene:
+        if (!r.param.empty()) SceneManager::LoadScene(r.param);
+        break;
+    case TriggerDo::Log:
+        EU_INFO("[{}] {}", owner ? owner.Name() : std::string("Event Trigger"), r.param);
+        break;
+    }
+}
+
+void Scene::UpdateTweens(float dt) {
+    for (auto& tw : m_Tweens) {
+        tw.t = std::min(tw.t + dt, tw.duration);
+        Entity e = FindByUUID(tw.target);
+        if (!e) { tw.t = tw.duration; continue; }
+        float k = tw.t / std::max(tw.duration, 1e-4f);
+        k = k * k * (3.0f - 2.0f * k);   // ease in-out
+        auto& t = e.Transform();
+        if (tw.rotate) t.rotation = glm::slerp(tw.fromR, tw.toR, k);
+        else t.position = glm::mix(tw.fromP, tw.toP, k);
+    }
+    m_Tweens.erase(std::remove_if(m_Tweens.begin(), m_Tweens.end(), [](const Tween& t) { return t.t >= t.duration; }), m_Tweens.end());
 }
 
 void Scene::BroadcastMessage(const std::string& message) {

@@ -576,6 +576,107 @@ TEST(RayTracing_BVHMatchesBruteForce) {
     CHECK(mismatches == 0);
 }
 
+// ---------------------------------------------------------------------- Events
+TEST(Events_EmitOnInvoke) {
+    EventSystem ev;
+    std::vector<std::string> got;
+    auto id = ev.On("Ping", [&](const Event& e) { got.push_back("ping:" + e.data.value("n", std::string())); });
+    ev.On("*", [&](const Event& e) { got.push_back("any:" + e.name); });
+    ev.Emit("Ping", { { "n", "1" } });
+    CHECK(got.empty());                       // queued, not delivered immediately
+    ev.Update(0.0f);
+    CHECK(got.size() == 2 && got[0] == "ping:1" && got[1] == "any:Ping");
+    CHECK(ev.Log().size() == 1 && ev.Log().back().listeners == 2);
+
+    // Listeners can emit; chains are delivered in the same Update
+    ev.On("A", [&](const Event&) { ev.Emit("B"); });
+    int b = 0;
+    ev.On("B", [&](const Event&) { b++; });
+    ev.Emit("A");
+    ev.Update(0.0f);
+    CHECK(b == 1);
+
+    // Off
+    got.clear();
+    ev.Off(id);
+    ev.Emit("Ping");
+    ev.Update(0.0f);
+    CHECK(got.size() == 1 && got[0] == "any:Ping");
+
+    // Timers
+    int once = 0, rep = 0;
+    ev.Invoke(1.0f, [&] { once++; });
+    auto r = ev.InvokeRepeating(0.5f, 0.5f, [&] { rep++; });
+    ev.Update(0.4f); CHECK(once == 0 && rep == 0);
+    ev.Update(0.2f); CHECK(once == 0 && rep == 1);   // t = 0.6
+    ev.Update(0.5f); CHECK(once == 1 && rep == 2);   // t = 1.1
+    ev.Cancel(r);
+    ev.Update(2.0f); CHECK(once == 1 && rep == 2);
+
+    // OffAll removes an owner's listeners and timers
+    int owned = 0;
+    ev.On("X", [&](const Event&) { owned++; }, UUID(42));
+    ev.Invoke(0.1f, [&] { owned += 10; }, UUID(42));
+    ev.OffAll(UUID(42));
+    ev.Emit("X");
+    ev.Update(1.0f);
+    CHECK(owned == 0);
+}
+
+TEST(Events_TriggerOpensGate) {
+    // The 3D Starter's setup in miniature: a ball tagged Player falls onto a trigger pad,
+    // which emits OpenGate; the gate listens and moves down 3 m over half a second.
+    Scene s;
+    Entity pad = s.CreateEntity("Pad");
+    auto& c = pad.Add<BoxColliderComponent>();
+    c.size = vec3(2.0f);
+    c.isTrigger = true;
+    EventRule step;
+    step.when = TriggerWhen::TriggerEnter;
+    step.tagFilter = "Player";
+    step.action = TriggerDo::EmitEvent;
+    step.param = "OpenGate";
+    step.once = true;
+    pad.Add<EventTriggerComponent>().rules = { step };
+
+    Entity gate = s.CreateEntity("Gate");
+    gate.Transform().position = { 10, 1, 0 };
+    EventRule open;
+    open.when = TriggerWhen::Event;
+    open.whenName = "OpenGate";
+    open.action = TriggerDo::Move;
+    open.vector = { 0, -3, 0 };
+    open.duration = 0.5f;
+    gate.Add<EventTriggerComponent>().rules = { open };
+
+    Entity decoy = s.CreateEntity("Rock");    // wrong tag: must not open the gate
+    decoy.Transform().position = { 0, 2, 0 };
+    decoy.Add<SphereColliderComponent>().radius = 0.25f;
+    decoy.Add<RigidBodyComponent>();
+
+    // Round trip through the serializer, as play mode does
+    json j = SceneSerializer(s).ToJson();
+    Scene play;
+    SceneSerializer(play).FromJson(j);
+    CHECK(play.FindByName("Gate").Get<EventTriggerComponent>().rules.size() == 1);
+    CHECK(play.FindByName("Pad").Get<EventTriggerComponent>().rules[0].tagFilter == "Player");
+    play.OnRuntimeStart();
+    for (int i = 0; i < 60; i++) play.OnUpdateRuntime(1.0f / 60.0f);
+    CHECK_NEAR(play.FindByName("Gate").Transform().position.y, 1.0f, 1e-4f);   // the rock didn't count
+
+    Entity ball = play.CreateEntity("Ball");
+    ball.Get<TagComponent>().tag = "Player";
+    ball.Transform().position = { 0, 3, 0 };
+    ball.Add<SphereColliderComponent>().radius = 0.25f;
+    ball.Add<RigidBodyComponent>();
+    for (int i = 0; i < 120; i++) play.OnUpdateRuntime(1.0f / 60.0f);
+    CHECK_NEAR(play.FindByName("Gate").Transform().position.y, -2.0f, 1e-3f);
+    bool logged = false;
+    for (auto& e : play.Events().Log()) logged |= e.name == "OpenGate" && e.listeners == 1;
+    CHECK(logged);
+    play.OnRuntimeStop();
+}
+
 int main() {
     std::printf("Euphoria engine tests\n");
     for (auto& t : Tests()) {

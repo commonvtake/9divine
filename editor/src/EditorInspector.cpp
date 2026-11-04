@@ -624,6 +624,68 @@ void EditorApp::DrawComponents(Entity e) {
         PBool("Interpolate", n.interpolate);
     });
 
+    Section<EventTriggerComponent>(e, "Event Trigger", [&](EventTriggerComponent& et) {
+        static const char* whens[] = { "Game starts", "Trigger entered", "Trigger exited", "Collision", "Event received", "Timer", "Input pressed" };
+        static const char* dos[] = { "Emit event", "Move", "Rotate", "Set active", "Destroy", "Play sound", "Send message", "Load scene", "Log" };
+        EndProps();
+        if (et.rules.empty()) ImGui::TextDisabled("No rules yet. A rule is \"When this happens -> do that\".");
+        int removeAt = -1, upAt = -1;
+        for (size_t i = 0; i < et.rules.size(); i++) {
+            EventRule& r = et.rules[i];
+            ImGui::PushID((int)i);
+            std::string title = std::string("When ") + whens[(int)r.when] + (r.whenName.empty() ? "" : " '" + r.whenName + "'") +
+                                " -> " + dos[(int)r.action] + (r.param.empty() ? "" : " '" + r.param + "'");
+            bool open = ImGui::TreeNodeEx("##rule", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth, "%s", title.c_str());
+            ImGui::SameLine(ImGui::GetContentRegionMax().x - 50);
+            if (i > 0 && ImGui::SmallButton("^")) upAt = (int)i;
+            ImGui::SameLine(ImGui::GetContentRegionMax().x - 22);
+            if (ImGui::SmallButton("x")) removeAt = (int)i;
+            if (open) {
+                BeginProps();
+                int w = (int)r.when;
+                if (PCombo("When", w, whens, IM_ARRAYSIZE(whens))) r.when = (TriggerWhen)w;
+                if (r.when == TriggerWhen::Event) PText("Event name", r.whenName);
+                if (r.when == TriggerWhen::InputAction) PText("Action", r.whenName);
+                if (r.when == TriggerWhen::Timer) PFloat("Every (s)", r.interval, 0.05f, 0.01f, 3600.0f);
+                if (r.when == TriggerWhen::TriggerEnter || r.when == TriggerWhen::TriggerExit || r.when == TriggerWhen::CollisionEnter)
+                    PText("Only tag", r.tagFilter);
+                int d = (int)r.action;
+                if (PCombo("Do", d, dos, IM_ARRAYSIZE(dos))) r.action = (TriggerDo)d;
+                if (r.action != TriggerDo::EmitEvent && r.action != TriggerDo::LoadScene && r.action != TriggerDo::Log) {
+                    if (EntityRefWidget("Target", r.target, *e.GetScene())) g_Changed = true;
+                    Next();
+                    if (!r.target) { Label(""); ImGui::TextDisabled("(empty = this entity)"); Next(); }
+                }
+                switch (r.action) {
+                case TriggerDo::EmitEvent: PText("Event", r.param); break;
+                case TriggerDo::Move: PVec3("Offset", r.vector); PFloat("Duration", r.duration, 0.02f, 0.0f, 60.0f); break;
+                case TriggerDo::Rotate: PVec3("Degrees", r.vector); PFloat("Duration", r.duration, 0.02f, 0.0f, 60.0f); break;
+                case TriggerDo::SetActive: {
+                    const char* modes[] = { "true", "false", "toggle" };
+                    int m = r.param == "false" ? 1 : r.param == "toggle" ? 2 : 0;
+                    if (PCombo("Active", m, modes, 3)) r.param = modes[m];
+                    break;
+                }
+                case TriggerDo::PlaySound: PAsset("Sound", r.param, IsAudio); break;
+                case TriggerDo::SendMessage: PText("Message", r.param); break;
+                case TriggerDo::LoadScene: PText("Scene", r.param); break;
+                case TriggerDo::Log: PText("Text", r.param); break;
+                default: break;
+                }
+                PFloat("Delay (s)", r.delay, 0.02f, 0.0f, 3600.0f);
+                PBool("Only once", r.once);
+                EndProps();
+                ImGui::TreePop();
+            }
+            ImGui::PopID();
+        }
+        if (removeAt >= 0) { et.rules.erase(et.rules.begin() + removeAt); g_Changed = true; }
+        if (upAt > 0) { std::swap(et.rules[upAt], et.rules[upAt - 1]); g_Changed = true; }
+        if (ImGui::Button("+ Rule", ImVec2(-1, 0))) { et.rules.push_back({}); g_Changed = true; }
+        if (playing) ImGui::TextDisabled("Events in this session: Window > Event Log");
+        BeginProps();
+    });
+
     Section<SaveableComponent>(e, "Saveable", [&](SaveableComponent& s) {
         PBool("Transform", s.saveTransform);
         PBool("Script fields", s.saveScripts);
@@ -668,12 +730,13 @@ void EditorApp::DrawAddComponentMenu(Entity e) {
     struct Nav_ { using type = NavAgentComponent; };
     struct Net_ { using type = NetworkIdentityComponent; };
     struct Sav_ { using type = SaveableComponent; };
+    struct Evt_ { using type = EventTriggerComponent; };
     ImGui::TextDisabled("Rendering");
     item("Mesh Renderer", Mesh_{}); item("Camera", Cam_{}); item("Light", Light_{}); item("Particle Emitter", Par_{});
     ImGui::TextDisabled("Physics");
     item("Rigid Body", RB_{}); item("Box Collider", Box_{}); item("Sphere Collider", Sph_{});
     ImGui::TextDisabled("Gameplay");
-    item("Scripts", Scr_{}); item("Animator", An_{}); item("Nav Agent", Nav_{}); item("Saveable", Sav_{}); item("Network Identity", Net_{});
+    item("Scripts", Scr_{}); item("Event Trigger", Evt_{}); item("Animator", An_{}); item("Nav Agent", Nav_{}); item("Saveable", Sav_{}); item("Network Identity", Net_{});
     ImGui::TextDisabled("Audio");
     item("Audio Source", AS_{}); item("Audio Listener", AL_{});
     ImGui::TextDisabled("World & UI");

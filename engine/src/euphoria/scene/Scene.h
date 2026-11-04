@@ -3,6 +3,7 @@
 #include "euphoria/core/UUID.h"
 #include "euphoria/scene/ECS.h"
 #include "euphoria/scene/Components.h"
+#include "euphoria/scene/Events.h"
 #include <string>
 #include <unordered_map>
 
@@ -87,6 +88,7 @@ public:
 
     // --- Events -----------------------------------------------------------
     void BroadcastMessage(const std::string& message);   // calls OnMessage on every script
+    EventSystem& Events() { return m_Events; }           // named events + timers (see Events.h)
 
     // --- Systems ----------------------------------------------------------
     Registry& Reg() { return m_Registry; }
@@ -113,6 +115,23 @@ private:
     void UpdateParticles(float dt);
     void UpdateTerrains();
     void DestroyImmediate(EntityId e);
+    // Event Trigger components
+    void ResetEventTriggers();
+    void UpdateEventTriggers(float dt);
+    void FireRule(Entity owner, EventRule& rule);
+    void RunAction(UUID owner, const EventRule& rule);
+    void DispatchContactRules(Entity self, Entity other, TriggerWhen when);
+    void UpdateTweens(float dt);
+    struct Tween {
+        UUID target;
+        bool rotate = false;
+        vec3 fromP{ 0.0f }, toP{ 0.0f };
+        quat fromR{ 1, 0, 0, 0 }, toR{ 1, 0, 0, 0 };
+        float t = 0.0f, duration = 1.0f;
+    };
+    std::vector<Tween> m_Tweens;
+    EventSystem m_Events;
+    bool m_TriggersStarted = false;
 
     Registry m_Registry;
     std::unordered_map<UUID, EntityId> m_UUIDMap;

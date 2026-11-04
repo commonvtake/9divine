@@ -85,6 +85,7 @@ void EditorApp::DrawMenuBar() {
         ImGui::MenuItem("Scene Settings", nullptr, &m_ShowSceneSettings);
         ImGui::MenuItem("Input Map", nullptr, &m_ShowInput);
         ImGui::MenuItem("Multiplayer", nullptr, &m_ShowNetwork);
+        ImGui::MenuItem("Event Log", nullptr, &m_ShowEventLog);
         ImGui::MenuItem("Project Settings", nullptr, &m_ShowProject);
         ImGui::Separator();
         ImGui::MenuItem("ImGui Demo", nullptr, &m_ShowDemo);
@@ -543,6 +544,54 @@ void EditorApp::DrawInputSettings() {
     if (ImGui::Button("Add Action") && !newName.empty()) { map.actions.push_back({ newName, {} }); newName.clear(); }
     ImGui::SameLine();
     if (ImGui::Button("Add Axis") && !newName.empty()) { map.axes.push_back({ newName, {}, 0.15f }); newName.clear(); }
+    ImGui::End();
+}
+
+// ------------------------------------------------------------------ events
+void EditorApp::DrawEventLog() {
+    ImGui::Begin("Event Log", &m_ShowEventLog);
+    auto scene = ActiveScene();
+    if (!scene) { ImGui::End(); return; }
+    EventSystem& ev = scene->Events();
+    bool playing = m_State == PlayState::Play;
+    ImGui::SetNextItemWidth(160);
+    ImGui::InputTextWithHint("##filter", "Filter", &m_EventFilter);
+    ImGui::SameLine();
+    if (ImGui::Button("Clear")) ev.ClearLog();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!playing);
+    ImGui::SetNextItemWidth(140);
+    ImGui::InputTextWithHint("##emit", "Event name", &m_TestEvent);
+    ImGui::SameLine();
+    if (ImGui::Button("Emit") && !m_TestEvent.empty()) ev.Emit(m_TestEvent);
+    ImGui::EndDisabled();
+    ImGui::TextDisabled(playing ? "%zu timers pending" : "Events appear here while the game runs (Play).", ev.PendingTimers());
+    if (ImGui::BeginTable("events", 5, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable)) {
+        ImGui::TableSetupScrollFreeze(0, 1);
+        ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, 60);
+        ImGui::TableSetupColumn("Event");
+        ImGui::TableSetupColumn("From");
+        ImGui::TableSetupColumn("Heard by", ImGuiTableColumnFlags_WidthFixed, 60);
+        ImGui::TableSetupColumn("Data");
+        ImGui::TableHeadersRow();
+        auto& log = ev.Log();
+        for (auto it = log.rbegin(); it != log.rend(); ++it) {   // newest first
+            if (!m_EventFilter.empty() && it->name.find(m_EventFilter) == std::string::npos) continue;
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn(); ImGui::Text("%.2f", it->time);
+            ImGui::TableNextColumn();
+            if (it->listeners == 0) ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.3f, 1.0f), "%s", it->name.c_str());
+            else ImGui::TextUnformatted(it->name.c_str());
+            if (it->listeners == 0 && ImGui::IsItemHovered()) ImGui::SetTooltip("Nobody is listening for this event");
+            ImGui::TableNextColumn();
+            Entity from = it->sender ? scene->FindByUUID(it->sender) : Entity();
+            if (from) { if (ImGui::Selectable(from.Name().c_str(), false)) Select(from); }
+            else ImGui::TextDisabled("-");
+            ImGui::TableNextColumn(); ImGui::Text("%d", it->listeners);
+            ImGui::TableNextColumn(); ImGui::TextUnformatted(it->data.c_str());
+        }
+        ImGui::EndTable();
+    }
     ImGui::End();
 }
 
