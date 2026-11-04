@@ -29,6 +29,7 @@ struct RenderSettings {
     float grassDistance = 70.0f;
     bool shadows = true;
     bool grass = true;
+    bool batching = true;           // draw identical static meshes with one instanced call
 };
 
 class Renderer {

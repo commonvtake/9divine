@@ -381,6 +381,7 @@ void EditorApp::DrawProfiler() {
     if (ImGui::BeginTable("##stats", 2, ImGuiTableFlags_SizingStretchProp)) {
         auto row = [](const char* k, const std::string& v) { ImGui::TableNextColumn(); ImGui::TextDisabled("%s", k); ImGui::TableNextColumn(); ImGui::Text("%s", v.c_str()); };
         row("Draw calls", std::to_string(st.drawCalls));
+        row("Batched objects", std::to_string(st.batchedObjects));
         row("Triangles", std::to_string(st.triangles));
         row("Entities", std::to_string(st.entities));
         row("Physics bodies", std::to_string(st.physicsBodies));

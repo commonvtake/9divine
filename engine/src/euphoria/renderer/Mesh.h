@@ -26,6 +26,11 @@ public:
     // Attach a per-instance buffer of mat4 (locations 5..8) for instanced drawing.
     void AttachInstanceBuffer(uint32_t vbo);
 
+    // Draws `count` copies in one call with per-instance world matrices (locations 5..8) and
+    // entity IDs (location 10, for picking). Uses a separate VAO + buffers owned by the mesh,
+    // so it never disturbs an instance buffer attached with AttachInstanceBuffer.
+    void DrawBatch(const mat4* worlds, const int* entityIds, int count) const;
+
     const std::vector<Vertex>& Vertices() const { return m_Vertices; }
     const std::vector<uint32_t>& Indices() const { return m_Indices; }
     const AABB& Bounds() const { return m_Bounds; }
@@ -41,6 +46,9 @@ public:
 
 private:
     uint32_t m_VAO = 0, m_VBO = 0, m_IBO = 0, m_OutlineVBO = 0;
+    mutable uint32_t m_BatchVAO = 0, m_BatchMatVBO = 0, m_BatchIdVBO = 0;
+    mutable int m_BatchCapacity = 0;
+    void BindVertexLayout() const;      // attributes 0-4 + 9 for the currently bound VAO
     std::vector<Vertex> m_Vertices;
     std::vector<uint32_t> m_Indices;
     AABB m_Bounds;

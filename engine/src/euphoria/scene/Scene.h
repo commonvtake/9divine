@@ -52,6 +52,14 @@ public:
     vec3 WorldPosition(Entity e);
     bool IsActiveInHierarchy(Entity e);
 
+    // Per-frame transform cache. CacheTransforms() resolves every entity's world matrix and
+    // active-in-hierarchy flag in one pass (each parent chain is walked once, not once per
+    // child), so systems that touch every entity - the renderer above all - don't redo it.
+    // The cache is a snapshot: call it again after moving things.
+    void CacheTransforms();
+    const mat4& CachedWorld(EntityId id) const { return m_WorldCache[ecs::Index(id)].world; }
+    bool CachedActive(EntityId id) const { return m_WorldCache[ecs::Index(id)].active; }
+
     // --- Lifecycle --------------------------------------------------------
     void OnRuntimeStart();
     void OnRuntimeStop();
@@ -96,6 +104,10 @@ private:
 
     Registry m_Registry;
     std::unordered_map<UUID, EntityId> m_UUIDMap;
+    struct CachedTransform { mat4 world{ 1.0f }; bool active = true; uint32_t stamp = 0; };
+    std::vector<CachedTransform> m_WorldCache;
+    uint32_t m_CacheStamp = 0;
+    const CachedTransform& Resolve(EntityId id, int depth);
     std::vector<EntityId> m_PendingDestroy;
     Scope<PhysicsWorld> m_Physics;
     Scope<NavGrid> m_Nav;

@@ -170,6 +170,7 @@ void EditorApp::DrawToolbar() {
         ImGui::Checkbox("Light gizmos", &m_RenderOptions.showLightGizmos);
         ImGui::Checkbox("Game UI", &m_ShowUI);
         ImGui::Checkbox("Stats overlay", &m_ShowStats);
+        ImGui::Checkbox("Batch identical meshes", &Renderer::Settings().batching);
         ImGui::Separator();
         ImGui::SliderFloat("Camera FOV", &m_Camera.fov, 20.0f, 100.0f);
         ImGui::SliderFloat("Fly speed", &m_Camera.flySpeed, 0.5f, 100.0f);

@@ -21,6 +21,19 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
 
+    // Outline normals live in their own buffer so the main vertex layout stays unchanged.
+    // (Locations 5-8 are reserved for per-instance matrices, 10 for batched entity IDs.)
+    std::vector<vec3> outline = ComputeOutlineNormals(vertices, indices);
+    glGenBuffers(1, &m_OutlineVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_OutlineVBO);
+    glBufferData(GL_ARRAY_BUFFER, outline.size() * sizeof(vec3), outline.data(), GL_STATIC_DRAW);
+    BindVertexLayout();
+    glBindVertexArray(0);
+}
+
+void Mesh::BindVertexLayout() const {
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
     glEnableVertexAttribArray(1);
@@ -31,16 +44,44 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     glVertexAttribIPointer(3, 4, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex, joints));
     glEnableVertexAttribArray(4);
     glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, weights));
-
-    // Outline normals live in their own buffer so the main vertex layout stays unchanged.
-    // (Locations 5-8 are reserved for per-instance matrices.)
-    std::vector<vec3> outline = ComputeOutlineNormals(vertices, indices);
-    glGenBuffers(1, &m_OutlineVBO);
     glBindBuffer(GL_ARRAY_BUFFER, m_OutlineVBO);
-    glBufferData(GL_ARRAY_BUFFER, outline.size() * sizeof(vec3), outline.data(), GL_STATIC_DRAW);
     glEnableVertexAttribArray(9);
     glVertexAttribPointer(9, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
-    glBindVertexArray(0);
+}
+
+void Mesh::DrawBatch(const mat4* worlds, const int* ids, int count) const {
+    if (count <= 0) return;
+    if (!m_BatchVAO) {
+        glGenVertexArrays(1, &m_BatchVAO);
+        glGenBuffers(1, &m_BatchMatVBO);
+        glGenBuffers(1, &m_BatchIdVBO);
+        glBindVertexArray(m_BatchVAO);
+        BindVertexLayout();
+        glBindBuffer(GL_ARRAY_BUFFER, m_BatchMatVBO);
+        for (int i = 0; i < 4; i++) {
+            glEnableVertexAttribArray(5 + i);
+            glVertexAttribPointer(5 + i, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), (void*)(sizeof(vec4) * i));
+            glVertexAttribDivisor(5 + i, 1);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, m_BatchIdVBO);
+        glEnableVertexAttribArray(10);
+        glVertexAttribIPointer(10, 1, GL_INT, sizeof(int), (void*)0);
+        glVertexAttribDivisor(10, 1);
+    }
+    glBindVertexArray(m_BatchVAO);
+    if (count > m_BatchCapacity) {
+        m_BatchCapacity = std::max(count, m_BatchCapacity * 2);
+        glBindBuffer(GL_ARRAY_BUFFER, m_BatchMatVBO);
+        glBufferData(GL_ARRAY_BUFFER, m_BatchCapacity * sizeof(mat4), nullptr, GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, m_BatchIdVBO);
+        glBufferData(GL_ARRAY_BUFFER, m_BatchCapacity * sizeof(int), nullptr, GL_STREAM_DRAW);
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, m_BatchMatVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(mat4), worlds);
+    glBindBuffer(GL_ARRAY_BUFFER, m_BatchIdVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(int), ids);
+    glDrawElementsInstanced(GL_TRIANGLES, (GLsizei)m_Indices.size(), GL_UNSIGNED_INT, nullptr, count);
+    Profiler::AddDrawCall((uint64_t)(m_Indices.size() / 3) * count);
 }
 
 Mesh::~Mesh() {
@@ -48,6 +89,11 @@ Mesh::~Mesh() {
     glDeleteBuffers(1, &m_VBO);
     glDeleteBuffers(1, &m_IBO);
     glDeleteBuffers(1, &m_OutlineVBO);
+    if (m_BatchVAO) {
+        glDeleteBuffers(1, &m_BatchMatVBO);
+        glDeleteBuffers(1, &m_BatchIdVBO);
+        glDeleteVertexArrays(1, &m_BatchVAO);
+    }
     glDeleteVertexArrays(1, &m_VAO);
 }
 

@@ -14,6 +14,7 @@ struct FrameStats {
     uint32_t entities = 0;
     uint32_t physicsBodies = 0;
     uint32_t particles = 0;
+    uint32_t batchedObjects = 0;    // objects drawn through automatic instancing this frame
     size_t memoryBytes = 0;
 };
 

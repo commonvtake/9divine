@@ -488,6 +488,41 @@ TEST(Locomotion_BuildsController) {
     CHECK(keep.defaultState == "Mine");
 }
 
+// ---------------------------------------------------------------------- Transform cache
+TEST(Scene_TransformCacheMatchesUncached) {
+    Scene s;
+    Entity root = s.CreateEntity("Root");
+    root.Transform().position = { 5, 0, 0 };
+    root.Transform().SetEulerDegrees({ 0, 45, 0 });
+    Entity mid = s.CreateEntity("Mid");
+    mid.Transform().parent = root.GetUUID();
+    mid.Transform().position = { 0, 2, -1 };
+    mid.Transform().scale = vec3(2.0f);
+    Entity leaf = s.CreateEntity("Leaf");
+    leaf.Transform().parent = mid.GetUUID();
+    leaf.Transform().position = { 1, 0, 0 };
+    Entity loose = s.CreateEntity("Loose");
+    mid.Get<TagComponent>().active = false;
+
+    s.CacheTransforms();
+    for (Entity e : { root, mid, leaf, loose }) {
+        mat4 a = s.WorldMatrix(e), b = s.CachedWorld(e.Id());
+        for (int c = 0; c < 4; c++) for (int r = 0; r < 4; r++) CHECK_NEAR(a[c][r], b[c][r], 1e-5f);
+        CHECK(s.CachedActive(e.Id()) == s.IsActiveInHierarchy(e));
+    }
+    CHECK(!s.CachedActive(leaf.Id()));          // inactive parent hides the child
+
+    // A snapshot: moving the root needs a new CacheTransforms() call
+    root.Transform().position = { -3, 0, 0 };
+    s.CacheTransforms();
+    CHECK_NEAR(s.CachedWorld(leaf.Id())[3].x, s.WorldMatrix(leaf)[3].x, 1e-5f);
+
+    // A parent cycle (corrupt file) must not hang
+    root.Transform().parent = leaf.GetUUID();
+    s.CacheTransforms();
+    CHECK(true);
+}
+
 int main() {
     std::printf("Euphoria engine tests\n");
     for (auto& t : Tests()) {

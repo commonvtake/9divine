@@ -15,6 +15,7 @@
 #include "euphoria/core/Profiler.h"
 #include "euphoria/core/Log.h"
 #include <map>
+#include <unordered_map>
 #include <cmath>
 
 namespace eu {
@@ -113,6 +114,35 @@ void ApplyLights(Shader& s, const LightData& L, const SceneEnvironment& env, con
     s.SetFloat("uExposure", env.exposure);
 }
 
+// Everything that affects how a mesh renderer looks, for automatic batching. Two renderers
+// with equal keys (and SameLook) can share one instanced draw call.
+template <typename T> void HashMix(uint64_t& h, const T& v) {
+    const unsigned char* p = reinterpret_cast<const unsigned char*>(&v);
+    for (size_t i = 0; i < sizeof(T); i++) { h ^= p[i]; h *= 1099511628211ull; }
+}
+uint64_t BatchKey(const MeshRendererComponent& m) {
+    uint64_t h = 1469598103934665603ull;
+    HashMix(h, m.model.get());
+    HashMix(h, std::hash<std::string>()(m.texture));
+    HashMix(h, m.useModelMaterials); HashMix(h, m.color); HashMix(h, m.tiling);
+    HashMix(h, m.specular); HashMix(h, m.shininess); HashMix(h, m.emissive);
+    HashMix(h, m.toon);
+    if (m.toon) {
+        HashMix(h, m.toonBands); HashMix(h, m.toonSoftness); HashMix(h, m.toonShadowColor);
+        HashMix(h, m.toonShadowFill); HashMix(h, m.toonRim);
+    }
+    return h;
+}
+bool SameLook(const MeshRendererComponent& a, const MeshRendererComponent& b) {
+    bool same = a.model == b.model && a.texture == b.texture && a.useModelMaterials == b.useModelMaterials &&
+                a.color == b.color && a.tiling == b.tiling && a.specular == b.specular && a.shininess == b.shininess &&
+                a.emissive == b.emissive && a.toon == b.toon;
+    if (same && a.toon)
+        same = a.toonBands == b.toonBands && a.toonSoftness == b.toonSoftness && a.toonShadowColor == b.toonShadowColor &&
+               a.toonShadowFill == b.toonShadowFill && a.toonRim == b.toonRim;
+    return same;
+}
+
 void EnsureModel(MeshRendererComponent& mr) {
     if (!mr.model || mr.loadedMesh != mr.mesh || mr.loadedVersion != AssetManager::Version()) {
         mr.model = AssetManager::GetModel(mr.mesh);
@@ -194,7 +224,10 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
     const float time = (float)Time::Elapsed();
     Frustum frustum(viewProj);
 
-    // ---- Prepare: terrain meshes, model references -----------------------
+    // ---- Prepare: transforms, terrain meshes, model references -----------
+    scene.CacheTransforms();
+    auto worldOf = [&](EntityId id) -> const mat4& { return scene.CachedWorld(id); };
+    auto activeOf = [&](EntityId id) { return scene.CachedActive(id); };
     reg.View<TerrainComponent>([&](EntityId, TerrainComponent& t) { TerrainSystem::Update(t); });
     reg.View<MeshRendererComponent>([&](EntityId, MeshRendererComponent& mr) { EnsureModel(mr); });
 
@@ -203,9 +236,8 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
     struct PL { vec3 pos, color; float range, dist; };
     std::vector<PL> points;
     reg.View<TransformComponent, LightComponent>([&](EntityId id, TransformComponent&, LightComponent& l) {
-        Entity e(id, &scene);
-        if (!scene.IsActiveInHierarchy(e)) return;
-        mat4 w = scene.WorldMatrix(e);
+        if (!activeOf(id)) return;
+        const mat4& w = worldOf(id);
         vec3 pos = vec3(w[3]);
         vec3 fwd = glm::normalize(vec3(w * vec4(0, 0, -1, 0)));
         vec3 color = SRGBToLinear(l.color) * l.intensity;
@@ -240,18 +272,15 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
     };
     std::vector<DrawItem> items;
     reg.View<TransformComponent, MeshRendererComponent>([&](EntityId id, TransformComponent&, MeshRendererComponent& mr) {
-        if (!mr.visible || !mr.model) return;
-        Entity e(id, &scene);
-        if (!scene.IsActiveInHierarchy(e)) return;
-        DrawItem d{ id, scene.WorldMatrix(e), &mr, reg.TryGet<AnimatorComponent>(id) };
+        if (!mr.visible || !mr.model || !activeOf(id)) return;
+        DrawItem d{ id, worldOf(id), &mr, reg.TryGet<AnimatorComponent>(id) };
         items.push_back(d);
     });
     struct TerrainItem { EntityId id; mat4 world; TerrainComponent* t; };
     std::vector<TerrainItem> terrains;
     reg.View<TransformComponent, TerrainComponent>([&](EntityId id, TransformComponent&, TerrainComponent& t) {
-        Entity e(id, &scene);
-        if (!t.runtime || !t.runtime->mesh || !scene.IsActiveInHierarchy(e)) return;
-        terrains.push_back({ id, scene.WorldMatrix(e), &t });
+        if (!t.runtime || !t.runtime->mesh || !activeOf(id)) return;
+        terrains.push_back({ id, worldOf(id), &t });
     });
 
     auto isSkinned = [](const DrawItem& d) {
@@ -289,9 +318,26 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
         auto sh = GetShader("shadow.glsl");
         auto shSkin = GetShader("shadow.glsl", { "SKINNED" });
         auto shInst = GetShader("shadow.glsl", { "INSTANCED" });
+        // Static casters sharing a model are drawn as one instanced call per sub-mesh.
+        std::unordered_map<const Model*, std::vector<const DrawItem*>> casterGroups;
+        for (auto& d : items)
+            if (s_Settings.batching && d.mr->castShadows && !isSkinned(d) && !d.mr->model->IsSkinned()) casterGroups[d.mr->model.get()].push_back(&d);
+        std::vector<mat4> batchWorlds;
+        std::vector<int> batchIds;
+        for (auto& [model, group] : casterGroups) {
+            if (group.size() < 2) continue;
+            batchWorlds.clear();
+            batchIds.clear();
+            for (auto* d : group) { batchWorlds.push_back(d->world); batchIds.push_back((int)d->id); }
+            shInst->Bind();
+            shInst->SetMat4("uLightSpace", L.lightSpace);
+            shInst->SetMat4("uModel", mat4(1.0f));
+            for (auto& sm : model->meshes) sm.mesh->DrawBatch(batchWorlds.data(), batchIds.data(), (int)group.size());
+        }
         for (auto& d : items) {
             if (!d.mr->castShadows) continue;
             bool skinned = isSkinned(d);
+            if (s_Settings.batching && !skinned && !d.mr->model->IsSkinned() && casterGroups[d.mr->model.get()].size() >= 2) continue;   // batched above
             Shader& s = skinned ? *shSkin : *sh;
             s.Bind();
             s.SetMat4("uLightSpace", L.lightSpace);
@@ -349,20 +395,16 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
     std::vector<const DrawItem*> outlined;
     {
         EU_PROFILE_SCOPE("Opaque");
-        auto lit = GetShader("lit.glsl");
-        auto litSkin = GetShader("lit.glsl", { "SKINNED" });
-        auto toon = GetShader("lit.glsl", { "TOON" });
-        auto toonSkin = GetShader("lit.glsl", { "SKINNED", "TOON" });
-        Shader* bound = nullptr;
         auto white = Texture2D::White();
-        for (auto& d : items) {
-            bool skinned = isSkinned(d);
-            if (!skinned && !d.mr->model->IsSkinned()) {
-                if (!frustum.Visible(TransformAABB(d.mr->model->bounds, d.world))) continue;
-            }
-            if (d.mr->outline) outlined.push_back(&d);
-            Shader* s = d.mr->toon ? (skinned ? toonSkin.get() : toon.get())
-                                   : (skinned ? litSkin.get() : lit.get());
+        // Variants: [toon][skinned|batched]
+        Ref<Shader> variants[2][3] = {
+            { GetShader("lit.glsl"), GetShader("lit.glsl", { "SKINNED" }), GetShader("lit.glsl", { "BATCHED" }) },
+            { GetShader("lit.glsl", { "TOON" }), GetShader("lit.glsl", { "SKINNED", "TOON" }), GetShader("lit.glsl", { "BATCHED", "TOON" }) },
+        };
+        enum { kPlain = 0, kSkinned = 1, kBatched = 2 };
+        Shader* bound = nullptr;
+        auto bindVariant = [&](bool toon, int kind) -> Shader* {
+            Shader* s = variants[toon ? 1 : 0][kind].get();
             if (s != bound) {
                 s->Bind();
                 ApplyLights(*s, L, env, cam);
@@ -370,34 +412,90 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
                 s->SetInt("uAlbedoMap", 0);
                 bound = s;
             }
-            if (d.mr->toon) {
-                s->SetFloat("uToonBands", (float)glm::clamp(d.mr->toonBands, 2, 8));
-                s->SetFloat("uToonSoftness", glm::clamp(d.mr->toonSoftness, 0.0f, 0.5f));
-                s->SetVec3("uToonShadowColor", d.mr->toonShadowColor);
-                s->SetFloat("uToonShadowFill", glm::clamp(d.mr->toonShadowFill, 0.0f, 1.0f));
-                s->SetFloat("uToonRim", d.mr->toonRim);
+            return s;
+        };
+        auto setObjectUniforms = [&](Shader* s, const MeshRendererComponent& mr) {
+            if (!mr.toon) return;
+            s->SetFloat("uToonBands", (float)glm::clamp(mr.toonBands, 2, 8));
+            s->SetFloat("uToonSoftness", glm::clamp(mr.toonSoftness, 0.0f, 0.5f));
+            s->SetVec3("uToonShadowColor", mr.toonShadowColor);
+            s->SetFloat("uToonShadowFill", glm::clamp(mr.toonShadowFill, 0.0f, 1.0f));
+            s->SetFloat("uToonRim", mr.toonRim);
+        };
+        // Sets one sub-mesh's material; returns whether it is double sided.
+        auto setMaterial = [&](Shader* s, const MeshRendererComponent& mr, const SubMesh& sm, const Ref<Texture2D>& overrideTex) {
+            const MaterialData* mat = (mr.useModelMaterials && sm.material >= 0 && sm.material < (int)mr.model->materials.size())
+                                          ? &mr.model->materials[sm.material] : nullptr;
+            s->SetVec4("uColor", mr.color * (mat ? mat->baseColor : vec4(1.0f)));
+            s->SetFloat("uTiling", mr.tiling);
+            s->SetFloat("uSpecular", mat ? mat->specular : mr.specular);
+            s->SetFloat("uShininess", mat ? mat->shininess : mr.shininess);
+            s->SetVec3("uEmissive", mr.emissive + (mat ? mat->emissive : vec3(0.0f)));
+            (overrideTex ? overrideTex : (mat && mat->albedo ? mat->albedo : white))->Bind(0);
+            return mat && mat->doubleSided;
+        };
+        auto overrideTexture = [](const MeshRendererComponent& mr) -> Ref<Texture2D> {
+            return mr.texture.empty() ? nullptr : AssetManager::GetTexture(mr.texture);
+        };
+
+        // Group visible, non-skinned items that look identical (same model, same material
+        // settings) so each group becomes a single instanced draw per sub-mesh.
+        std::vector<const DrawItem*> singles;
+        std::unordered_map<uint64_t, std::vector<std::vector<const DrawItem*>>> groups;
+        for (auto& d : items) {
+            bool skinned = isSkinned(d);
+            if (!skinned && !d.mr->model->IsSkinned()) {
+                if (!frustum.Visible(TransformAABB(d.mr->model->bounds, d.world))) continue;
             }
+            if (d.mr->outline) outlined.push_back(&d);
+            if (skinned || d.mr->model->IsSkinned() || !s_Settings.batching) { singles.push_back(&d); continue; }
+            auto& buckets = groups[BatchKey(*d.mr)];
+            bool placed = false;
+            for (auto& b : buckets)
+                if (SameLook(*b.front()->mr, *d.mr)) { b.push_back(&d); placed = true; break; }   // hash collision guard
+            if (!placed) buckets.push_back({ &d });
+        }
+
+        std::vector<mat4> batchWorlds;
+        std::vector<int> batchIds;
+        for (auto& [key, buckets] : groups) {
+            for (auto& b : buckets) {
+                if (b.size() < 2) { singles.push_back(b.front()); continue; }
+                const MeshRendererComponent& mr = *b.front()->mr;
+                batchWorlds.clear();
+                batchIds.clear();
+                for (auto* d : b) { batchWorlds.push_back(d->world); batchIds.push_back((int)d->id); }
+                Shader* s = bindVariant(mr.toon, kBatched);
+                setObjectUniforms(s, mr);
+                s->SetMat4("uModel", mat4(1.0f));
+                Ref<Texture2D> overrideTex = overrideTexture(mr);
+                for (auto& sm : mr.model->meshes) {
+                    bool ds = setMaterial(s, mr, sm, overrideTex);
+                    if (ds) glDisable(GL_CULL_FACE);
+                    sm.mesh->DrawBatch(batchWorlds.data(), batchIds.data(), (int)b.size());
+                    if (ds) glEnable(GL_CULL_FACE);
+                }
+                Profiler::Stats().batchedObjects += (uint32_t)b.size();
+            }
+        }
+
+        for (const DrawItem* dp : singles) {
+            const DrawItem& d = *dp;
+            bool skinned = isSkinned(d);
+            Shader* s = bindVariant(d.mr->toon, skinned ? kSkinned : kPlain);
+            setObjectUniforms(s, *d.mr);
             s->SetMat4("uModel", d.world);
             s->SetInt("uEntityID", (int)d.id);
             if (skinned) {
                 auto& m = d.anim->runtime->skinMatrices;
                 s->SetMat4Array("uBones", m.data(), (int)std::min<size_t>(m.size(), 100));
             }
-            Ref<Texture2D> overrideTex = d.mr->texture.empty() ? nullptr : AssetManager::GetTexture(d.mr->texture);
+            Ref<Texture2D> overrideTex = overrideTexture(*d.mr);
             for (auto& sm : d.mr->model->meshes) {
-                const MaterialData* mat = (d.mr->useModelMaterials && sm.material >= 0 && sm.material < (int)d.mr->model->materials.size())
-                                              ? &d.mr->model->materials[sm.material] : nullptr;
-                vec4 color = d.mr->color * (mat ? mat->baseColor : vec4(1.0f));
-                Ref<Texture2D> tex = overrideTex ? overrideTex : (mat && mat->albedo ? mat->albedo : white);
-                s->SetVec4("uColor", color);
-                s->SetFloat("uTiling", d.mr->tiling);
-                s->SetFloat("uSpecular", mat ? mat->specular : d.mr->specular);
-                s->SetFloat("uShininess", mat ? mat->shininess : d.mr->shininess);
-                s->SetVec3("uEmissive", d.mr->emissive + (mat ? mat->emissive : vec3(0.0f)));
-                tex->Bind(0);
-                if (mat && mat->doubleSided) glDisable(GL_CULL_FACE);
+                bool ds = setMaterial(s, *d.mr, sm, overrideTex);
+                if (ds) glDisable(GL_CULL_FACE);
                 sm.mesh->Draw();
-                if (mat && mat->doubleSided) glEnable(GL_CULL_FACE);
+                if (ds) glEnable(GL_CULL_FACE);
             }
         }
     }
@@ -499,8 +597,7 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
         auto ws = GetShader("water.glsl");
         bool bound = false;
         reg.View<TransformComponent, WaterComponent>([&](EntityId id, TransformComponent&, WaterComponent& w) {
-            Entity e(id, &scene);
-            if (!scene.IsActiveInHierarchy(e)) return;
+            if (!activeOf(id)) return;
             if (!bound) {
                 ws->Bind();
                 ApplyLights(*ws, L, env, cam);
@@ -508,7 +605,7 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
                 ws->SetFloat("uTime", time);
                 bound = true;
             }
-            mat4 world = scene.WorldMatrix(e) * glm::scale(mat4(1.0f), vec3(w.size.x, 1.0f, w.size.y));
+            mat4 world = worldOf(id) * glm::scale(mat4(1.0f), vec3(w.size.x, 1.0f, w.size.y));
             ws->SetMat4("uModel", world);
             ws->SetVec4("uShallow", w.shallowColor);
             ws->SetVec4("uDeep", w.deepColor);
@@ -528,9 +625,8 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
         std::vector<PE> emitters;
         uint32_t total = 0;
         reg.View<TransformComponent, ParticleEmitterComponent>([&](EntityId id, TransformComponent&, ParticleEmitterComponent& p) {
-            Entity e(id, &scene);
-            if (!p.runtime || p.runtime->particles.empty() || !scene.IsActiveInHierarchy(e)) return;
-            mat4 w = scene.WorldMatrix(e);
+            if (!p.runtime || p.runtime->particles.empty() || !activeOf(id)) return;
+            const mat4& w = worldOf(id);
             emitters.push_back({ &p, w, glm::distance(vec3(w[3]), cam.position) });
             total += (uint32_t)p.runtime->particles.size();
         });

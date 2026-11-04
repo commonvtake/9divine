@@ -3,6 +3,7 @@
 #include "euphoria/core/FileSystem.h"
 #include "euphoria/core/Log.h"
 #include <sstream>
+#include <cstring>
 
 namespace eu {
 
@@ -97,11 +98,16 @@ Shader::~Shader() { if (m_Program && g_GLContextAlive) glDeleteProgram(m_Program
 void Shader::Bind() const { glUseProgram(m_Program); }
 
 int Shader::Location(const char* name) {
+    size_t h = (reinterpret_cast<uintptr_t>(name) >> 3) & (kPtrSlots - 1);
+    PtrSlot& slot = m_PtrCache[h];
+    // Same pointer *and* same text: guards against a reused buffer holding another name.
+    if (slot.key == name && std::strcmp(slot.text, name) == 0) return slot.location;
     auto it = m_Locations.find(name);
-    if (it != m_Locations.end()) return it->second;
-    int loc = glGetUniformLocation(m_Program, name);
-    m_Locations[name] = loc;
-    return loc;
+    if (it == m_Locations.end()) it = m_Locations.emplace(name, glGetUniformLocation(m_Program, name)).first;
+    slot.key = name;
+    slot.text = it->first.c_str();   // unordered_map nodes are stable, so this pointer stays valid
+    slot.location = it->second;
+    return slot.location;
 }
 
 void Shader::SetInt(const char* n, int v) { glUniform1i(Location(n), v); }

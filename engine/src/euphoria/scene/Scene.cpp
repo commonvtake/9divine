@@ -175,6 +175,36 @@ mat4 Scene::WorldMatrix(Entity e) {
 
 vec3 Scene::WorldPosition(Entity e) { return vec3(WorldMatrix(e)[3]); }
 
+const Scene::CachedTransform& Scene::Resolve(EntityId id, int depth) {
+    CachedTransform& c = m_WorldCache[ecs::Index(id)];
+    if (c.stamp == m_CacheStamp) return c;
+    c.stamp = m_CacheStamp;              // mark first: a parent cycle then terminates here
+    auto& t = m_Registry.Get<TransformComponent>(id);
+    bool active = m_Registry.Get<TagComponent>(id).active;
+    Entity parent = (t.parent && depth < 64) ? FindByUUID(t.parent) : Entity();
+    if (parent) {
+        const CachedTransform& p = Resolve(parent.Id(), depth + 1);
+        c.world = p.world * t.Local();
+        c.active = active && p.active;
+    } else {
+        c.world = t.Local();
+        c.active = active;
+    }
+    return c;
+}
+
+void Scene::CacheTransforms() {
+    m_CacheStamp++;
+    if (m_CacheStamp == 0) {            // wrapped: invalidate everything
+        for (auto& c : m_WorldCache) c.stamp = 0;
+        m_CacheStamp = 1;
+    }
+    uint32_t maxIndex = 0;
+    m_Registry.View<TransformComponent>([&](EntityId id, TransformComponent&) { maxIndex = std::max(maxIndex, ecs::Index(id)); });
+    if (m_WorldCache.size() <= maxIndex) m_WorldCache.resize(maxIndex + 1);
+    m_Registry.View<TransformComponent>([&](EntityId id, TransformComponent&) { Resolve(id, 0); });
+}
+
 bool Scene::IsActiveInHierarchy(Entity e) {
     int depth = 0;
     for (Entity p = e; p && depth < 64; p = GetParent(p), depth++)

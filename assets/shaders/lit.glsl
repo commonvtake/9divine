@@ -1,6 +1,10 @@
 // Standard lit material. Variants: SKINNED (GPU skinning), INSTANCED (per-instance matrix),
-// TOON (banded cel lighting from toon.glsl instead of smooth Blinn-Phong).
+// TOON (banded cel lighting from toon.glsl instead of smooth Blinn-Phong),
+// BATCHED (automatic instancing: per-instance matrix + entity ID; implies INSTANCED).
 #type vertex
+#if defined(BATCHED) && !defined(INSTANCED)
+#define INSTANCED
+#endif
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec2 aUV;
@@ -8,6 +12,10 @@ layout(location = 3) in ivec4 aJoints;
 layout(location = 4) in vec4 aWeights;
 #ifdef INSTANCED
 layout(location = 5) in mat4 aInstance;
+#endif
+#ifdef BATCHED
+layout(location = 10) in int aEntityID;
+flat out int vEntityID;
 #endif
 uniform mat4 uModel;
 uniform mat4 uViewProj;
@@ -38,6 +46,9 @@ void main() {
     vWorldPos = world.xyz;
     vNormal = mat3(transpose(inverse(model))) * nrm;
     vUV = aUV;
+#ifdef BATCHED
+    vEntityID = aEntityID;
+#endif
     gl_Position = uViewProj * world;
 }
 
@@ -49,6 +60,9 @@ void main() {
 in vec3 vWorldPos;
 in vec3 vNormal;
 in vec2 vUV;
+#ifdef BATCHED
+flat in int vEntityID;
+#endif
 uniform vec4 uColor;
 uniform sampler2D uAlbedoMap;
 uniform float uTiling;
@@ -71,5 +85,9 @@ void main() {
 #endif
     c = ApplyFog(c, vWorldPos);
     oColor = vec4(Tonemap(c), 1.0);
+#ifdef BATCHED
+    oID = vEntityID;
+#else
     oID = uEntityID;
+#endif
 }
