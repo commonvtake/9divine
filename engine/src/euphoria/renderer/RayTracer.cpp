@@ -247,6 +247,9 @@ struct RTData {
     uint64_t staticHash = 0, dynamicHash = 0, viewHash = 0;
     bool dynamicMoving = false;
     size_t lastTriCount = 0;
+    mat4 lastView{ 0.0f }, lastProj{ 0.0f };
+    vec3 anchorPos{ 1e30f }, anchorFwd{ 0.0f };
+    uint64_t lightHash = 0;
     uint32_t vao = 0;
     int frame = 0;
 };
@@ -547,14 +550,35 @@ void RayTracer::Render(Scene& scene, const RenderCamera& cam, const Lights& L, F
     R.lastTriCount = R.geo.v0.size();
 
     // ---- Restart accumulation when the view, lights or static scene change --
+    // What restarts accumulation and what only shortens it:
+    //  - a real camera move (> 2 cm or > 0.25 degrees since the last restart), a resolution,
+    //    sky/fog/quality change, or objects being added/removed: restart from zero;
+    //  - small camera drift (a follow camera easing, a character settling), flickering
+    //    lights, moving objects: keep going as a short moving average, so the still parts of
+    //    the image stay clean and the moving parts don't smear.
+    vec3 fwd = -vec3(glm::inverse(cam.view)[2]);
+    float drift = glm::distance(cam.position, R.anchorPos);
+    float turn = glm::degrees(std::acos(glm::clamp(glm::dot(fwd, R.anchorFwd), -1.0f, 1.0f)));
+    bool projChanged = false;
+    for (int c = 0; c < 4; c++) for (int r = 0; r < 4; r++) projChanged |= std::abs(cam.projection[c][r] - R.lastProj[c][r]) > 1e-4f;
+    bool cameraJumped = drift > 0.02f || turn > 0.25f || projChanged;
+    bool cameraDrifting = !cameraJumped && (cam.view != R.lastView);
+    R.lastView = cam.view;
+    if (cameraJumped) { R.anchorPos = cam.position; R.anchorFwd = fwd; R.lastProj = cam.projection; }
+
     uint64_t view = 1469598103934665603ull;
-    Mix(view, cam.view); Mix(view, cam.projection); Mix(view, W); Mix(view, H);
-    Mix(view, L.sunDir); Mix(view, L.sunColor); Mix(view, L.pointCount);
-    for (int i = 0; i < L.pointCount; i++) { Mix(view, L.pointPos[i]); Mix(view, L.pointColor[i]); }
+    Mix(view, W); Mix(view, H);
     Mix(view, env.skyTop); Mix(view, env.skyHorizon); Mix(view, env.groundColor); Mix(view, env.ambientIntensity);
     Mix(view, env.fog); Mix(view, env.fogDensity); Mix(view, env.fogColor); Mix(view, rs.rtMaxBounces);
-    if (view != R.viewHash || topologyChanged) R.samples = 0;
+    uint64_t lights = 1469598103934665603ull;
+    Mix(lights, L.sunDir); Mix(lights, L.sunColor); Mix(lights, L.pointCount); Mix(lights, L.spotCount);
+    for (int i = 0; i < L.pointCount; i++) { Mix(lights, L.pointPos[i]); Mix(lights, L.pointColor[i]); }
+    for (int i = 0; i < L.spotCount; i++) { Mix(lights, L.spotPos[i]); Mix(lights, L.spotColor[i]); Mix(lights, L.spotDir[i]); }
+    bool lightsChanged = lights != R.lightHash;
+    R.lightHash = lights;
+    if (view != R.viewHash || topologyChanged || cameraJumped) R.samples = 0;
     R.viewHash = view;
+    R.dynamicMoving = R.dynamicMoving || lightsChanged || cameraDrifting;
 
     int prev = R.current;
     bool converged = R.samples >= rs.rtMaxSamples;
