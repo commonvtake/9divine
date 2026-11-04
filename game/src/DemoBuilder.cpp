@@ -1,5 +1,6 @@
 #include "DemoBuilder.h"
 #include <euphoria/Euphoria.h>
+#include "Characters.h"
 #include <euphoria/scene/SceneSerializer.h>
 #include <euphoria/core/FileSystem.h>
 #include <cmath>
@@ -93,13 +94,14 @@ PlayerRig AddPlayer(Scene& s, const vec3& pos) {
     r.player.Add<AudioListenerComponent>();
     r.player.Add<SaveableComponent>();
     r.player.Add<NetworkIdentityComponent>();
-    r.model = FoxModel(s, r.player, "PlayerModel");
+    r.model = characters::AddHeroModel(s, r.player, "PlayerModel");
 
     r.camera = s.CreateEntity("Main Camera");
     r.camera.Transform().position = pos + vec3(0, 3, 6);
     r.camera.Add<CameraComponent>();
     AddScript(r.camera, "ThirdPersonCamera", { { "Target", (uint64_t)r.player.GetUUID() }, { "Distance", 6.5f } });
-    AddScript(r.player, "PlayerController", { { "Camera", (uint64_t)r.camera.GetUUID() }, { "Model", (uint64_t)r.model.GetUUID() } });
+    AddScript(r.player, "PlayerController", { { "Camera", (uint64_t)r.camera.GetUUID() }, { "Model", (uint64_t)r.model.GetUUID() },
+                                              { "Move Speed", 3.5f }, { "Sprint Speed", 7.0f } });
     return r;
 }
 

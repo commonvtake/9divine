@@ -9,6 +9,7 @@
 #include "euphoria/scene/Scene.h"
 #include "euphoria/scene/Entity.h"
 #include "euphoria/scene/Components.h"
+#include "euphoria/animation/Locomotion.h"
 #include "euphoria/scene/ScriptableEntity.h"
 #include "euphoria/scene/SceneManager.h"
 #include "euphoria/physics/Physics.h"

@@ -10,3 +10,4 @@
 *.glb binary
 *.wav binary
 *.ttf binary
+*.py text eol=lf

@@ -157,6 +157,7 @@ void Application::Run() {
         float dt = std::chrono::duration<float>(now - last).count();
         last = now;
         dt = std::min(dt, 0.1f);               // avoid huge steps after a hitch
+        if (m_Config.fixedDelta > 0.0f) dt = m_Config.fixedDelta;
         Time::s_Unscaled = dt;
         Time::s_Delta = dt * Time::s_Scale;
         Time::s_Elapsed += dt;
@@ -241,6 +242,7 @@ AppConfig ParseCommandLine(int argc, char** argv, AppConfig base, std::vector<st
         if (a == "--screenshot") base.screenshotPath = next();
         else if (a == "--screenshot-frame") base.screenshotFrame = std::atoi(next().c_str());
         else if (a == "--frames") base.maxFrames = std::atoi(next().c_str());
+        else if (a == "--fixed-dt") base.fixedDelta = (float)std::atof(next().c_str());
         else if (a == "--width") base.width = std::atoi(next().c_str());
         else if (a == "--height") base.height = std::atoi(next().c_str());
         else if (a == "--fullscreen") base.fullscreen = true;

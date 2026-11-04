@@ -25,9 +25,14 @@ void PlayerController::OnUpdate(float dt) {
 
     // Remote players (multiplayer) are moved by the network; only animate them.
     if (!Network::IsLocal(GetEntity())) {
-        float speed = glm::length(vec2(t.position.x - m_LastPos.x, t.position.z - m_LastPos.z)) / std::max(dt, 1e-4f);
+        float inv = 1.0f / std::max(dt, 1e-4f);
+        float speed = glm::length(vec2(t.position.x - m_LastPos.x, t.position.z - m_LastPos.z)) * inv;
+        float vy = (t.position.y - m_LastPos.y) * inv;
         m_LastPos = t.position;
-        if (Entity model = FindByUUID(modelEntity)) if (auto* a = model.TryGet<AnimatorComponent>()) a->SetFloat("Speed", speed);
+        if (Entity model = FindByUUID(modelEntity)) if (auto* a = model.TryGet<AnimatorComponent>()) {
+            a->SetFloat("Speed", speed);
+            a->SetBool("Grounded", std::abs(vy) < 2.0f);   // replicated players: infer from vertical motion
+        }
         return;
     }
     m_LastPos = t.position;
@@ -77,9 +82,15 @@ void PlayerController::OnUpdate(float dt) {
         t.rotation = glm::normalize(glm::slerp(t.rotation, want, 1.0f - std::exp(-12.0f * dt)));
     }
 
-    // Drive the animator: 0 = idle, ~4.5 = walk, ~8 = run
+    // Drive the animator: Speed (m/s) feeds the idle/walk/run blend; Grounded switches to the
+    // jump/fall state. Short drops (stairs, slopes) under 0.15 s don't count as airborne.
+    m_AirTime = rb.grounded ? 0.0f : m_AirTime + dt;
+    bool airborne = !rb.grounded && (m_AirTime > 0.15f || rb.velocity.y > 1.0f);
     if (Entity model = FindByUUID(modelEntity))
-        if (auto* anim = model.TryGet<AnimatorComponent>()) anim->SetFloat("Speed", glm::length(hv));
+        if (auto* anim = model.TryGet<AnimatorComponent>()) {
+            anim->SetFloat("Speed", glm::length(hv));
+            anim->SetBool("Grounded", !airborne);
+        }
 
     if (t.position.y < -15.0f) Die();
 }

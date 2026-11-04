@@ -417,6 +417,7 @@ TEST(Toon_SettingsSerialize) {
     mr.toonBands = 2;
     mr.toonSoftness = 0.0f;
     mr.toonShadowColor = { 0.2f, 0.1f, 0.4f };
+    mr.toonShadowFill = 0.75f;
     mr.toonRim = 0.6f;
     mr.outline = true;
     mr.outlineWidth = 4.0f;
@@ -432,6 +433,7 @@ TEST(Toon_SettingsSerialize) {
     CHECK(h.toonBands == 2);
     CHECK(h.toonSoftness == 0.0f);
     CHECK(h.toonShadowColor == vec3(0.2f, 0.1f, 0.4f));
+    CHECK(h.toonShadowFill == 0.75f);
     CHECK(h.toonRim == 0.6f);
     CHECK(h.outline);
     CHECK(h.outlineWidth == 4.0f);
@@ -442,6 +444,48 @@ TEST(Toon_SettingsSerialize) {
     size_t count = 0;
     for (size_t pos = dump.find("\"toon\""); pos != std::string::npos; pos = dump.find("\"toon\"", pos + 1)) count++;
     CHECK(count == 1);
+}
+
+// ---------------------------------------------------------------------- Locomotion auto-setup
+TEST(Locomotion_FindsClipsByName) {
+    // Blender's exporter (with or without the "Armature|" prefix)
+    auto b = FindLocomotionClips({ "Armature|Idle", "Armature|Walk", "Armature|Run", "Armature|Jump" });
+    CHECK(b.idle == "Armature|Idle" && b.walk == "Armature|Walk" && b.run == "Armature|Run" && b.jump == "Armature|Jump");
+    // The Khronos fox: "Survey" counts as idle
+    auto f = FindLocomotionClips({ "Survey", "Walk", "Run" });
+    CHECK(f.idle == "Survey" && f.walk == "Walk" && f.run == "Run" && f.jump.empty());
+    // Exact names beat partial ones; case doesn't matter; "Walk_Run" isn't taken as the run
+    auto m = FindLocomotionClips({ "idle_old", "IDLE", "Walk_Run", "jog", "Falling" });
+    CHECK(m.idle == "IDLE");
+    CHECK(m.run == "jog");
+    CHECK(m.fall == "Falling");
+    CHECK(!FindLocomotionClips({ "Wave", "Dance" }).Usable());
+}
+
+TEST(Locomotion_BuildsController) {
+    AnimatorComponent a;
+    CHECK(SetupLocomotion(a, { "Idle", "Walk", "Run", "Jump" }, 2.0f, 6.0f));
+    CHECK(a.defaultState == "Locomotion");
+    CHECK(a.states.size() == 2);
+    CHECK(a.states[0].blendParam == "Speed");
+    CHECK(a.states[0].blend.size() == 3);
+    CHECK(a.states[0].blend[1].clip == "Walk" && a.states[0].blend[1].threshold == 2.0f);
+    CHECK(a.states[0].blend[2].clip == "Run" && a.states[0].blend[2].threshold == 6.0f);
+    CHECK(a.states[1].name == "Airborne" && a.states[1].clip == "Jump" && !a.states[1].loop);
+    CHECK(a.transitions.size() == 2);
+    CHECK(a.GetFloat("Grounded") == 1.0f);   // starts grounded, so an undriven animator idles
+
+    // A model with only a walk cycle gets a single-clip state and no airborne state
+    AnimatorComponent w;
+    CHECK(SetupLocomotion(w, { "Walk" }));
+    CHECK(w.states.size() == 1 && w.states[0].clip == "Walk" && w.states[0].blend.empty());
+    CHECK(w.transitions.empty());
+
+    // Nothing usable: the animator is left alone
+    AnimatorComponent keep;
+    keep.defaultState = "Mine";
+    CHECK(!SetupLocomotion(keep, { "Dance" }));
+    CHECK(keep.defaultState == "Mine");
 }
 
 int main() {
