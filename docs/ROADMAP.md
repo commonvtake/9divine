@@ -13,15 +13,22 @@ Good next features, roughly from smallest to largest. Each one is a self-contain
 ## Medium
 - [ ] **Rotational rigid-body dynamics** – inertia tensors, angular velocity, contact points and an OBB-vs-OBB SAT test.
 - [ ] **Spatial hash / BVH** broad phase for large scenes.
-- [ ] **Cascaded shadow maps** for long view distances, and point-light shadows (cube maps).
-- [ ] **Post-processing stack** – HDR target, bloom, SSAO, FXAA.
+- [x] **Cascaded shadow maps** for long view distances. Still to do: point-light shadows (cube maps).
+- [x] **Post-processing stack** – HDR target, bloom, SSAO, FXAA, tone mapping and grading.
 - [ ] **Terrain texture painting** with a splat map and real textures.
 - [ ] **Multi-scene editing** and additive scene loading.
 
 ## Large
-- [ ] **PBR renderer** (metal/roughness, image-based lighting) or a **deferred** path for many lights.
+- [x] **PBR renderer** (metal/roughness, normal maps, sky SH + reflection cubemap). Still to do: a **deferred** or clustered path for many lights.
 - [ ] **Polygon nav mesh** (voxelize → regions → contours → polygons, like Recast) and crowd avoidance.
 - [ ] **Networking v2** – binary bit-packed snapshots, sequence numbers and acks, a reliable channel, client-side prediction with server reconciliation, interest management.
 - [ ] **C# or Lua scripting** with hot reload (embed Mono/.NET or Lua; bind the same `ScriptableEntity` API).
 - [ ] **Vulkan or DirectX 12 backend** behind a render-hardware-interface layer.
 - [ ] **Job system** to run animation, particles and physics in parallel.
+
+## Rendering follow-ups
+- [ ] Textures in the path tracer (a texture atlas or bindless handles instead of average colors), plus alpha cut-outs and grass.
+- [ ] Temporal reprojection for the path tracer, so camera moves don't restart accumulation, and a denoiser (SVGF-style).
+- [ ] Parallax-corrected reflection probes placed in the level, instead of a single probe that follows the camera.
+- [ ] Screen-space reflections layered on the probe.
+- [ ] Temporal anti-aliasing (TAA) as an alternative to FXAA.
