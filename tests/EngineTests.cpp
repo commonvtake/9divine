@@ -3,6 +3,7 @@
 #include <euphoria/Euphoria.h>
 #include <euphoria/scene/SceneSerializer.h>
 #include <euphoria/core/Json.h>
+#include <euphoria/renderer/RayTracer.h>
 #include <cstdio>
 #include <cmath>
 
@@ -521,6 +522,58 @@ TEST(Scene_TransformCacheMatchesUncached) {
     root.Transform().parent = leaf.GetUUID();
     s.CacheTransforms();
     CHECK(true);
+}
+
+// ---------------------------------------------------------------------- Ray tracing BVH
+TEST(RayTracing_BVHMatchesBruteForce) {
+    // 2000 random triangles in a 20 m cube; 500 random rays. The BVH must return exactly the
+    // closest hit a brute-force loop finds.
+    uint32_t seed = 12345;
+    auto rnd = [&]() { seed = seed * 1664525u + 1013904223u; return (seed >> 8) / 16777216.0f; };
+    std::vector<vec3> a, b, c;
+    for (int i = 0; i < 2000; i++) {
+        vec3 p(rnd() * 20 - 10, rnd() * 20 - 10, rnd() * 20 - 10);
+        a.push_back(p);
+        b.push_back(p + vec3(rnd() - 0.5f, rnd() - 0.5f, rnd() - 0.5f) * 1.5f);
+        c.push_back(p + vec3(rnd() - 0.5f, rnd() - 0.5f, rnd() - 0.5f) * 1.5f);
+    }
+    BVH bvh;
+    bvh.Build(a, b, c);
+    CHECK(bvh.nodes.size() > 1);
+    CHECK(bvh.triIndex.size() == a.size());
+    CHECK(bvh.Depth() < 40);
+    // Every triangle appears exactly once in the leaves
+    std::vector<int> seen(a.size(), 0);
+    for (auto& n : bvh.nodes)
+        if (n.count) for (uint32_t i = 0; i < n.count; i++) seen[bvh.triIndex[n.leftFirst + i]]++;
+    bool once = true;
+    for (int s : seen) once &= s == 1;
+    CHECK(once);
+
+    int mismatches = 0, hits = 0;
+    for (int r = 0; r < 500; r++) {
+        vec3 o(rnd() * 30 - 15, rnd() * 30 - 15, rnd() * 30 - 15);
+        vec3 d = glm::normalize(vec3(rnd() - 0.5f, rnd() - 0.5f, rnd() - 0.5f));
+        float best = -1.0f;
+        for (size_t t = 0; t < a.size(); t++) {
+            vec3 e1 = b[t] - a[t], e2 = c[t] - a[t], p = glm::cross(d, e2);
+            float det = glm::dot(e1, p);
+            if (std::abs(det) < 1e-9f) continue;
+            vec3 s = o - a[t];
+            float u = glm::dot(s, p) / det;
+            if (u < 0 || u > 1) continue;
+            vec3 q = glm::cross(s, e1);
+            float v = glm::dot(d, q) / det;
+            if (v < 0 || u + v > 1) continue;
+            float h = glm::dot(e2, q) / det;
+            if (h > 1e-5f && (best < 0 || h < best)) best = h;
+        }
+        float got = bvh.Intersect(o, d, a, b, c);
+        if (best > 0) hits++;
+        if ((best < 0) != (got < 0) || (best > 0 && std::abs(best - got) > 1e-4f)) mismatches++;
+    }
+    CHECK(hits > 50);          // the test actually exercises hits
+    CHECK(mismatches == 0);
 }
 
 int main() {
