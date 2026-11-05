@@ -576,6 +576,52 @@ TEST(RayTracing_BVHMatchesBruteForce) {
     CHECK(mismatches == 0);
 }
 
+// ---------------------------------------------------------------------- Frame pacing
+TEST(Physics_InterpolationSmoothsHighFrameRates) {
+    // A ball falling under gravity, rendered at 144 FPS while physics steps at 60 Hz.
+    auto run = [](bool interpolate, std::vector<float>& ys) {
+        Scene s;
+        Entity ball = s.CreateEntity("Ball");
+        ball.Transform().position = { 0, 50, 0 };
+        ball.Add<SphereColliderComponent>().radius = 0.25f;
+        auto& rb = ball.Add<RigidBodyComponent>();
+        rb.drag = 0.0f;
+        rb.interpolate = interpolate;
+        s.OnRuntimeStart();
+        for (int i = 0; i < 144; i++) {
+            s.OnUpdateRuntime(1.0f / 144.0f);
+            ys.push_back(ball.Transform().position.y);
+        }
+        s.OnRuntimeStop();
+    };
+    std::vector<float> smooth, raw;
+    run(true, smooth);
+    run(false, raw);
+    int frozenSmooth = 0, frozenRaw = 0;
+    for (size_t i = 20; i < smooth.size(); i++) {
+        if (std::abs(smooth[i] - smooth[i - 1]) < 1e-6f) frozenSmooth++;
+        if (std::abs(raw[i] - raw[i - 1]) < 1e-6f) frozenRaw++;
+    }
+    CHECK(frozenRaw > 30);         // without interpolation over half the frames don't move...
+    CHECK(frozenSmooth == 0);      // ...with it, every frame moves
+    CHECK(smooth.back() < smooth[20]);   // and it still falls
+    // Physics itself is unchanged: after a whole second both are within one step's motion
+    CHECK_NEAR(smooth.back(), raw.back(), 0.4f);
+
+    // A script teleporting the body must win over interpolation
+    Scene s;
+    Entity ball = s.CreateEntity("Ball");
+    ball.Transform().position = { 0, 50, 0 };
+    ball.Add<SphereColliderComponent>().radius = 0.25f;
+    ball.Add<RigidBodyComponent>();
+    s.OnRuntimeStart();
+    for (int i = 0; i < 10; i++) s.OnUpdateRuntime(1.0f / 144.0f);
+    ball.Transform().position = { 100, 5, 0 };
+    s.OnUpdateRuntime(1.0f / 144.0f);
+    CHECK(std::abs(ball.Transform().position.x - 100.0f) < 1e-4f);
+    s.OnRuntimeStop();
+}
+
 // ---------------------------------------------------------------------- Events
 TEST(Events_EmitOnInvoke) {
     EventSystem ev;

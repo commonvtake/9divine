@@ -152,6 +152,13 @@ struct ReflectionProbe {
 
 struct RendererData {
     std::map<std::string, Ref<Shader>> shaders;
+    // GPU timing: a ring of GL_TIME_ELAPSED queries read a few frames later, so the CPU
+    // never waits for the GPU just to measure it.
+    static constexpr int kQueries = 4;
+    uint32_t timeQuery[kQueries] = {};
+    bool queryPending[kQueries] = {};
+    int queryIndex = 0;
+    int activeQuery = -1;
     ShadowCascades cascades;
     ReflectionProbe probe;
     Scope<Framebuffer> hdr;           // RGBA16F scene color, R32I ids, depth
@@ -838,6 +845,7 @@ void Renderer::Init() {
     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(DebugDraw::LineVertex), (void*)sizeof(vec3));
     glBindVertexArray(0);
     s_Data->waterGrid = Primitives::Plane(1.0f, 128);
+    glGenQueries(RendererData::kQueries, s_Data->timeQuery);
     PostProcess::Init();
     RayTracer::Init();
 }
@@ -849,6 +857,7 @@ void Renderer::Shutdown() {
     s_Data->cascades.Release();
     s_Data->probe.Release();
     s_Data->hdr.reset();
+    glDeleteQueries(RendererData::kQueries, s_Data->timeQuery);
     glDeleteVertexArrays(1, &s_Data->emptyVAO);
     glDeleteVertexArrays(1, &s_Data->lineVAO);
     glDeleteBuffers(1, &s_Data->lineVBO);
@@ -891,6 +900,28 @@ RenderCamera Renderer::MakeCamera(const mat4& world, float fov, float aspect, fl
 // --------------------------------------------------------------------------
 void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& target, const RenderOptions& opt) {
     EU_PROFILE_SCOPE("Render");
+    // Collect the oldest finished GPU timing, then start timing this frame.
+    {
+        int q = s_Data->queryIndex;
+        if (s_Data->queryPending[q]) {
+            GLint ready = 0;
+            glGetQueryObjectiv(s_Data->timeQuery[q], GL_QUERY_RESULT_AVAILABLE, &ready);
+            if (ready) {
+                GLuint64 ns = 0;
+                glGetQueryObjectui64v(s_Data->timeQuery[q], GL_QUERY_RESULT, &ns);
+                Profiler::Stats().gpuMs = (float)(ns / 1.0e6);
+                s_Data->queryPending[q] = false;
+            }
+        }
+        if (!s_Data->queryPending[q]) {
+            glBeginQuery(GL_TIME_ELAPSED, s_Data->timeQuery[q]);
+            s_Data->queryPending[q] = true;
+        } else {
+            q = -1;   // still busy: skip timing this frame
+        }
+        s_Data->activeQuery = q;
+        s_Data->queryIndex = (s_Data->queryIndex + 1) % RendererData::kQueries;
+    }
     Registry& reg = scene.Reg();
     Frame F;
     F.scene = &scene;
@@ -1066,6 +1097,7 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
     DebugDraw::Clear();
     glColorMaski(1, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glBindVertexArray(0);
+    if (s_Data->activeQuery >= 0) glEndQuery(GL_TIME_ELAPSED);
 }
 
 } // namespace eu

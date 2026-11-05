@@ -19,6 +19,8 @@ struct AppConfig {
     std::string screenshotPath;
     int maxFrames = -1;                   // quit after N frames (testing)
     float fixedDelta = 0.0f;              // > 0: every frame advances exactly this long (deterministic screenshots)
+    int benchmarkFrames = 0;              // > 0: record N frames, print a frame-time report, quit
+    std::string benchmarkReport = "benchmark.txt";
 };
 
 class Time {
@@ -67,6 +69,11 @@ protected:
     virtual bool OnCloseRequested() { return true; }
 
 private:
+    float SmoothFrameTime(float dt);
+    bool m_VSync = true;
+    float m_RefreshInterval = 0.0f;   // seconds per monitor refresh (0 = unknown)
+    float m_TimeResidual = 0.0f;
+
     void InitImGui();
     void ApplyEditorStyle();
 
