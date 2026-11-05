@@ -84,6 +84,8 @@ protected:
     virtual void OnImGui() {}
     virtual void OnShutdown() {}
     virtual bool OnCloseRequested() { return true; }
+    // Files or folders dragged from the OS (Explorer / Finder) and dropped on the window.
+    virtual void OnFilesDropped(const std::vector<std::string>& paths) {}
 
 private:
     float SmoothFrameTime(float dt);

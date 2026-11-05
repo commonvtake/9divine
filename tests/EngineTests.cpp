@@ -5,6 +5,10 @@
 #include <euphoria/core/Json.h>
 #include <euphoria/renderer/RayTracer.h>
 #include "Interaction.h"   // game/src: doors and other interactables
+#include <euphoria/animation/Retarget.h>
+#include <euphoria/assets/TextureFinder.h>
+#include <euphoria/assets/ModelImport.h>
+#include <fstream>
 #include "PlayerCombat.h"  // game/src: hack-and-slash combat
 #include "Characters.h"
 #include <cstdio>
@@ -1099,6 +1103,189 @@ TEST(Combat_BattleZoneRunsWavesThenOpens) {
     CHECK(!seal.IsActive());                 // cleared: the seals drop
     CHECK(SaveGame::GetBool("zone_cleared:" + std::to_string((uint64_t)zone.GetUUID())));
     w.Stop();
+}
+
+// ---------------------------------------------------------------------- Asset pipeline
+TEST(Assets_TextureFinderFindsWherePacksPutTextures) {
+    fs::path root = fs::temp_directory_path() / "euphoria_finder_test";
+    std::error_code ec;
+    fs::remove_all(root, ec);
+    auto touch = [&](const fs::path& p) { fs::create_directories(p.parent_path(), ec); std::ofstream(p) << "x"; };
+    touch(root / "Pack/Models/Character.fbx");
+    touch(root / "Pack/Textures/Char_Tex.png");
+    touch(root / "Pack/Textures/T_Hair_Normal.png");
+    touch(root / "Pack/Textures/Wood.png");
+    touch(root / "Pack/Textures/Barrel.png");
+    touch(root / "Pack/Textures/Barrel_n.png");
+    touch(root / "Pack/Textures/Barrel_Emissor.png");
+    touch(root / "Pack/Textures/T_Brick_BaseColor.png");
+    touch(root / "Pack/Textures/T_Brick_Normal.png");
+    touch(root / "Pack/Textures/T_Brick_ORM.png");
+    touch(root / "Pack/Textures/T_Hero_Dark.png");
+    touch(root / "Pack/Textures/T_Hero_Normal.png");
+    TextureFinder::ClearCache();
+    fs::path models = root / "Pack/Models";
+    auto name = [](const std::string& p) { return fs::path(p).filename().string(); };
+    // The artist's own absolute path, in other letter case
+    CHECK(name(TextureFinder::Find("C:\\Users\\artist\\Desktop\\CHAR_TEX.png", models)) == "Char_Tex.png");
+    // An exporter's "_png.png" doubling; a .tif source with a .png beside it
+    CHECK(name(TextureFinder::Find("T_Hair_Normal_png.png", models)) == "T_Hair_Normal.png");
+    CHECK(name(TextureFinder::Find("../../sources/Wood.tif", models)) == "Wood.png");
+    CHECK(TextureFinder::Find("Nothing.png", models).empty());
+    // Companion maps by name
+    auto b = TextureFinder::FindCompanions((root / "Pack/Textures/Barrel.png").string());
+    CHECK(name(b.normal) == "Barrel_n.png" && name(b.emissive) == "Barrel_Emissor.png");
+    auto t = TextureFinder::FindCompanions((root / "Pack/Textures/T_Brick_BaseColor.png").string());
+    CHECK(name(t.normal) == "T_Brick_Normal.png" && name(t.orm) == "T_Brick_ORM.png");
+    auto h = TextureFinder::FindCompanions((root / "Pack/Textures/T_Hero_Dark.png").string());
+    CHECK(name(h.normal) == "T_Hero_Normal.png");
+    fs::remove_all(root, ec);
+}
+
+TEST(Assets_HumanoidBonesFromAnyNaming) {
+    auto rig = [](std::vector<std::pair<const char*, int>> joints) {
+        Skeleton s;
+        for (auto& [n, p] : joints) { Joint j; j.name = n; j.parent = p; s.joints.push_back(j); }
+        return s;
+    };
+    auto bone = [](const Skeleton& s, HumanBone b) {
+        auto h = ClassifyHumanoid(s);
+        for (size_t i = 0; i < h.size(); i++) if (h[i] == b) return s.joints[i].name;
+        return std::string();
+    };
+    Skeleton mixamo = rig({ { "mixamorig:Hips", -1 }, { "mixamorig:Spine", 0 }, { "mixamorig:Spine1", 1 }, { "mixamorig:Spine2", 2 },
+                            { "mixamorig:Neck", 3 }, { "mixamorig:Head", 4 }, { "mixamorig:HeadTop_End", 5 }, { "mixamorig:LeftShoulder", 3 },
+                            { "mixamorig:LeftArm", 7 }, { "mixamorig:LeftForeArm", 8 }, { "mixamorig:LeftHand", 9 }, { "mixamorig:LeftHandIndex1", 10 },
+                            { "mixamorig:LeftUpLeg", 0 }, { "mixamorig:LeftLeg", 12 }, { "mixamorig:LeftFoot", 13 }, { "mixamorig:LeftToeBase", 14 },
+                            { "mixamorig:RightUpLeg", 0 }, { "mixamorig:RightLeg", 16 } });
+    CHECK(bone(mixamo, HumanBone::Hips) == "mixamorig:Hips");
+    CHECK(bone(mixamo, HumanBone::UpperChest) == "mixamorig:Spine2");
+    CHECK(bone(mixamo, HumanBone::Head) == "mixamorig:Head");                  // not HeadTop_End
+    CHECK(bone(mixamo, HumanBone::LeftLowerArm) == "mixamorig:LeftForeArm");   // "forearm" isn't an ear
+    CHECK(bone(mixamo, HumanBone::LeftHand) == "mixamorig:LeftHand");          // not the index finger
+    CHECK(bone(mixamo, HumanBone::LeftLowerLeg) == "mixamorig:LeftLeg");
+    CHECK(bone(mixamo, HumanBone::RightUpperLeg) == "mixamorig:RightUpLeg");
+    Skeleton unreal = rig({ { "root", -1 }, { "pelvis", 0 }, { "spine_01", 1 }, { "spine_02", 2 }, { "spine_03", 3 }, { "neck_01", 4 },
+                            { "head", 5 }, { "clavicle_l", 4 }, { "upperarm_l", 7 }, { "upperarm_twist_01_l", 8 }, { "lowerarm_l", 8 },
+                            { "hand_l", 10 }, { "thigh_r", 1 }, { "calf_r", 12 }, { "foot_r", 13 }, { "ball_r", 14 } });
+    CHECK(bone(unreal, HumanBone::Hips) == "pelvis");
+    CHECK(bone(unreal, HumanBone::Spine) == "spine_01" && bone(unreal, HumanBone::Chest) == "spine_02");
+    CHECK(bone(unreal, HumanBone::LeftUpperArm) == "upperarm_l");             // not the twist bone
+    CHECK(bone(unreal, HumanBone::RightToes) == "ball_r");
+    Skeleton blender = rig({ { "Hips", -1 }, { "Spine", 0 }, { "Chest", 1 }, { "upper_arm.L", 2 }, { "forearm.L", 3 }, { "hand.L", 4 },
+                             { "thigh.R", 0 }, { "shin.R", 6 }, { "foot.R", 7 }, { "DEF-toe.R", 8 } });
+    CHECK(bone(blender, HumanBone::LeftUpperArm) == "upper_arm.L");
+    CHECK(bone(blender, HumanBone::RightLowerLeg) == "shin.R");
+    CHECK(bone(blender, HumanBone::RightToes) == "DEF-toe.R");
+    CHECK(NormalizeJointName("mixamorig:LeftForeArm") == "leftforearm");
+    CHECK(NormalizeJointName("Armature|DEF-upper_arm.L") == "upper_arm_l");
+}
+
+// Two rigs that rest differently: the source in a T-pose with Unreal names, the target with
+// Mixamo names, arms hanging down, a different bone roll and twice the size.
+static void ArmRigs(Skeleton& src, Skeleton& dst) {
+    auto add = [](Skeleton& s, const char* name, int parent, vec3 t, quat r = quat(1, 0, 0, 0)) {
+        Joint j; j.name = name; j.parent = parent; j.bindT = t; j.bindR = r; s.joints.push_back(j);
+    };
+    add(src, "pelvis", -1, { 0, 1, 0 });
+    add(src, "spine_01", 0, { 0, 0.2f, 0 });
+    add(src, "upperarm_l", 1, { 0.2f, 0.3f, 0 });
+    add(src, "lowerarm_l", 2, { 0.3f, 0, 0 });       // T-pose: arm along +X
+    add(src, "hand_l", 3, { 0.25f, 0, 0 });
+    add(src, "thigh_l", 0, { 0.1f, 0, 0 });
+    add(src, "thigh_r", 0, { -0.1f, 0, 0 });
+    add(src, "upperarm_r", 1, { -0.2f, 0.3f, 0 });
+    quat down = glm::angleAxis(glm::radians(-90.0f), vec3(0, 0, 1));   // turns +X into -Y
+    quat roll = glm::angleAxis(glm::radians(40.0f), vec3(1, 0, 0));
+    add(dst, "mixamorig:Hips", -1, { 0, 2, 0 });
+    add(dst, "mixamorig:Spine", 0, { 0, 0.4f, 0 });
+    add(dst, "mixamorig:LeftArm", 1, { 0.4f, 0.6f, 0 }, down * roll);
+    add(dst, "mixamorig:LeftForeArm", 2, vec3(glm::inverse(down * roll) * vec3(0, -0.6f, 0)));   // arm hangs down
+    add(dst, "mixamorig:LeftHand", 3, vec3(glm::inverse(down * roll) * vec3(0, -0.5f, 0)));
+    add(dst, "mixamorig:LeftUpLeg", 0, { 0.2f, 0, 0 });
+    add(dst, "mixamorig:RightUpLeg", 0, { -0.2f, 0, 0 });
+    add(dst, "mixamorig:RightArm", 1, { -0.4f, 0.6f, 0 });
+    for (Skeleton* s : { &src, &dst }) {
+        std::vector<mat4> g(s->joints.size());
+        for (size_t i = 0; i < g.size(); i++) {
+            auto& j = s->joints[i];
+            g[i] = (j.parent >= 0 ? g[j.parent] : mat4(1.0f)) * ComposeTRS(j.bindT, j.bindR, j.bindS);
+            j.inverseBind = glm::inverse(g[i]);
+            j.skinned = true;
+        }
+    }
+}
+
+TEST(Assets_RetargetMovesDifferentRigsAlike) {
+    Skeleton src, dst;
+    ArmRigs(src, dst);
+    // Source clip: over one second the left arm swings from straight out to pointing forward
+    // (+Z), and the hips rise 10 cm
+    AnimationClip clip;
+    clip.name = "Reach";
+    clip.duration = 1.0f;
+    JointChannel arm;
+    arm.joint = 2;
+    arm.rotation = { { 0.0f, 1.0f }, { quat(1, 0, 0, 0), glm::angleAxis(glm::radians(-90.0f), vec3(0, 1, 0)) } };
+    JointChannel hips;
+    hips.joint = 0;
+    hips.translation = { { 0.0f, 1.0f }, { vec3(0, 1, 0), vec3(0, 1.1f, 0) } };
+    clip.channels = { arm, hips };
+
+    RetargetMap map = MapSkeletons(src, dst);
+    CHECK(!map.sameRig);
+    CHECK(map.mapped >= 6);
+    auto out = RetargetClip(clip, src, dst, map);
+    CHECK(out != nullptr);
+    if (!out) return;
+    auto armDirection = [&](float t) {
+        Pose p;
+        SampleClip(*out, dst, t, p);
+        std::vector<mat4> g(dst.joints.size());
+        for (size_t i = 0; i < g.size(); i++)
+            g[i] = (dst.joints[i].parent >= 0 ? g[dst.joints[i].parent] : mat4(1.0f)) * ComposeTRS(p[i].t, p[i].r, p[i].s);
+        return std::make_pair(glm::normalize(vec3(g[3][3]) - vec3(g[2][3])), vec3(g[0][3]));
+    };
+    auto [d0, hips0] = armDirection(0.0f);
+    auto [d1, hips1] = armDirection(1.0f);
+    CHECK(glm::dot(d0, vec3(1, 0, 0)) > 0.95f);    // target arm raised to the source's T-pose
+    CHECK(glm::dot(d1, vec3(0, 0, 1)) > 0.95f);    // and swung forward with it
+    CHECK_NEAR(hips1.y - hips0.y, 0.2f, 0.02f);    // 10 cm on a rig half the size = 20 cm here
+
+    // The same rig: keys are copied
+    Skeleton a, b;
+    ArmRigs(a, b);
+    RetargetMap same = MapSkeletons(a, a);
+    CHECK(same.sameRig);
+    auto copy = RetargetClip(clip, a, a, same);
+    CHECK(copy && copy->channels.size() == clip.channels.size());
+}
+
+TEST(Assets_LocomotionFromAnimationLibraries) {
+    // Quaternius' Universal Animation Library
+    auto u = FindLocomotionClips({ "A_TPose", "Crouch_Fwd_Loop", "Crouch_Idle_Loop", "Idle_Loop", "Idle_Talking_Loop", "Jog_Fwd_Loop",
+                                   "Jump_Land", "Jump_Loop", "Jump_Start", "Pistol_Idle_Loop", "Sprint_Loop", "Swim_Idle_Loop",
+                                   "Walk_Formal_Loop", "Walk_Loop" });
+    CHECK(u.idle == "Idle_Loop");
+    CHECK(u.walk == "Walk_Loop");
+    CHECK(u.run == "Jog_Fwd_Loop");
+    CHECK(u.fall == "Jump_Loop");
+    CHECK(u.jump == "Jump_Start");
+    // Mixamo downloads
+    auto m = FindLocomotionClips({ "Breathing Idle", "Walking", "Running", "Jumping" });
+    CHECK(m.idle == "Breathing Idle" && m.walk == "Walking" && m.run == "Running" && m.jump == "Jumping");
+}
+
+TEST(Assets_WeldAndClipNames) {
+    std::vector<Vertex> v(6);
+    for (int i = 0; i < 6; i++) v[i].position = vec3((float)(i % 3), 0, 0);   // two triangles sharing all three corners
+    std::vector<uint32_t> idx = { 0, 1, 2, 3, 4, 5 };
+    ModelImport::Weld(v, idx);
+    CHECK(v.size() == 3);
+    CHECK(idx[3] == 0 && idx[4] == 1 && idx[5] == 2);
+    CHECK(ModelImport::CleanClipName("Armature|Run", "Hero.fbx", 4) == "Run");
+    CHECK(ModelImport::CleanClipName("mixamo.com", "Models/Sword Slash.fbx", 1) == "Sword Slash");
+    CHECK(ModelImport::CleanClipName("Take 001", "Wave.fbx", 1) == "Wave");
 }
 
 int main() {

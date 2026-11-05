@@ -66,6 +66,10 @@ Application::Application(const AppConfig& config) : m_Config(config) {
         std::exit(1);
     }
     m_WindowedSize = { config.width, config.height };
+    glfwSetDropCallback(m_Window, [](GLFWwindow*, int count, const char** paths) {
+        std::vector<std::string> list(paths, paths + count);
+        if (s_Instance) s_Instance->OnFilesDropped(list);
+    });
     glfwMakeContextCurrent(m_Window);
     if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
         EU_ERROR("Failed to load OpenGL functions");

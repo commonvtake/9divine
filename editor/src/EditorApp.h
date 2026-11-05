@@ -3,6 +3,7 @@
 #include <euphoria/core/FileSystem.h>
 #include <euphoria/renderer/Framebuffer.h>
 #include <euphoria/renderer/Renderer.h>
+#include <euphoria/assets/AssetManager.h>
 #include "EditorCamera.h"
 #include "ProjectHub.h"
 #include <functional>
@@ -28,6 +29,7 @@ protected:
     void OnImGui() override;
     void OnShutdown() override;
     bool OnCloseRequested() override;
+    void OnFilesDropped(const std::vector<std::string>& paths) override;
 
 private:
     // Projects (ProjectHub.cpp)
@@ -77,6 +79,8 @@ private:
     void DrawCreateMenu(Entity parent);
     void DrawInspector();
     void DrawAssetBrowser();
+    void DrawAssetInspector();                      // model info + import settings (EditorImport.cpp)
+    void ProcessDroppedFiles();                     // files dragged in from Explorer / Finder
     void DrawConsole();
     void DrawProfiler();
     void DrawSceneSettings();
@@ -140,6 +144,10 @@ private:
     bool m_ShowDemo = false;
     fs::path m_AssetDir;
     std::string m_AssetFilter;
+    std::string m_InspectedAsset;                   // shown in the Inspector instead of the entity
+    std::vector<std::string> m_PendingDrops;
+    ModelImportSettings m_ImportSettings;
+    std::string m_ImportSettingsFor;
     bool m_ConsoleAutoScroll = true;
     int m_ConsoleLevel = 0;
 
@@ -167,6 +175,7 @@ private:
 public:
     bool playOnStart = false;
     bool newProjectOnStart = false;
+    std::vector<std::string> importOnStart;
 };
 
 } // namespace eu::editor

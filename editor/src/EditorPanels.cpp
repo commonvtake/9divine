@@ -265,8 +265,12 @@ void EditorApp::DrawHierarchy() {
 void EditorApp::DrawInspector() {
     ImGui::Begin("Inspector", &m_ShowInspector);
     Entity e = Selected();
-    if (e) DrawComponents(e);
-    else ImGui::TextDisabled("Select an entity in the Hierarchy or Viewport.");
+    if (!m_InspectedAsset.empty()) {
+        if (ImGui::SmallButton("<- back")) m_InspectedAsset.clear();
+        else DrawAssetInspector();
+    } else if (e) DrawComponents(e);
+    else ImGui::TextDisabled("Select an entity in the Hierarchy or Viewport,\nor a file in the Assets panel.\n\n"
+                             "Drag files or folders from Explorer onto the editor to import them.");
     ImGui::End();
 }
 
@@ -285,6 +289,7 @@ void EditorApp::DrawAssetBrowser() {
     ImGui::InputTextWithHint("##assetfilter", "Filter", &m_AssetFilter);
     ImGui::SameLine();
     if (ImGui::Button("Open")) Platform::OpenInFileBrowser(m_AssetDir);
+    ImGui::TextDisabled("Drag files or folders here from Explorer to import them (models, textures, sounds, whole asset packs).");
     ImGui::Separator();
 
     std::vector<fs::directory_entry> entries;
@@ -292,6 +297,7 @@ void EditorApp::DrawAssetBrowser() {
     for (auto& entry : fs::directory_iterator(m_AssetDir, ec)) {
         std::string name = entry.path().filename().string();
         if (name.empty() || name[0] == '.') continue;
+        if (name.size() > 5 && name.substr(name.size() - 5) == ".meta") continue;   // import settings travel with their model
         if (!m_AssetFilter.empty() && name.find(m_AssetFilter) == std::string::npos) continue;
         entries.push_back(entry);
     }
@@ -324,6 +330,8 @@ void EditorApp::DrawAssetBrowser() {
             }
             if (!thumb) ImGui::Button(kind, ImVec2(cell - 14, 70));
             ImGui::PopStyleColor();
+            if (!dir && ImGui::IsItemClicked(ImGuiMouseButton_Left) && (AssetManager::IsModelFile(rel) || AssetManager::IsTextureFile(rel)))
+                m_InspectedAsset = rel;
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 if (dir) m_AssetDir = entry.path();
                 else if (AssetManager::IsSceneFile(rel)) OpenScene(rel);
@@ -335,7 +343,7 @@ void EditorApp::DrawAssetBrowser() {
                 ImGui::EndDragDropSource();
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s\n%s", rel.c_str(), dir ? "Double-click to open" :
-                AssetManager::IsModelFile(rel) ? "Drag into the viewport to place" : AssetManager::IsSceneFile(rel) ? "Double-click to open" :
+                AssetManager::IsModelFile(rel) ? "Drag into the viewport to place, click for details" : AssetManager::IsSceneFile(rel) ? "Double-click to open" :
                 AssetManager::IsAudioFile(rel) ? "Double-click to preview, drag onto an Audio Source" : "Drag onto a component field");
             ImGui::TextWrapped("%s", name.c_str());
             ImGui::PopID();

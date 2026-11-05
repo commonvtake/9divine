@@ -7,6 +7,8 @@
 //   euphoria-player --join <ip> [port]    join a session
 //   euphoria-player --ray-traced          start in path-traced rendering
 //   euphoria-player --scene <path>        start in another scene of the project (e.g. Scenes/Arena.scene)
+//   euphoria-player --model-info <file>   load a model and print what the engine found in it, then exit
+//                   [--retarget <file>]   ...and how another file's animations map onto it
 //   F3 = stats overlay, F4 = toggle ray tracing, F11 = fullscreen, F12 = screenshot
 #include <euphoria/Euphoria.h>
 #include <euphoria/core/FileSystem.h>
@@ -14,6 +16,7 @@
 #include <euphoria/renderer/Renderer.h>
 #include <euphoria/renderer/Framebuffer.h>
 #include <euphoria/assets/AssetManager.h>
+#include <euphoria/animation/Retarget.h>
 #include <imgui.h>
 #include "DemoBuilder.h"
 #include <cstring>
@@ -26,6 +29,29 @@ public:
 
 protected:
     void OnInit() override {
+        if (!modelInfo.empty()) {
+            // Needs a GL context for meshes and textures, so it runs here rather than in main()
+            auto model = ModelLoader::Load(fs::absolute(modelInfo).string());
+            if (!model) { std::printf("Could not load %s\n", modelInfo.c_str()); Close(); return; }
+            model->path = modelInfo;
+            std::printf("%s", ModelLoader::Describe(*model).c_str());
+            if (!retargetFrom.empty()) {
+                auto src = ModelLoader::Load(fs::absolute(retargetFrom).string());
+                if (src && src->skeleton && model->skeleton) {
+                    RetargetMap map = MapSkeletons(*src->skeleton, *model->skeleton);
+                    std::printf("Animations from %s: %s, %d of %zu joints driven\n", retargetFrom.c_str(),
+                                map.sameRig ? "same rig (keys copied)" : "different rig (retargeted)", map.mapped, model->skeleton->joints.size());
+                    for (size_t j = 0; j < map.sourceOf.size(); j++)
+                        if (map.sourceOf[j] >= 0)
+                            std::printf("  %-28s <- %s\n", model->skeleton->joints[j].name.c_str(), src->skeleton->joints[map.sourceOf[j]].name.c_str());
+                } else {
+                    std::printf("No skeleton to retarget between these files\n");
+                }
+            }
+            std::fflush(stdout);
+            Close();
+            return;
+        }
         Input::LoadMap(Project::Info().inputMap);
         FramebufferSpec spec;
         ivec2 size = FramebufferSize();
@@ -47,6 +73,7 @@ protected:
     }
 
     void OnUpdate(float) override {
+        if (!m_Framebuffer) return;   // --model-info: nothing to run
         if (Input::RawKeyPressed(Key::F3)) m_Overlay = !m_Overlay;
         if (Input::RawKeyPressed(Key::F4)) {
             Renderer::Settings().rayTraced = !Renderer::Settings().rayTraced;
@@ -107,6 +134,7 @@ protected:
 
 public:
     std::string startScene;   // --scene
+    std::string modelInfo, retargetFrom;   // --model-info, --retarget
     int hostPort = 0;
     std::string joinAddress;
     int joinPort = 7777;
@@ -136,7 +164,7 @@ int main(int argc, char** argv) {
     auto isNum = [](const char* s) { return s && *s && std::strspn(s, "0123456789") == std::strlen(s); };
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
-        if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--fixed-dt" || a == "--benchmark-report" || a == "--width" || a == "--height" || a == "--scene") { i++; continue; }
+        if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--fixed-dt" || a == "--benchmark-report" || a == "--width" || a == "--height" || a == "--scene" || a == "--model-info" || a == "--retarget") { i++; continue; }
         if (a == "--host" || a == "--benchmark") { if (i + 1 < argc && isNum(argv[i + 1])) i++; continue; }
         if (a == "--join") { i++; if (i + 1 < argc && isNum(argv[i + 1])) i++; continue; }
         if (a.rfind("--", 0) == 0) continue;
@@ -165,6 +193,8 @@ int main(int argc, char** argv) {
         if (a == "--host") app.hostPort = (i + 1 < argc && isNum(argv[i + 1])) ? std::atoi(argv[++i]) : 7777;
         if (a == "--ray-traced") Renderer::Settings().rayTraced = true;
         if (a == "--scene" && i + 1 < argc) app.startScene = argv[++i];
+        if (a == "--model-info" && i + 1 < argc) app.modelInfo = argv[++i];
+        if (a == "--retarget" && i + 1 < argc) app.retargetFrom = argv[++i];
         if (a == "--join" && i + 1 < argc) {
             app.joinAddress = argv[++i];
             if (i + 1 < argc && isNum(argv[i + 1])) app.joinPort = std::atoi(argv[++i]);

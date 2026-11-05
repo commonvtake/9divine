@@ -356,7 +356,39 @@ void EditorApp::DrawComponents(Entity e) {
     Section<AnimatorComponent>(e, "Animator", [&](AnimatorComponent& a) {
         auto* mr = e.TryGet<MeshRendererComponent>();
         std::vector<std::string> clips;
-        if (mr && mr->model) for (auto& c : mr->model->clips) clips.push_back(c->name);
+        if (mr && mr->model && mr->model->IsSkinned()) {
+            if (!a.runtime) a.runtime = MakeRef<AnimatorRuntime>();
+            clips = a.runtime->ClipNames(a, *mr->model);   // own clips + animation sources
+        }
+        // Animation libraries: other files whose clips this character can play (retargeted)
+        Label("Animations from");
+        ImGui::BeginGroup();
+        int removeSource = -1;
+        for (size_t i = 0; i < a.animationSources.size(); i++) {
+            ImGui::PushID((int)i);
+            ImGui::TextUnformatted(fs::path(a.animationSources[i]).filename().string().c_str());
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", a.animationSources[i].c_str());
+            ImGui::SameLine();
+            if (ImGui::SmallButton("x")) removeSource = (int)i;
+            ImGui::PopID();
+        }
+        ImGui::Button("+ drop a model with animations", ImVec2(-1, 0));
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("EU_ASSET")) {
+                std::string src((const char*)p->Data, p->DataSize);
+                if (IsModel(src) && std::find(a.animationSources.begin(), a.animationSources.end(), src) == a.animationSources.end()) {
+                    a.animationSources.push_back(src);
+                    g_Changed = true;
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Drop an animation library here (Mixamo clips, Quaternius' Universal Animation Library,\n"
+                              "another character's .fbx / .glb). Its clips are retargeted onto this skeleton.");
+        ImGui::EndGroup();
+        if (removeSource >= 0) { a.animationSources.erase(a.animationSources.begin() + removeSource); g_Changed = true; }
+        Next();
         Label("Clips");
         if (clips.empty()) ImGui::TextDisabled("needs a skinned model");
         else { std::string all; for (auto& c : clips) all += c + "  "; ImGui::TextWrapped("%s", all.c_str()); }

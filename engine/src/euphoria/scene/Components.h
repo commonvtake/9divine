@@ -241,6 +241,10 @@ struct AnimatorComponent {
     std::string defaultState;
     float speed = 1.0f;
     bool rootMotion = false;
+    // Other model files whose animations this character can play too (an animation library such
+    // as Quaternius' UAL or a folder of Mixamo clips). Their clips are retargeted onto this
+    // model's skeleton (see Retarget.h) and used by name like the model's own clips.
+    std::vector<std::string> animationSources;
     // runtime
     Ref<AnimatorRuntime> runtime;
 

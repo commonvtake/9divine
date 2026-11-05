@@ -1,6 +1,7 @@
 #include "euphoria/animation/Animation.h"
 #include "euphoria/scene/Components.h"
 #include "euphoria/assets/Model.h"
+#include "euphoria/assets/AssetManager.h"
 #include <cmath>
 
 namespace eu {
@@ -69,10 +70,35 @@ const AnimState* AnimatorRuntime::FindState(const AnimatorComponent& anim, const
     return nullptr;
 }
 
+void AnimatorRuntime::RefreshLibrary(const AnimatorComponent& anim, const Model& model) {
+    std::string key = model.path + "@" + std::to_string(AssetManager::Version());
+    for (auto& s : anim.animationSources) key += "|" + s;
+    if (key == m_LibraryKey) return;
+    m_LibraryKey = key;
+    m_Library.clear();
+    for (auto& src : anim.animationSources)
+        for (auto& c : AssetManager::RetargetedClips(model, src)) m_Library.push_back(c);
+}
+
+const AnimationClip* AnimatorRuntime::FindClip(const Model& model, const std::string& name) const {
+    if (const AnimationClip* c = model.FindClip(name)) return c;
+    for (auto& c : m_Library) if (c->name == name) return c.get();
+    return nullptr;
+}
+
+std::vector<std::string> AnimatorRuntime::ClipNames(const AnimatorComponent& anim, const Model& model) {
+    RefreshLibrary(anim, model);
+    std::vector<std::string> names;
+    for (auto& c : model.clips) names.push_back(c->name);
+    for (auto& c : m_Library)
+        if (std::find(names.begin(), names.end(), c->name) == names.end()) names.push_back(c->name);
+    return names;
+}
+
 void AnimatorRuntime::EvaluateState(const AnimatorComponent& anim, const Model& model, const AnimState& st, float time, Pose& out, float* duration) {
     const Skeleton& skel = *model.skeleton;
     auto sample = [&](const std::string& clipName, float t, Pose& p) -> float {
-        const AnimationClip* clip = model.FindClip(clipName);
+        const AnimationClip* clip = FindClip(model, clipName);
         if (!clip && !model.clips.empty() && clipName.empty()) clip = model.clips[0].get();
         if (!clip) { BindPose(skel, p); return 0.0f; }
         float d = clip->duration;
@@ -102,8 +128,8 @@ void AnimatorRuntime::EvaluateState(const AnimatorComponent& anim, const Model& 
     const auto& b = entries[hi];
     float f = (v - a.threshold) / std::max(1e-5f, b.threshold - a.threshold);
     // Normalized-time sync so feet stay in phase between walk and run.
-    const AnimationClip* ca = model.FindClip(a.clip);
-    const AnimationClip* cb = model.FindClip(b.clip);
+    const AnimationClip* ca = FindClip(model, a.clip);
+    const AnimationClip* cb = FindClip(model, b.clip);
     float da = ca ? ca->duration : 1.0f, db = cb ? cb->duration : 1.0f;
     float blendedDur = glm::mix(da, db, f);
     float phase = blendedDur > 0 ? std::fmod(time, blendedDur) / blendedDur : 0.0f;
@@ -128,6 +154,7 @@ void AnimatorRuntime::Play(AnimatorComponent& anim, const std::string& state, fl
 
 void AnimatorRuntime::Update(AnimatorComponent& anim, const Model& model, float dt) {
     if (!model.IsSkinned()) return;
+    RefreshLibrary(anim, model);
     if (!m_Initialized) {
         m_Initialized = true;
         currentState = anim.defaultState;

@@ -13,6 +13,7 @@ struct Joint {
     vec3 bindT{ 0.0f };
     quat bindR{ 1, 0, 0, 0 };
     vec3 bindS{ 1.0f };
+    bool skinned = false;            // inverseBind came from the skin (the pose the mesh was bound in)
 };
 
 struct Skeleton {
@@ -102,6 +103,10 @@ public:
     void Play(AnimatorComponent& anim, const std::string& state, float blend, bool restart = false);
     bool HasState(const AnimatorComponent& anim, const std::string& name) const { return FindState(anim, name) != nullptr; }
 
+    // Every clip this animator can play: the model's own, then those of its animation sources.
+    std::vector<std::string> ClipNames(const AnimatorComponent& anim, const Model& model);
+    const AnimationClip* FindClip(const Model& model, const std::string& name) const;
+
     std::vector<mat4> skinMatrices;
     std::vector<mat4> globalMatrices;
     vec3 rootMotionDelta{ 0.0f };     // model-space translation since last update
@@ -112,6 +117,9 @@ public:
 private:
     void EvaluateState(const AnimatorComponent& anim, const Model& model, const AnimState& state, float time, Pose& out, float* duration);
     const AnimState* FindState(const AnimatorComponent& anim, const std::string& name) const;
+    void RefreshLibrary(const AnimatorComponent& anim, const Model& model);
+    std::vector<Ref<AnimationClip>> m_Library;   // retargeted clips from animation sources
+    std::string m_LibraryKey;
 
     std::string m_PrevState;
     float m_PrevTime = 0.0f;
