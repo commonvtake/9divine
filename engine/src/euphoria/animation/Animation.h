@@ -97,7 +97,10 @@ class Model;
 class AnimatorRuntime {
 public:
     void Update(AnimatorComponent& anim, const Model& model, float dt);
-    void Play(AnimatorComponent& anim, const std::string& state, float blend);
+    // Cross-fade to `state` over `blend` seconds. restart: play it again from the start even if
+    // it is already the current state (a second hit reaction, the same attack twice).
+    void Play(AnimatorComponent& anim, const std::string& state, float blend, bool restart = false);
+    bool HasState(const AnimatorComponent& anim, const std::string& name) const { return FindState(anim, name) != nullptr; }
 
     std::vector<mat4> skinMatrices;
     std::vector<mat4> globalMatrices;

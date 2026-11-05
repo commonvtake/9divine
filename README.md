@@ -4,7 +4,7 @@
 
 **A 3D game engine and editor written from scratch in C++17 and OpenGL 3.3.**
 
-ECS architecture · PBR + HDR renderer · Cascaded soft shadows · Reflections · Bloom & SSAO · Path tracing mode · Toon shading & ink outlines · Event scripting · Doors & screen fades · Physics · Skeletal animation · 3D audio · Terrain & foliage · Navigation & AI · Game UI · Save system · UDP multiplayer · One-click game export
+ECS architecture · PBR + HDR renderer · Cascaded soft shadows · Reflections · Bloom & SSAO · Path tracing mode · Toon shading & ink outlines · Event scripting · Hack-and-slash combat · Doors & screen fades · Physics · Skeletal animation · 3D audio · Terrain & foliage · Navigation & AI · Game UI · Save system · UDP multiplayer · One-click game export
 
 ![Divine City](docs/images/city.png)
 
@@ -74,6 +74,25 @@ Walk up to a door and press **E** (gamepad **X**). The screen fades to black, th
 
 *Interiors use a fixed corner camera that only turns to follow you.*
 
+### Combat
+
+![Combat](docs/images/combat.png)
+
+North of the crossing, past the police line, the street is an ambush. Red seals slam shut behind you, battle music kicks in and two waves of Puppets crawl out of the asphalt. The combat is built after *Devil May Cry*:
+
+| Move | Keyboard / mouse | Gamepad |
+|---|---|---|
+| Slash, slash, chop, spinning finisher | Left click ×4 | Y ×4 |
+| Pause combo: slash, slash, *wait*, stab flurry | Left click ×2, pause, Left click | Y ×2, pause, Y |
+| Launcher (hold to jump after the enemy) | Q + back + Left click | RB + back + Y |
+| Lunge across the room | Q + forward + Left click | RB + forward + Y |
+| Heavy cleave (knocks down) | Right click | B |
+| Air combo (you hang in the air while it lands) | Left click ×3 in the air | Y ×3 in the air |
+| Plunge from the air | Right click in the air | B in the air |
+| Dodge roll (invincible) | C, or Q + Space + direction | LB, or RB + A + direction |
+
+Hits freeze the game for a few frames, shake the camera and throw sparks. A **style rank** (D, C, B, A, S, SS, SSS) climbs as you fight: varied moves raise it fast, spamming one move barely does, and getting hit drops a whole rank. Dodging through an attack at the last moment gives a bonus and a beat of slow motion. Puppets take turns attacking instead of piling on, wind up before they strike (their eyes flare), stagger, fly when launched, can be juggled in the air, and get knocked flat by finishers. Brutes, the big red ones, shrug off light hits until their armour breaks. Clear both waves and the seals drop and the fight gets a rank of its own. Your sword hangs on your back while you explore, and the shades on Ember Isle can be cut down too.
+
 The subway goes to **Ember Isle**, a procedurally generated island where you collect embers, avoid the shades that hunt you and save at campfires. Its portal leads to a physics playground, whose portal brings you back to the city. The game can be played solo or with a friend over the network.
 
 ![Ember Isle](docs/images/gameplay.png)
@@ -90,6 +109,7 @@ Everything in the demo, from the buildings to the textures and the door sounds, 
 | **Scenes** | Human-readable JSON scenes, scene switching at safe points, deep entity duplication with UUID remapping |
 | **Assets** | glTF/GLB (meshes, materials, skins, animations), OBJ, FBX, PNG/JPG/TGA, WAV/MP3/FLAC; caching and hot reload on file change |
 | **Scripting** | C++ gameplay scripts with lifecycle callbacks (`OnCreate`, `OnUpdate`, `OnFixedUpdate`, `OnLateUpdate`, collision/trigger events, `OnGUI`) and reflected fields editable in the inspector; **events and timers** (`On`, `Emit`, `Invoke`); no-code **Event Trigger** rules ("when this happens → do that") and a live **Event Log** |
+| **Combat** | Melee moveset with input buffering and cancel windows, lock-on, launchers, air juggling, i-frame dodges; **hit-stop** (`Time::HitStop`), trauma-based **camera shake**, hit sparks and blade trails; style ranking; enemies with attack tokens, telegraphs, stagger, launch, knockdown and super armour; battle zones with seals and waves; bone attachments for weapons |
 | **Interaction** | **Screen fades** that carry across scene loads; **doors** (to another scene or a spawn point in the same one, locked, or opened by a key item), things to **examine** and **pick up**, an on-screen prompt for whatever the player faces; fixed corner and orbit cameras |
 | **Physics** | Impulse solver with friction & restitution, sphere and oriented-box colliders, heightfield terrain collision, triggers, raycasts, overlap queries, kinematic bodies, sort-and-sweep broad phase, fixed 60 Hz timestep |
 | **Animation** | Skeletal animation with slerp sampling, cross-fades, 1D blend spaces with phase sync, parameter-driven state machines, root motion, one-click locomotion setup from clip names (Blender/Mixamo) |
@@ -103,7 +123,7 @@ Everything in the demo, from the buildings to the textures and the door sounds, 
 | **Build / Export** | Packages the runtime, engine data and project into a standalone folder from the editor or the command line |
 | **Save system** | Key/value save slots, checkpoints that snapshot every `Saveable` entity, restore across scene reloads |
 | **Networking** | Client/server over UDP with handshake, timeouts, ping, transform replication with interpolation, remote player spawning, custom JSON messages |
-| **Tests & CI** | 35 headless unit tests (CTest) covering ECS, serialization, transform cache, physics, terrain, navigation, AI, animation, locomotion setup, input, saves, toon outline normals, the ray-tracing BVH, events/triggers, screen fades and doors; GitHub Actions builds on Windows and Linux |
+| **Tests & CI** | 42 headless unit tests (CTest) covering ECS, serialization, transform cache, physics, terrain, navigation, AI, animation, locomotion setup, input, saves, toon outline normals, the ray-tracing BVH, events/triggers, screen fades, doors, the combat moveset, style meter, enemies and battle zones; GitHub Actions builds on Windows and Linux |
 
 ## Getting started
 
@@ -161,7 +181,9 @@ A project is a folder with `project.json`, `input.json`, `Scenes/`, `Models/`, `
 | Camera | Mouse | Right stick |
 | Jump / Sprint | Space / Shift | A / L3 |
 | Open doors / examine | E | X |
-| Launch ball (arena) | Left click | RT |
+| Attack / Heavy | Left click / Right click | Y / B |
+| Lock on (hold) / Dodge | Q / C | RB / LB |
+| Launch ball (arena) | Middle click | RT |
 | Pause menu | Esc | Start |
 | Stats overlay / Screenshot | F3 / F12 | |
 | Toggle ray tracing | F4 | |
@@ -256,6 +278,24 @@ The demo's `Door`, `Examine` and `Interactable` scripts ([`game/src/Interaction.
 
 The player shows a prompt for the closest interactable in front of it and uses it with the **Interact** input action. To make your own kind of usable object, derive from `Interactable` and override `Verb()` and `Interact()`. Event Triggers can use any of them too, with a **Send Message** action whose message is `Interact`.
 
+### Combat
+
+Anything that can be hit derives from `Combatant` ([`game/src/Combat.h`](game/src/Combat.h)). An attack is a sphere and a `HitInfo`, and `combat::Sweep` hits every enemy inside it once per swing:
+
+```cpp
+HitInfo hit;
+hit.damage = 14.0f;
+hit.from = Transform().position;
+hit.launch = 11.0f;                                   // send grounded targets flying
+auto hits = combat::Sweep(GetScene(), Team::Player, center, 1.3f, hit, m_AlreadyHit);
+if (!hits.empty()) {
+    Time::HitStop(0.06f);                             // engine: freeze the game for 60 ms
+    CameraShake::Add(0.25f);                          // engine: trauma-based screen shake
+}
+```
+
+The player's whole moveset is one table of moves in [`game/src/PlayerCombat.cpp`](game/src/PlayerCombat.cpp) (timings, hit windows, damage, knockback, lunge, style value), so tuning a move means changing a row. For a weapon or anything else that follows a bone, add an `AttachToBone` script to a child of the animated model.
+
 ## Architecture
 
 ```mermaid
@@ -315,7 +355,7 @@ projects/Demo/      the sample project: Divine City, its interiors, Ember Isle a
 tests/              unit tests
 tools/blender/      the Hero character generator (Blender script / standalone)
 tools/textures/     generators for the city textures and the demo's normal maps
-tools/audio/        generator for the city's sound effects
+tools/audio/        generators for the city's and the combat's sounds and the battle music
 third_party/        vendored libraries
 docs/               architecture notes, roadmap, screenshots
 ```

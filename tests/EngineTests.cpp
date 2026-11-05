@@ -5,6 +5,8 @@
 #include <euphoria/core/Json.h>
 #include <euphoria/renderer/RayTracer.h>
 #include "Interaction.h"   // game/src: doors and other interactables
+#include "PlayerCombat.h"  // game/src: hack-and-slash combat
+#include "Characters.h"
 #include <cstdio>
 #include <cmath>
 
@@ -895,6 +897,207 @@ TEST(Physics_PlayerSphereStepsOntoCurb) {
     }
     CHECK(w.player.Transform().position.x > 4.0f);
     CHECK(w.player.Transform().position.y > 0.08f);
+    w.Stop();
+}
+
+// ---------------------------------------------------------------------- Combat
+TEST(Combat_HitStopFreezesGameTime) {
+    Time::ClearHitStop();
+    Time::Advance(0.016f);
+    CHECK_NEAR(Time::Delta(), 0.016f, 1e-6f);
+    Time::HitStop(0.05f);
+    Time::Advance(0.016f);
+    CHECK(Time::Delta() == 0.0f);                 // the game stands still...
+    CHECK_NEAR(Time::UnscaledDelta(), 0.016f, 1e-6f);   // ...real time doesn't
+    for (int i = 0; i < 3; i++) Time::Advance(0.016f);
+    Time::Advance(0.016f);
+    CHECK_NEAR(Time::Delta(), 0.016f, 1e-6f);     // and it's over after 50 ms
+    Time::HitStop(0.1f, 0.25f);                   // slow motion instead of a freeze
+    Time::Advance(0.02f);
+    CHECK_NEAR(Time::Delta(), 0.005f, 1e-6f);
+    Time::HitStop(0.01f);                         // a shorter stop doesn't cut a longer one short
+    Time::Advance(0.02f);
+    CHECK_NEAR(Time::Delta(), 0.005f, 1e-6f);
+    Time::ClearHitStop();
+}
+
+TEST(Combat_CameraShakeDecays) {
+    CameraShake::Reset();
+    mat4 still(1.0f);
+    CameraShake::Apply(still);
+    CHECK(still == mat4(1.0f));
+    CameraShake::Add(0.6f);
+    CameraShake::Update(0.01f);
+    mat4 shaken(1.0f);
+    CameraShake::Apply(shaken);
+    CHECK(shaken != mat4(1.0f));
+    CameraShake::Add(5.0f);
+    CHECK(CameraShake::Trauma() <= 1.0f);
+    for (int i = 0; i < 120; i++) CameraShake::Update(1.0f / 60.0f);
+    CHECK(CameraShake::Trauma() == 0.0f);
+}
+
+TEST(Combat_StyleRewardsVariety) {
+    combat::StyleMeter same, varied;
+    const char* moves[] = { "Slash", "Chop", "Launcher", "Air Slash", "Plunge", "Lunge" };
+    for (const char* m : moves) { same.Add("Slash", 30.0f); varied.Add(m, 30.0f); }
+    CHECK(varied.Points() > same.Points() * 1.8f);   // repeating one move is worth much less
+    CHECK(varied.Rank() > same.Rank());
+    int r = varied.Rank();
+    varied.Hurt();
+    CHECK(varied.Rank() == r - 1);                    // getting hit costs a whole rank
+    for (int i = 0; i < 60 * 30; i++) varied.Update(1.0f / 60.0f);
+    CHECK(varied.Rank() == -1);                       // and it drains away when idle
+}
+
+TEST(Combat_AttackTokensLimitAttackers) {
+    Scene s;
+    uint64_t a = s.CreateEntity("A").GetUUID(), b = s.CreateEntity("B").GetUUID(), c = s.CreateEntity("C").GetUUID();
+    CHECK(combat::RequestToken(s, a));
+    CHECK(combat::RequestToken(s, b));
+    CHECK(!combat::RequestToken(s, c));               // two attackers at a time
+    CHECK(combat::RequestToken(s, a));                // a holder keeps its token
+    combat::ReleaseToken(s, a);
+    CHECK(combat::RequestToken(s, c));
+    s.DestroyEntity(s.FindByUUID(b));
+    CHECK(combat::RequestToken(s, a));                // destroyed holders give theirs back
+}
+
+static PlayerCombat* AddFighter(DoorWorld& w) {
+    auto& sc = w.player.Add<ScriptComponent>();
+    for (const char* cls : { "PlayerController", "PlayerCombat" }) {
+        ScriptInstance si;
+        si.className = cls;
+        sc.scripts.push_back(si);
+    }
+    return nullptr;
+}
+
+TEST(Combat_GroundStringAndPauseCombo) {
+    DoorWorld w;
+    AddFighter(w);
+    w.Start();
+    w.Run(0.2f);
+    auto* pc = ScriptableEntity::GetScriptOn<PlayerCombat>(w.player);
+    CHECK(pc != nullptr);
+    if (!pc) { w.Stop(); return; }
+    CHECK(pc->CurrentAction().empty());
+    // Mashing Attack: slash, backslash, chop, then the spinning finisher
+    const char* expected[] = { "Slash", "Backslash", "Chop", "Whirlwind" };
+    for (const char* name : expected) {
+        pc->Press(PlayerCombat::Command::Attack);
+        w.Run(1.0f / 60.0f);
+        if (pc->CurrentAction() != name) w.Run(0.3f);   // a queued press waits for the cancel point
+        CHECK(pc->CurrentAction() == name);
+    }
+    w.Run(1.2f);
+    CHECK(pc->CurrentAction().empty());
+    // Attack, Attack, pause, Attack: the flurry instead of the chop
+    pc->Press(PlayerCombat::Command::Attack);
+    w.Run(0.25f);
+    pc->Press(PlayerCombat::Command::Attack);
+    w.Run(0.4f);                                       // backslash plays out...
+    w.Run(0.45f);                                      // ...and we wait
+    CHECK(pc->CurrentAction().empty());
+    pc->Press(PlayerCombat::Command::Attack);
+    w.Run(1.0f / 60.0f);
+    CHECK(pc->CurrentAction() == "Flurry");
+    w.Run(1.0f);
+    // Dodge rolls with invincibility frames
+    pc->Press(PlayerCombat::Command::Dodge);
+    w.Run(0.1f);
+    CHECK(pc->CurrentAction() == "Dodge");
+    CHECK(pc->Invulnerable());
+    HitInfo h;
+    h.damage = 30.0f;
+    CHECK(!pc->ReceiveHit(h));                         // rolled right through it
+    w.Run(0.6f);
+    CHECK(!pc->Invulnerable());
+    CHECK(pc->ReceiveHit(h));
+    CHECK(pc->CurrentAction() == "Hurt");
+    w.Stop();
+}
+
+TEST(Combat_PuppetStaggersLaunchesAndDies) {
+    DoorWorld w;
+    Entity puppet = characters::AddPuppet(*w.scene, { 0, 0.1f, -2.0f }, false);
+    int defeated = 0;
+    w.Start();
+    w.scene->Events().On("EnemyDefeated", [&](const Event&) { defeated++; });
+    w.Run(1.0f);                                       // rises out of the ground
+    auto* c = ScriptableEntity::GetScriptOn<Combatant>(puppet);
+    CHECK(c != nullptr);
+    if (!c) { w.Stop(); return; }
+    std::set<uint64_t> swing;
+    HitInfo h;
+    h.damage = 10.0f;
+    h.from = { 0, 0, 0 };
+    vec3 at = w.scene->WorldPosition(puppet) + vec3(0, 1.0f, 0);
+    CHECK(combat::Sweep(*w.scene, Team::Player, at, 1.0f, h, swing).size() == 1);
+    CHECK_NEAR(c->HealthFraction(), 80.0f / 90.0f, 1e-3f);
+    CHECK(combat::Sweep(*w.scene, Team::Player, at, 1.0f, h, swing).empty());   // one hit per swing
+    std::set<uint64_t> friendly;
+    CHECK(combat::Sweep(*w.scene, Team::Enemy, at, 1.0f, h, friendly).empty());  // no friendly fire
+
+    swing.clear();
+    h.launch = 11.0f;
+    combat::Sweep(*w.scene, Team::Player, w.scene->WorldPosition(puppet) + vec3(0, 1.0f, 0), 1.0f, h, swing);
+    CHECK(c->Airborne());
+    w.Run(0.3f);
+    CHECK(puppet.Transform().position.y > 1.5f);       // launched
+    w.Run(3.0f);
+    CHECK(!c->Airborne());                              // landed (and got back up)
+
+    swing.clear();
+    h.launch = 0.0f;
+    h.damage = 500.0f;
+    combat::Sweep(*w.scene, Team::Player, w.scene->WorldPosition(puppet) + vec3(0, 1.0f, 0), 1.5f, h, swing);
+    CHECK(c->IsDead());
+    w.Run(0.1f);
+    CHECK(defeated == 1);
+    uint64_t id = puppet.GetUUID();
+    w.Run(2.0f);
+    CHECK(!w.scene->FindByUUID(id));                    // bursts apart and is removed
+    w.Stop();
+}
+
+TEST(Combat_BattleZoneRunsWavesThenOpens) {
+    DoorWorld w;
+    Scene& s = *w.scene;
+    Entity seal = s.CreateEntity("Seal");
+    seal.Get<TagComponent>().tag = "Seal";
+    for (float x : { -3.0f, 0.0f, 3.0f }) {
+        Entity p = s.CreateEntity("Spawn");
+        p.Transform().position = { x, 0.2f, -6.0f };
+        p.Get<TagComponent>().tag = "EnemySpawn";
+    }
+    Entity templ = characters::AddPuppet(s, { 0, 0.2f, -30.0f }, false);
+    templ.Get<TagComponent>().active = false;
+    Entity zone = w.Scripted("Zone", { 0, 1, 0 }, "BattleZone",
+                             { { "Waves", "2,1" }, { "Heavies", "0,0" }, { "Enemy Template", (uint64_t)templ.GetUUID() }, { "Music", "" } });
+    auto& trig = zone.Add<BoxColliderComponent>();
+    trig.size = { 4, 4, 4 };
+    trig.isTrigger = true;
+    auto enemies = [&] { return combat::All(s, Team::Enemy); };
+    auto killAll = [&] {
+        HitInfo h;
+        h.damage = 999.0f;
+        for (Combatant* c : enemies()) c->ReceiveHit(h);
+    };
+    w.Start();
+    w.Run(0.2f);
+    CHECK(seal.IsActive());                  // the player walked in: sealed
+    w.Run(2.5f);
+    CHECK(enemies().size() == 2);            // wave 1 (the inactive template doesn't count)
+    killAll();
+    w.Run(4.0f);
+    CHECK(enemies().size() == 1);            // wave 2
+    CHECK(seal.IsActive());
+    killAll();
+    w.Run(4.0f);
+    CHECK(enemies().empty());
+    CHECK(!seal.IsActive());                 // cleared: the seals drop
+    CHECK(SaveGame::GetBool("zone_cleared:" + std::to_string((uint64_t)zone.GetUUID())));
     w.Stop();
 }
 

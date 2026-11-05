@@ -201,6 +201,16 @@ An **immediate-mode** API (`UI::Button(...)` returns true when clicked) drawn as
 
 The demo's doors are game scripts built on it (`game/src/Interaction.cpp`). A door captures the target scene and spawn name by value before fading, because the door entity and its whole scene are gone by the time the callback runs. The player is then moved to the spawn point with its interpolation reset, and a `PlayerTeleported` event tells the camera to cut instead of swooping across the map.
 
+### Hit-stop and camera shake
+`core/Application.h` (`Time`), `scene/CameraShake.cpp`
+
+`Time::HitStop(seconds, scale)` scales game time (0 = frozen) for a number of *real* seconds. `Time::Advance` applies it when the frame's delta is computed, so everything that runs on scaled time (scripts, physics, animation, particles) stops together, while real-time systems (UI, screen fades, camera shake) keep moving. A second call only extends the stop. `CameraShake` keeps a trauma value in 0..1; the shake amplitude is trauma squared, so light hits are subtle and heavy ones violent. Its noise is a few incommensurate sines per channel, and it is applied to the camera's world matrix in `Scene::GetRuntimeCamera`, so no gameplay code needs to know which camera is active.
+
+### Combat (game code)
+`game/src/Combat.cpp`, `PlayerCombat.cpp`, `Enemies.cpp`, `BattleZone.cpp`
+
+Hits are physics overlap queries (`Physics::OverlapSphere`) filtered to `Combatant` scripts of the other team, with a per-swing set of who was already hit (multi-hit moves clear it on a timer). The player's moves are one data table: hit window, cancel point, lunge, damage, knockback, launch, spike, knockdown, style value, shake and hit-stop. Input is buffered for 0.35 s and consumed once the current move reaches its cancel point, which is what makes mashing feel responsive without eating presses. Enemies are state machines; a per-scene token pool lets only two attack at once. The style meter weighs each hit by how often that move appears in the last five, drains faster at higher ranks and loses a whole rank on a hit. `AttachToBone` copies a joint's model-space matrix (from the animator's global pose) into a child entity's local transform in `OnLateUpdate`, after animation has run.
+
 ## 12. Particles
 `particles/Particles.cpp`
 

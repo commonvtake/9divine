@@ -19,7 +19,7 @@
 
 namespace eu {
 
-float Time::s_Delta = 0.0f, Time::s_Unscaled = 0.0f, Time::s_Scale = 1.0f;
+float Time::s_Delta = 0.0f, Time::s_Unscaled = 0.0f, Time::s_Scale = 1.0f, Time::s_HitStop = 0.0f, Time::s_HitStopScale = 0.0f;
 double Time::s_Elapsed = 0.0;
 uint64_t Time::s_Frame = 0;
 Application* Application::s_Instance = nullptr;
@@ -174,9 +174,7 @@ void Application::Run() {
         dt = std::min(dt, 0.1f);               // avoid huge steps after a hitch
         dt = SmoothFrameTime(dt);
         if (m_Config.fixedDelta > 0.0f) dt = m_Config.fixedDelta;
-        Time::s_Unscaled = dt;
-        Time::s_Delta = dt * Time::s_Scale;
-        Time::s_Elapsed += dt;
+        Time::Advance(dt);
 
         Profiler::BeginFrame();
         Input::BeginFrame();

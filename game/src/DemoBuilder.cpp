@@ -118,6 +118,10 @@ PlayerRig AddPlayer(Scene& s, const vec3& pos) {
     AddScript(r.camera, "ThirdPersonCamera", { { "Target", (uint64_t)r.player.GetUUID() }, { "Distance", 6.5f } });
     AddScript(r.player, "PlayerController", { { "Camera", (uint64_t)r.camera.GetUUID() }, { "Model", (uint64_t)r.model.GetUUID() },
                                               { "Move Speed", 3.5f }, { "Sprint Speed", 7.0f } });
+    // Sword (on the back until the first swing) and the hack-and-slash moveset
+    characters::Sword sword = characters::AddSword(s, r.model, { 0.86f, 0.89f, 0.94f, 1 }, { 0.14f, 0.1f, 0.12f, 1 }, true);
+    AddScript(r.player, "PlayerCombat", { { "Model", (uint64_t)r.model.GetUUID() }, { "Sword", (uint64_t)sword.root.GetUUID() },
+                                          { "Trail", (uint64_t)sword.trail.GetUUID() } });
     return r;
 }
 
@@ -151,7 +155,7 @@ void AddControlsCard(Scene& s, const std::string& extra) {
     t.size = { 430, 200 };
     t.fontSize = 24;
     t.layer = 1;
-    t.text = "WASD / Left stick - move\nMouse / Right stick - camera\nShift - sprint     Space - jump\n" + extra + "Esc - pause menu";
+    t.text = "WASD / Left stick - move    Mouse - camera\nShift - sprint     Space - jump\nLMB / Y - attack   RMB / B - heavy\nQ / RB - lock on    C / LB - dodge\n" + extra + "Esc - pause menu";
 
     Entity btn = s.CreateEntity("ControlsCloseButton");
     btn.Get<TagComponent>().tag = "ControlsUI";
@@ -462,7 +466,7 @@ void BuildArena(const std::string& path) {
 
     Entity portal = AddPortal(s, { 0, 0, 22 }, "Scenes/City.scene", { 1.0f, 0.6f, 0.3f, 1.0f });
     AddGameManager(s, "PHYSICS ARENA", rig.player, portal);
-    AddControlsCard(s, "Left click / RT - launch ball\n");
+    AddControlsCard(s, "Middle click / RT - launch ball\n");
     AddAudio(s, "Music", "Audio/music.wav", 0.3f, true, false);
 
     SceneSerializer(s).Save(path);

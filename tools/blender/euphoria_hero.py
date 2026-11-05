@@ -1,8 +1,10 @@
 """
 Euphoria Engine - "Hero" player character generator.
 
-A low-poly, faceted human (Killer7 / PS2-era style) with a 17-bone rig and four actions:
-Idle, Walk, Run and Jump. The same data drives two back ends:
+A low-poly, faceted human (Killer7 / PS2-era style) with a 17-bone rig, four locomotion
+actions (Idle, Walk, Run, Jump) and a set of one-handed sword actions for hack-and-slash
+combat (slashes, a spin finisher, stabs, a lunge, a launcher, air attacks, a plunge, a
+dodge roll and hit / knockdown reactions). The same data drives two back ends:
 
   * Inside Blender (3.6 / 4.x): builds a real mesh, armature, materials and actions you can
     edit, then exports a .glb with the glTF exporter.
@@ -293,7 +295,174 @@ def _jump(t):
     return pose, (0.0, drop, 0.0)
 
 
-CLIPS = [("Idle", 3.0, True, _idle), ("Walk", 1.0, True, _walk), ("Run", 0.7, True, _run), ("Jump", 0.45, False, _jump)]
+# --------------------------------------------------------------------------- sword combat
+# Combat clips are written as key poses: (time, {bone: (x, y, z) degrees for qeuler}, hips offset).
+# Between keys the angles are eased (smoothstep), so a slash accelerates into the strike and
+# settles after it. The sword is held in the right hand along the hand's +Z axis; with the
+# wrist bent (Hand.R x = 80..90) the blade continues the line of the arm, so the arm's
+# direction is the blade's direction. Arm angles: x = -90 points the arm forward, x = -180
+# straight up; y turns it toward the character's left (+) or right (-).
+STANCE = {
+    "Hips": (0, -12, 0), "Spine": (6, 0, 0), "Chest": (4, -8, 0), "Neck": (0, 8, 0), "Head": (-4, 10, 0),
+    "UpperLeg.L": (-22, 0, 7), "LowerLeg.L": (24, 0, 0), "Foot.L": (-2, 0, 0),
+    "UpperLeg.R": (16, 0, -9), "LowerLeg.R": (20, 0, 0), "Foot.R": (-12, 0, 0),
+    "UpperArm.L": (-28, 0, 20), "LowerArm.L": (-45, 0, 0),
+    "UpperArm.R": (-50, -25, -12), "LowerArm.R": (-30, 0, 0), "Hand.R": (70, 0, 0),
+}
+TUCK = {"UpperLeg.L": (-55, 0, 8), "LowerLeg.L": (85, 0, 0), "UpperLeg.R": (-30, 0, -8), "LowerLeg.R": (95, 0, 0), "Foot.L": (20, 0, 0), "Foot.R": (20, 0, 0)}
+LUNGE = {"UpperLeg.L": (-48, 0, 6), "LowerLeg.L": (52, 0, 0), "UpperLeg.R": (32, 0, -8), "LowerLeg.R": (28, 0, 0), "Foot.L": (-6, 0, 0), "Foot.R": (-20, 0, 0)}
+
+
+def P(*layers, **bones):
+    """A key pose: STANCE-like layers merged left to right, then per-bone overrides (R_Arm= etc.)."""
+    out = {}
+    for layer in layers: out.update(layer)
+    for k, v in bones.items(): out[k.replace("_", ".", 1) if k.count("_") == 1 else k] = v
+    return out
+
+
+def keyed(keys):
+    """Clip function from [(time, pose_dict, hips_offset)] with eased interpolation."""
+    def smooth(f): f = min(max(f, 0.0), 1.0); return f * f * (3 - 2 * f)
+    def fn(t):
+        if t <= keys[0][0]: a = b = keys[0]; f = 0.0
+        elif t >= keys[-1][0]: a = b = keys[-1]; f = 0.0
+        else:
+            i = 0
+            while keys[i + 1][0] < t: i += 1
+            a, b = keys[i], keys[i + 1]
+            f = smooth((t - a[0]) / (b[0] - a[0]))
+        pose = {}
+        for bone in set(a[1]) | set(b[1]):
+            ea, eb = a[1].get(bone, (0, 0, 0)), b[1].get(bone, (0, 0, 0))
+            pose[bone] = qeuler(*(ea[k] + (eb[k] - ea[k]) * f for k in range(3)))
+        off = tuple(a[2][k] + (b[2][k] - a[2][k]) * f for k in range(3))
+        return pose, off
+    return fn
+
+
+Z = (0.0, 0.0, 0.0)
+LOW = (0.0, -0.06, 0.0)
+
+# Ground string: forehand, backhand, overhead chop, spinning finisher
+_slash1 = keyed([
+    (0.00, P(STANCE, UpperArm_R=(-75, -95, -10), LowerArm_R=(-20, 0, 0), Hand_R=(82, 0, 0), Chest=(4, -35, 0)), LOW),
+    (0.08, P(STANCE, UpperArm_R=(-80, -118, -10), LowerArm_R=(-15, 0, 0), Hand_R=(85, 0, 0), Chest=(4, -48, 0), Hips=(0, -22, 0)), LOW),
+    (0.20, P(STANCE, UpperArm_R=(-82, 72, -10), LowerArm_R=(-10, 0, 0), Hand_R=(85, 0, 0), Chest=(6, 38, 0), Hips=(0, 14, 0), Spine=(12, 0, 0)), LOW),
+    (0.45, P(STANCE, UpperArm_R=(-62, 48, -10), LowerArm_R=(-25, 0, 0), Hand_R=(78, 0, 0), Chest=(4, 22, 0)), LOW)])
+_slash2 = keyed([
+    (0.00, P(STANCE, UpperArm_R=(-80, 70, -10), LowerArm_R=(-75, 0, 0), Hand_R=(80, 0, 0), Chest=(4, 35, 0)), LOW),
+    (0.08, P(STANCE, UpperArm_R=(-84, 88, -10), LowerArm_R=(-95, 0, 0), Hand_R=(82, 0, 0), Chest=(4, 46, 0), Hips=(0, 12, 0)), LOW),
+    (0.20, P(STANCE, UpperArm_R=(-82, -102, -10), LowerArm_R=(-8, 0, 0), Hand_R=(85, 0, 0), Chest=(6, -38, 0), Hips=(0, -20, 0), Spine=(12, 0, 0)), LOW),
+    (0.45, P(STANCE, UpperArm_R=(-62, -78, -10), LowerArm_R=(-20, 0, 0), Hand_R=(78, 0, 0), Chest=(4, -26, 0)), LOW)])
+_slash3 = keyed([
+    (0.00, P(STANCE, UpperArm_R=(-150, -10, -5), LowerArm_R=(-35, 0, 0), Hand_R=(40, 0, 0), Spine=(-8, 0, 0), Chest=(-4, -10, 0)), LOW),
+    (0.12, P(STANCE, UpperArm_R=(-176, -10, -5), LowerArm_R=(-55, 0, 0), Hand_R=(35, 0, 0), Spine=(-14, 0, 0), Chest=(-6, -12, 0), UpperArm_L=(-120, 10, 20)), LOW),
+    (0.26, P(STANCE, LUNGE, UpperArm_R=(-42, -5, -5), LowerArm_R=(-5, 0, 0), Hand_R=(85, 0, 0), Spine=(26, 0, 0), Chest=(6, 0, 0), Head=(-20, 0, 0)), (0.0, -0.13, 0.18)),
+    (0.50, P(STANCE, LUNGE, UpperArm_R=(-36, -5, -5), LowerArm_R=(-10, 0, 0), Hand_R=(80, 0, 0), Spine=(20, 0, 0), Head=(-16, 0, 0)), (0.0, -0.11, 0.16))])
+_finisher = keyed([
+    (0.00, P(STANCE, UpperArm_R=(-86, -60, -10), Hand_R=(85, 0, 0), Chest=(4, -30, 0)), LOW),
+    (0.10, P(STANCE, UpperArm_R=(-86, -100, -10), Hand_R=(85, 0, 0), Chest=(4, -40, 0), Hips=(0, -40, 0)), (0.0, -0.1, 0.0)),
+    (0.45, P(STANCE, UpperArm_R=(-88, -92, -10), LowerArm_R=(-5, 0, 0), Hand_R=(88, 0, 0), UpperArm_L=(-80, 0, 70), Chest=(4, -20, 0), Hips=(0, 320, 0)), (0.0, -0.14, 0.0)),
+    (0.80, P(STANCE, UpperArm_R=(-60, 35, -10), Hand_R=(80, 0, 0), Chest=(4, 22, 0), Hips=(0, 348, 0)), LOW)])
+
+
+def _flurry(t):
+    """Rapid stabs: the elbow pumps at 9 Hz with the arm held forward."""
+    pose, off = keyed([(0.0, P(STANCE, LUNGE, Spine=(14, 0, 0)), (0.0, -0.1, 0.1))])(t)
+    pump = 0.5 + 0.5 * math.cos(2.0 * math.pi * 9.0 * t)
+    pose["UpperArm.R"] = qeuler(x=-86 + 8 * math.sin(2 * math.pi * 4.5 * t), y=-8 + 10 * math.sin(2 * math.pi * 3.0 * t), z=-8)
+    pose["LowerArm.R"] = swing(4 + 75 * pump)
+    pose["Hand.R"] = qeuler(x=88 - 40 * pump)
+    pose["Chest"] = qeuler(x=4, y=-6 * math.sin(2 * math.pi * 9.0 * t))
+    return pose, off
+
+
+_stinger = keyed([
+    (0.00, P(STANCE, UpperArm_R=(-20, -25, -10), LowerArm_R=(-60, 0, 0), Hand_R=(80, 0, 0), Spine=(24, 0, 0)), (0.0, -0.16, 0.0)),
+    (0.12, P(STANCE, UpperArm_R=(-92, -4, -4), LowerArm_R=(0, 0, 0), Hand_R=(90, 0, 0), Spine=(22, 0, 0), Head=(-18, 0, 0),
+             UpperLeg_L=(-58, 0, 5), LowerLeg_L=(42, 0, 0), UpperLeg_R=(42, 0, -5), LowerLeg_R=(18, 0, 0), UpperArm_L=(10, 0, 30)), (0.0, -0.2, 0.12)),
+    (0.60, P(STANCE, UpperArm_R=(-92, -4, -4), LowerArm_R=(0, 0, 0), Hand_R=(90, 0, 0), Spine=(20, 0, 0), Head=(-16, 0, 0),
+             UpperLeg_L=(-55, 0, 5), LowerLeg_L=(45, 0, 0), UpperLeg_R=(40, 0, -5), LowerLeg_R=(20, 0, 0), UpperArm_L=(10, 0, 30)), (0.0, -0.2, 0.12))])
+_launcher = keyed([
+    (0.00, P(STANCE, UpperArm_R=(20, -30, -10), LowerArm_R=(-20, 0, 0), Hand_R=(80, 0, 0), Spine=(20, 0, 0), Chest=(0, -25, 0),
+             UpperLeg_L=(-40, 0, 7), LowerLeg_L=(60, 0, 0), UpperLeg_R=(10, 0, -9), LowerLeg_R=(55, 0, 0)), (0.0, -0.2, 0.0)),
+    (0.08, P(STANCE, UpperArm_R=(32, -32, -10), LowerArm_R=(-15, 0, 0), Hand_R=(80, 0, 0), Spine=(26, 0, 0), Chest=(0, -30, 0),
+             UpperLeg_L=(-45, 0, 7), LowerLeg_L=(70, 0, 0), UpperLeg_R=(10, 0, -9), LowerLeg_R=(65, 0, 0)), (0.0, -0.26, 0.0)),
+    (0.24, P(STANCE, UpperArm_R=(-186, -10, -5), LowerArm_R=(-8, 0, 0), Hand_R=(85, 0, 0), Spine=(-12, 0, 0), Chest=(-4, 10, 0), Head=(10, 0, 0),
+             UpperLeg_L=(-10, 0, 5), LowerLeg_L=(8, 0, 0), UpperLeg_R=(8, 0, -6), LowerLeg_R=(10, 0, 0)), (0.0, 0.04, 0.0)),
+    (0.55, P(STANCE, UpperArm_R=(-170, -10, -5), LowerArm_R=(-15, 0, 0), Hand_R=(80, 0, 0), Spine=(-6, 0, 0)), LOW)])
+
+# Air string: two horizontal slashes and a flipping chop, legs tucked
+_air1 = keyed([
+    (0.00, P(STANCE, TUCK, UpperArm_R=(-80, -112, -10), Hand_R=(85, 0, 0), Chest=(4, -40, 0)), Z),
+    (0.13, P(STANCE, TUCK, UpperArm_R=(-80, 72, -10), Hand_R=(85, 0, 0), Chest=(6, 36, 0), Hips=(0, 12, 0)), Z),
+    (0.35, P(STANCE, TUCK, UpperArm_R=(-68, 50, -10), Hand_R=(80, 0, 0), Chest=(4, 24, 0)), Z)])
+_air2 = keyed([
+    (0.00, P(STANCE, TUCK, UpperArm_R=(-82, 80, -10), LowerArm_R=(-85, 0, 0), Hand_R=(82, 0, 0), Chest=(4, 40, 0)), Z),
+    (0.13, P(STANCE, TUCK, UpperArm_R=(-82, -102, -10), LowerArm_R=(-8, 0, 0), Hand_R=(85, 0, 0), Chest=(6, -38, 0), Hips=(0, -14, 0)), Z),
+    (0.35, P(STANCE, TUCK, UpperArm_R=(-66, -80, -10), LowerArm_R=(-20, 0, 0), Hand_R=(80, 0, 0), Chest=(4, -26, 0)), Z)])
+_air3 = keyed([
+    (0.00, P(STANCE, TUCK, UpperArm_R=(-170, -10, -5), LowerArm_R=(-40, 0, 0), Hand_R=(40, 0, 0), Spine=(-10, 0, 0)), Z),
+    (0.25, P(STANCE, TUCK, UpperArm_R=(-40, -5, -5), Hand_R=(85, 0, 0), Spine=(30, 0, 0), Hips=(330, 0, 0)), (0.0, 0.1, 0.0)),
+    (0.45, P(STANCE, TUCK, UpperArm_R=(-50, -5, -5), Hand_R=(80, 0, 0), Spine=(16, 0, 0), Hips=(360, 0, 0)), Z)])
+# Plunge: raise the sword overhead and fall (held), then slam on landing
+_dive_raise = keyed([
+    (0.00, P(STANCE, TUCK, UpperArm_R=(-120, -10, -5), Hand_R=(60, 0, 0)), Z),
+    (0.25, P(STANCE, TUCK, UpperArm_R=(-186, -5, -5), UpperArm_L=(-170, 5, 10), LowerArm_R=(-20, 0, 0), Hand_R=(50, 0, 0), Spine=(-10, 0, 0)), (0.0, 0.05, 0.0))])
+_dive_slam = keyed([
+    (0.00, P(STANCE, UpperArm_R=(-186, -5, -5), UpperArm_L=(-170, 5, 10), Hand_R=(50, 0, 0)), Z),
+    (0.10, P(STANCE, UpperArm_R=(-18, -5, -5), UpperArm_L=(-30, 5, 10), Hand_R=(88, 0, 0), Spine=(32, 0, 0), Head=(-25, 0, 0),
+             UpperLeg_L=(-70, 0, 12), LowerLeg_L=(110, 0, 0), UpperLeg_R=(-10, 0, -12), LowerLeg_R=(120, 0, 0)), (0.0, -0.42, 0.1)),
+    (0.45, P(STANCE, UpperArm_R=(-20, -5, -5), Hand_R=(85, 0, 0), Spine=(28, 0, 0), Head=(-20, 0, 0),
+             UpperLeg_L=(-68, 0, 12), LowerLeg_L=(105, 0, 0), UpperLeg_R=(-10, 0, -12), LowerLeg_R=(115, 0, 0)), (0.0, -0.4, 0.1))])
+
+# Defence and reactions
+_dodge = keyed([
+    (0.00, P(STANCE, Spine=(20, 0, 0)), LOW),
+    (0.06, P(UpperLeg_L=(-95, 0, 6), LowerLeg_L=(130, 0, 0), UpperLeg_R=(-95, 0, -6), LowerLeg_R=(130, 0, 0), Spine=(40, 0, 0), Chest=(20, 0, 0),
+             Head=(30, 0, 0), UpperArm_L=(-60, 0, 10), UpperArm_R=(-60, 0, -10), LowerArm_L=(-90, 0, 0), LowerArm_R=(-90, 0, 0), Hand_R=(70, 0, 0)), (0.0, -0.35, 0.0)),
+    (0.38, P(UpperLeg_L=(-95, 0, 6), LowerLeg_L=(130, 0, 0), UpperLeg_R=(-95, 0, -6), LowerLeg_R=(130, 0, 0), Spine=(40, 0, 0), Chest=(20, 0, 0),
+             Head=(30, 0, 0), UpperArm_L=(-60, 0, 10), UpperArm_R=(-60, 0, -10), LowerArm_L=(-90, 0, 0), LowerArm_R=(-90, 0, 0), Hand_R=(70, 0, 0), Hips=(360, 0, 0)), (0.0, -0.35, 0.0)),
+    (0.50, P(STANCE, Hips=(360, -12, 0)), LOW)])
+_hit = keyed([
+    (0.00, P(STANCE), LOW),
+    (0.07, P(STANCE, Spine=(-18, 0, 0), Chest=(-10, 18, 0), Head=(-18, 0, 0), UpperArm_R=(-10, 0, -35), UpperArm_L=(-10, 0, 35)), (0.0, -0.04, -0.1)),
+    (0.40, P(STANCE), LOW)])
+_launched = keyed([
+    (0.00, P(Spine=(-15, 0, 0), UpperArm_L=(0, 0, 60), UpperArm_R=(0, 0, -60), UpperLeg_L=(-30, 0, 10), LowerLeg_L=(40, 0, 0), UpperLeg_R=(-10, 0, -10),
+             LowerLeg_R=(30, 0, 0), Hips=(-25, 0, 0)), Z),
+    (0.60, P(Spine=(-20, 0, 0), UpperArm_L=(-40, 0, 80), UpperArm_R=(-40, 0, -80), UpperLeg_L=(-50, 0, 10), LowerLeg_L=(60, 0, 0), UpperLeg_R=(-35, 0, -10),
+             LowerLeg_R=(50, 0, 0), Hips=(-55, 0, 0), Head=(-20, 0, 0)), Z)])
+_LYING = P(Hips=(-86, 0, 0), UpperLeg_L=(-8, 0, 10), UpperLeg_R=(-4, 0, -10), LowerLeg_L=(12, 0, 0), LowerLeg_R=(5, 0, 0), UpperArm_L=(-20, 0, 50),
+           UpperArm_R=(-20, 0, -50), Head=(10, 0, 0))
+_knockdown = keyed([
+    (0.00, P(STANCE, Spine=(-15, 0, 0)), LOW),
+    (0.35, _LYING, (0.0, -0.8, -0.35)),
+    (0.50, _LYING, (0.0, -0.82, -0.35))])
+_getup = keyed([
+    (0.00, _LYING, (0.0, -0.82, -0.35)),
+    (0.30, P(Hips=(-10, 0, 0), Spine=(50, 0, 0), UpperLeg_L=(-100, 0, 15), LowerLeg_L=(130, 0, 0), UpperLeg_R=(-80, 0, -15), LowerLeg_R=(140, 0, 0),
+             UpperArm_L=(-40, 0, 30), UpperArm_R=(-40, 0, -30)), (0.0, -0.5, -0.1)),
+    (0.60, P(STANCE), LOW)])
+_windup = keyed([
+    (0.00, P(STANCE), LOW),
+    (0.45, P(STANCE, UpperArm_R=(-200, -25, -5), LowerArm_R=(-65, 0, 0), Hand_R=(30, 0, 0), Spine=(-14, 0, 0), Chest=(-6, -28, 0),
+             UpperArm_L=(-70, 20, 25), LowerArm_L=(-10, 0, 0), Head=(5, 0, 0)), (0.0, -0.1, -0.05)),
+    (0.60, P(STANCE, UpperArm_R=(-205, -25, -5), LowerArm_R=(-70, 0, 0), Hand_R=(28, 0, 0), Spine=(-16, 0, 0), Chest=(-6, -30, 0),
+             UpperArm_L=(-72, 20, 25), LowerArm_L=(-10, 0, 0), Head=(5, 0, 0)), (0.0, -0.1, -0.05))])
+
+COMBAT_CLIPS = [
+    ("Slash1", 0.45, _slash1), ("Slash2", 0.45, _slash2), ("Slash3", 0.5, _slash3), ("Finisher", 0.8, _finisher),
+    ("Flurry", 0.9, _flurry), ("Stinger", 0.6, _stinger), ("Launcher", 0.55, _launcher),
+    ("AirSlash1", 0.35, _air1), ("AirSlash2", 0.35, _air2), ("AirSlash3", 0.45, _air3),
+    ("DiveRaise", 0.25, _dive_raise), ("DiveSlam", 0.45, _dive_slam),
+    ("Dodge", 0.5, _dodge), ("Hit", 0.4, _hit), ("Launched", 0.6, _launched),
+    ("Knockdown", 0.5, _knockdown), ("GetUp", 0.6, _getup), ("Windup", 0.6, _windup),
+]
+
+CLIPS = [("Idle", 3.0, True, _idle), ("Walk", 1.0, True, _walk), ("Run", 0.7, True, _run), ("Jump", 0.45, False, _jump)] + \
+        [(name, d, False, fn) for name, d, fn in COMBAT_CLIPS]
 
 
 def sample_clip(fn, duration):

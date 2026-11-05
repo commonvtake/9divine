@@ -298,8 +298,13 @@ void InputMap::SetDefaults() {
     actions = {
         { "Jump",     { { BT::Key, Key::Space }, { BT::GamepadButton, Gamepad::A } } },
         { "Sprint",   { { BT::Key, Key::LeftShift }, { BT::GamepadButton, Gamepad::LeftThumb } } },
-        { "Fire",     { { BT::MouseButton, Mouse::Left }, { BT::GamepadAxis, Gamepad::RightTrigger } } },
+        { "Fire",     { { BT::MouseButton, Mouse::Middle }, { BT::GamepadAxis, Gamepad::RightTrigger } } },
         { "Interact", { { BT::Key, Key::E }, { BT::GamepadButton, Gamepad::X } } },
+        // Melee combat
+        { "Attack",   { { BT::MouseButton, Mouse::Left }, { BT::Key, Key::J }, { BT::GamepadButton, Gamepad::Y } } },
+        { "Heavy",    { { BT::MouseButton, Mouse::Right }, { BT::Key, Key::K }, { BT::GamepadButton, Gamepad::B } } },
+        { "LockOn",   { { BT::Key, Key::Q }, { BT::Key, Key::LeftControl }, { BT::GamepadButton, Gamepad::RightBumper } } },
+        { "Dodge",    { { BT::Key, Key::C }, { BT::Key, Key::LeftAlt }, { BT::GamepadButton, Gamepad::LeftBumper } } },
         { "Pause",    { { BT::Key, Key::Escape }, { BT::GamepadButton, Gamepad::Start } } },
     };
     axes = {

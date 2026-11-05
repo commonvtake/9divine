@@ -114,9 +114,10 @@ void AnimatorRuntime::EvaluateState(const AnimatorComponent& anim, const Model& 
     if (duration) *duration = blendedDur;
 }
 
-void AnimatorRuntime::Play(AnimatorComponent& anim, const std::string& state, float blend) {
+void AnimatorRuntime::Play(AnimatorComponent& anim, const std::string& state, float blend, bool restart) {
     if (!FindState(anim, state)) return;
-    if (state == currentState) return;
+    if (state == currentState && !restart) return;
+    m_Initialized = true;
     m_PrevState = currentState;
     m_PrevTime = stateTime;
     currentState = state;

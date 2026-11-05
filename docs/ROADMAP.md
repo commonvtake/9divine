@@ -4,7 +4,9 @@ Good next features, roughly from smallest to largest. Each one is a self-contain
 
 ## Next for the demo game
 - [x] **City with doors** – Divine City, interiors, locked doors and keys, survival-horror screen fades.
-- [ ] **Hack-and-slash combat** (Devil May Cry style) – combo strings, launchers and air combos, lock-on, dodge with i-frames, hit-stop and enemy stagger, style ranking.
+- [x] **Hack-and-slash combat** (Devil May Cry style) – combo strings, launchers and air combos, lock-on, dodge with i-frames, hit-stop and enemy stagger, style ranking.
+- [ ] **More weapons and enemies** – a second weapon to switch to mid-combo, a ranged enemy, a boss with phases.
+- [ ] **Animation events** for hit frames and footsteps, instead of hit windows written in seconds.
 - [ ] **Camera zones** – several fixed cameras per room, switched by trigger volumes, with optional tank controls.
 - [ ] **Inventory screen** for collected items and keys.
 

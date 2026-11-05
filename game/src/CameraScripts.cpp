@@ -1,6 +1,7 @@
 // Camera behaviours.
 #include <euphoria/Euphoria.h>
 #include "GameManager.h"
+#include "PlayerCombat.h"
 
 using namespace eu;
 
@@ -45,6 +46,17 @@ public:
             pitch = glm::clamp(pitch, -20.0f, 75.0f);
             distance = glm::clamp(distance - Input::GetAxis("Zoom") * 0.8f, minDistance, maxDistance);
         }
+        // Locked on: swing round behind the player so both they and the target are in view
+        if (PlayerCombat* pc = PlayerCombat::Local())
+            if (Entity lock = pc->LockTarget()) {
+                vec3 away = GetScene().WorldPosition(t) - GetScene().WorldPosition(lock);
+                if (glm::length(vec2(away.x, away.z)) > 1.5f) {   // not when it's overhead (juggling)
+                    float want = glm::degrees(std::atan2(away.x, away.z));
+                    float diff = std::remainder(want - yaw, 360.0f);
+                    yaw += diff * (1.0f - std::exp(-5.0f * dt));
+                    pitch += (14.0f - pitch) * (1.0f - std::exp(-3.0f * dt));
+                }
+            }
         vec3 pivot = GetScene().WorldPosition(t) + vec3(0, height, 0);
         float y = glm::radians(yaw), p = glm::radians(pitch);
         vec3 dir(std::sin(y) * std::cos(p), std::sin(p), std::cos(y) * std::cos(p));

@@ -4,7 +4,12 @@
 
 namespace eu {
 
-ParticleRuntime::ParticleRuntime() {
+ParticleRuntime::ParticleRuntime() { m_Seed = (uint32_t)(uintptr_t)this; }
+
+// GPU resources are made on first draw, so simulation also works without a GL context
+// (headless tests, a dedicated server).
+void ParticleRuntime::EnsureGPU() {
+    if (quad) return;
     // Each emitter owns its quad so its VAO can carry its own instance buffer.
     std::vector<Vertex> v(4);
     v[0].position = { -0.5f, -0.5f, 0 }; v[0].uv = { 0, 0 };
@@ -16,7 +21,6 @@ ParticleRuntime::ParticleRuntime() {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(mat4) * 64, nullptr, GL_STREAM_DRAW);
     quad->AttachInstanceBuffer(vbo);
-    m_Seed = (uint32_t)(uintptr_t)this;
 }
 
 ParticleRuntime::~ParticleRuntime() { if (vbo && g_GLContextAlive) glDeleteBuffers(1, &vbo); }
@@ -83,6 +87,7 @@ void ParticleRuntime::Update(ParticleEmitterComponent& e, const mat4& world, flo
 }
 
 int ParticleRuntime::PrepareDraw(const ParticleEmitterComponent& e, const mat4& world, const vec3& cam) {
+    EnsureGPU();
     if (!e.additive) {
         std::sort(particles.begin(), particles.end(), [&](const Particle& a, const Particle& b) {
             return glm::distance(a.position, cam) > glm::distance(b.position, cam);
