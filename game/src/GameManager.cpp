@@ -108,10 +108,23 @@ void GameManager::OnGUI() {
     }
     // Notifications
     if (m_NoticeTime > 0.0f) {
+        // A message box at the bottom of the screen; '\n' starts a new line.
         float a = std::min(1.0f, m_NoticeTime);
-        float w = UI::MeasureText(m_Notice, 34) + 60;
-        UI::Panel({ { (canvas.x - w) * 0.5f, canvas.y - 190 }, { w, 60 } }, { 0, 0, 0, 0.55f * a });
-        UI::Text({ canvas.x * 0.5f, canvas.y - 178 }, m_Notice, 34, { 1, 1, 1, a }, UI::Align::Center);
+        std::vector<std::string> lines;
+        for (size_t start = 0;;) {
+            size_t nl = m_Notice.find('\n', start);
+            lines.push_back(m_Notice.substr(start, nl == std::string::npos ? std::string::npos : nl - start));
+            if (nl == std::string::npos) break;
+            start = nl + 1;
+        }
+        float w = 0.0f;
+        for (auto& l : lines) w = std::max(w, UI::MeasureText(l, 34));
+        w += 60;
+        float h = 20 + 42.0f * lines.size();
+        float top = canvas.y - 130 - h;
+        UI::Panel({ { (canvas.x - w) * 0.5f, top }, { w, h } }, { 0, 0, 0, 0.6f * a });
+        for (size_t i = 0; i < lines.size(); i++)
+            UI::Text({ canvas.x * 0.5f, top + 12 + 42.0f * i }, lines[i], 34, i == 0 ? vec4(1, 1, 1, a) : vec4(1.0f, 0.85f, 0.5f, a), UI::Align::Center);
     }
     // Crosshair dot
     if (!m_Paused) UI::Panel({ canvas * 0.5f - vec2(3), { 6, 6 } }, { 1, 1, 1, 0.6f });

@@ -155,6 +155,7 @@ void EditorApp::StopPlay() {
     Input::SetCursorMode(CursorMode::Normal);
     Time::SetScale(1.0f);
     Audio::StopAll();
+    Scene::EndPlaySession();
     UpdateTitle();
 }
 

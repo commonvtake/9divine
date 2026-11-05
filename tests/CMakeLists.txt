@@ -1,5 +1,6 @@
 add_executable(EuphoriaTests EngineTests.cpp)
-target_link_libraries(EuphoriaTests PRIVATE EuphoriaEngine)
+# The game's scripts are linked in too, so gameplay systems (doors, interaction) get tested.
+target_link_libraries(EuphoriaTests PRIVATE EuphoriaEngine EuphoriaGame)
 if(MSVC)
     target_compile_options(EuphoriaTests PRIVATE /utf-8)
 endif()

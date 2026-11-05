@@ -16,6 +16,7 @@ public:
     void Reflect(eu::FieldVisitor& v) override;
     void OnCreate() override;
     void OnUpdate(float dt) override;
+    void OnGUI() override;
 
     void TakeDamage(float amount, const eu::vec3& from);
     void Heal(float amount) { health = std::min(maxHealth, health + amount); }
@@ -29,4 +30,5 @@ private:
     bool m_Dead = false;
     float m_AirTime = 0.0f;         // seconds since last on the ground
     eu::vec3 m_LastPos{ 0.0f };
+    uint64_t m_Focus = 0;           // interactable in front of us (prompt + Interact action)
 };

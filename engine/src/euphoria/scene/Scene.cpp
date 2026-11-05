@@ -11,6 +11,9 @@
 #include "euphoria/particles/Particles.h"
 #include "euphoria/renderer/Renderer.h"
 #include "euphoria/ui/GameUI.h"
+#include "euphoria/ui/ScreenFade.h"
+#include "euphoria/save/SaveGame.h"
+#include "euphoria/core/Application.h"
 #include "euphoria/net/Network.h"
 #include "euphoria/core/Profiler.h"
 #include "euphoria/core/Log.h"
@@ -282,6 +285,11 @@ void Scene::OnRuntimeStop() {
     m_Running = false;
 }
 
+void Scene::EndPlaySession() {
+    ScreenFade::Reset();
+    SaveGame::Clear();   // session state (items, unlocked doors) must not leak into the next play
+}
+
 template <typename Fn>
 static void ForEachScript(Registry& reg, Scene* scene, Fn&& fn) {
     reg.View<ScriptComponent>([&](EntityId id, ScriptComponent& sc) {
@@ -533,6 +541,7 @@ void Scene::RenderGameUI(int w, int h, const vec2& mouse, bool mouseDown, bool m
         ForEachScript(m_Registry, this, [&](ScriptInstance&, ScriptableEntity& inst) { inst.OnGUI(); });
         for (auto& name : clicked)
             ForEachScript(m_Registry, this, [&](ScriptInstance&, ScriptableEntity& inst) { inst.OnUIButton(name); });
+        ScreenFade::UpdateAndDraw(Time::UnscaledDelta());   // on top of everything
     }
     UI::EndFrame();
 }
