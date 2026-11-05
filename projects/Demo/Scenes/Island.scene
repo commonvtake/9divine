@@ -35,7 +35,7 @@
      1.0
     ]
    },
-   "uuid": 241143901807906589
+   "uuid": 9702878610737066055
   },
   {
    "active": true,
@@ -96,7 +96,7 @@
      1.0
     ]
    },
-   "uuid": 16281281676016109800
+   "uuid": 8180102574977745565
   },
   {
    "active": true,
@@ -121,7 +121,7 @@
      1.0
     ]
    },
-   "uuid": 599559174757702073,
+   "uuid": 5023623040110576750,
    "water": {
     "deepColor": [
      0.029999999329447746,
@@ -173,8 +173,8 @@
     {
      "class": "PlayerController",
      "fields": {
-      "Camera": 8604685762247772859,
-      "Model": 1215907377766444027,
+      "Camera": 9606872190341819806,
+      "Model": 299683635020465143,
       "Move Speed": 3.5,
       "Sprint Speed": 7.0
      }
@@ -209,7 +209,7 @@
      1.0
     ]
    },
-   "uuid": 5949300380927347846
+   "uuid": 9230377134319860870
   },
   {
    "active": true,
@@ -303,8 +303,8 @@
      0.0
     ],
     "mesh": "Models/Hero/Hero.glb",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "toon": {
@@ -333,7 +333,7 @@
    "name": "PlayerModel",
    "tag": "Untagged",
    "transform": {
-    "parent": 5949300380927347846,
+    "parent": 9230377134319860870,
     "position": [
      0.0,
      0.0,
@@ -351,7 +351,7 @@
      1.0
     ]
    },
-   "uuid": 1215907377766444027
+   "uuid": 299683635020465143
   },
   {
    "active": true,
@@ -369,7 +369,7 @@
      "class": "ThirdPersonCamera",
      "fields": {
       "Distance": 6.5,
-      "Target": 5949300380927347846
+      "Target": 9230377134319860870
      }
     }
    ],
@@ -393,7 +393,7 @@
      1.0
     ]
    },
-   "uuid": 8604685762247772859
+   "uuid": 9606872190341819806
   },
   {
    "active": true,
@@ -411,8 +411,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -459,7 +459,7 @@
      0.3799999952316284
     ]
    },
-   "uuid": 10143267743350518630
+   "uuid": 7003470169265695689
   },
   {
    "active": true,
@@ -509,7 +509,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 10143267743350518630,
+    "parent": 7003470169265695689,
     "position": [
      0.0,
      0.0,
@@ -527,7 +527,7 @@
      1.0
     ]
    },
-   "uuid": 265416445396609278
+   "uuid": 16999240149381251059
   },
   {
    "active": true,
@@ -545,8 +545,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -593,7 +593,7 @@
      0.3799999952316284
     ]
    },
-   "uuid": 9085293107216507078
+   "uuid": 372775363375100902
   },
   {
    "active": true,
@@ -643,7 +643,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 9085293107216507078,
+    "parent": 372775363375100902,
     "position": [
      0.0,
      0.0,
@@ -661,7 +661,7 @@
      1.0
     ]
    },
-   "uuid": 10646815110238683613
+   "uuid": 17794727258989975424
   },
   {
    "active": true,
@@ -679,8 +679,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -727,7 +727,7 @@
      0.3799999952316284
     ]
    },
-   "uuid": 9911789516335560418
+   "uuid": 15055042891614376946
   },
   {
    "active": true,
@@ -777,7 +777,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 9911789516335560418,
+    "parent": 15055042891614376946,
     "position": [
      0.0,
      0.0,
@@ -795,7 +795,7 @@
      1.0
     ]
    },
-   "uuid": 3562444329290844552
+   "uuid": 2204239064003512798
   },
   {
    "active": true,
@@ -813,8 +813,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -861,7 +861,7 @@
      0.3799999952316284
     ]
    },
-   "uuid": 856499833752040437
+   "uuid": 14621918759139735025
   },
   {
    "active": true,
@@ -911,7 +911,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 856499833752040437,
+    "parent": 14621918759139735025,
     "position": [
      0.0,
      0.0,
@@ -929,7 +929,7 @@
      1.0
     ]
    },
-   "uuid": 17929380540601930440
+   "uuid": 14190669522168140964
   },
   {
    "active": true,
@@ -947,8 +947,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -995,7 +995,7 @@
      0.3799999952316284
     ]
    },
-   "uuid": 6108540255457420531
+   "uuid": 581700585193781331
   },
   {
    "active": true,
@@ -1045,7 +1045,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 6108540255457420531,
+    "parent": 581700585193781331,
     "position": [
      0.0,
      0.0,
@@ -1063,7 +1063,7 @@
      1.0
     ]
    },
-   "uuid": 13873996760402277875
+   "uuid": 4748251193553705701
   },
   {
    "active": true,
@@ -1081,8 +1081,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -1129,7 +1129,7 @@
      0.3799999952316284
     ]
    },
-   "uuid": 9769571466327325182
+   "uuid": 10150733817635659360
   },
   {
    "active": true,
@@ -1179,7 +1179,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 9769571466327325182,
+    "parent": 10150733817635659360,
     "position": [
      0.0,
      0.0,
@@ -1197,7 +1197,7 @@
      1.0
     ]
    },
-   "uuid": 5926592171987213413
+   "uuid": 13550757471020759977
   },
   {
    "active": true,
@@ -1215,8 +1215,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -1263,7 +1263,7 @@
      0.3799999952316284
     ]
    },
-   "uuid": 14615644655507967484
+   "uuid": 6167509578572324207
   },
   {
    "active": true,
@@ -1313,7 +1313,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 14615644655507967484,
+    "parent": 6167509578572324207,
     "position": [
      0.0,
      0.0,
@@ -1331,7 +1331,7 @@
      1.0
     ]
    },
-   "uuid": 16888373283938159673
+   "uuid": 2674843595843359872
   },
   {
    "active": true,
@@ -1349,8 +1349,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -1397,7 +1397,7 @@
      0.3799999952316284
     ]
    },
-   "uuid": 15842167101952494669
+   "uuid": 11129407078420643823
   },
   {
    "active": true,
@@ -1447,7 +1447,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 15842167101952494669,
+    "parent": 11129407078420643823,
     "position": [
      0.0,
      0.0,
@@ -1465,7 +1465,7 @@
      1.0
     ]
    },
-   "uuid": 6686592777840677279
+   "uuid": 18414145346857981825
   },
   {
    "active": true,
@@ -1483,8 +1483,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -1531,7 +1531,7 @@
      0.3799999952316284
     ]
    },
-   "uuid": 15394356379008953938
+   "uuid": 2302699048917288956
   },
   {
    "active": true,
@@ -1581,7 +1581,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 15394356379008953938,
+    "parent": 2302699048917288956,
     "position": [
      0.0,
      0.0,
@@ -1599,7 +1599,7 @@
      1.0
     ]
    },
-   "uuid": 2140203184952122457
+   "uuid": 15404487183437402311
   },
   {
    "active": true,
@@ -1617,8 +1617,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -1665,7 +1665,7 @@
      0.3799999952316284
     ]
    },
-   "uuid": 2342245365558613300
+   "uuid": 264396647032989984
   },
   {
    "active": true,
@@ -1715,7 +1715,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 2342245365558613300,
+    "parent": 264396647032989984,
     "position": [
      0.0,
      0.0,
@@ -1733,7 +1733,7 @@
      1.0
     ]
    },
-   "uuid": 7056090099719143832
+   "uuid": 5825744737535709467
   },
   {
    "active": true,
@@ -1755,7 +1755,7 @@
     {
      "class": "Campfire",
      "fields": {
-      "Light": 1640389916932705748
+      "Light": 3392052112423179904
      }
     }
    ],
@@ -1779,7 +1779,7 @@
      1.0
     ]
    },
-   "uuid": 12308233314762179737
+   "uuid": 9497300218742899769
   },
   {
    "active": true,
@@ -1797,8 +1797,8 @@
      0.0
     ],
     "mesh": "builtin:cylinder",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -1807,7 +1807,7 @@
    "name": "Log",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      0.0,
      0.15000000596046448,
@@ -1825,7 +1825,7 @@
      0.2199999988079071
     ]
    },
-   "uuid": 2796868187696507239
+   "uuid": 8733003639283034769
   },
   {
    "active": true,
@@ -1843,8 +1843,8 @@
      0.0
     ],
     "mesh": "builtin:cylinder",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -1853,7 +1853,7 @@
    "name": "Log",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      0.0,
      0.15000000596046448,
@@ -1871,7 +1871,7 @@
      0.2199999988079071
     ]
    },
-   "uuid": 13323736179718795053
+   "uuid": 4177327132483116773
   },
   {
    "active": true,
@@ -1889,8 +1889,8 @@
      0.0
     ],
     "mesh": "builtin:cylinder",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -1899,7 +1899,7 @@
    "name": "Log",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      0.0,
      0.15000000596046448,
@@ -1917,7 +1917,7 @@
      0.2199999988079071
     ]
    },
-   "uuid": 17453677577919250570
+   "uuid": 3969621007448205835
   },
   {
    "active": true,
@@ -1935,8 +1935,8 @@
      0.0
     ],
     "mesh": "builtin:cylinder",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -1945,7 +1945,7 @@
    "name": "Log",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      0.0,
      0.15000000596046448,
@@ -1963,7 +1963,7 @@
      0.2199999988079071
     ]
    },
-   "uuid": 13811112467516377620
+   "uuid": 10713701747026887175
   },
   {
    "active": true,
@@ -1981,8 +1981,8 @@
      0.0
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -1991,7 +1991,7 @@
    "name": "Stone",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      0.949999988079071,
      0.10000000149011612,
@@ -2009,7 +2009,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 9464323605052316026
+   "uuid": 14504653789913410582
   },
   {
    "active": true,
@@ -2027,8 +2027,8 @@
      0.0
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2037,7 +2037,7 @@
    "name": "Stone",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      0.6717514395713806,
      0.10000000149011612,
@@ -2055,7 +2055,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 18263014726881449447
+   "uuid": 2954489328694011428
   },
   {
    "active": true,
@@ -2073,8 +2073,8 @@
      0.0
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2083,7 +2083,7 @@
    "name": "Stone",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      -4.15258192276724e-08,
      0.10000000149011612,
@@ -2101,7 +2101,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 4338886380561468947
+   "uuid": 16284935319080168560
   },
   {
    "active": true,
@@ -2119,8 +2119,8 @@
      0.0
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2129,7 +2129,7 @@
    "name": "Stone",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      -0.6717514395713806,
      0.10000000149011612,
@@ -2147,7 +2147,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 4239304830594491161
+   "uuid": 9458558920177262798
   },
   {
    "active": true,
@@ -2165,8 +2165,8 @@
      0.0
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2175,7 +2175,7 @@
    "name": "Stone",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      -0.949999988079071,
      0.10000000149011612,
@@ -2193,7 +2193,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 421078832591031978
+   "uuid": 3900676945304702362
   },
   {
    "active": true,
@@ -2211,8 +2211,8 @@
      0.0
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2221,7 +2221,7 @@
    "name": "Stone",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      -0.6717513203620911,
      0.10000000149011612,
@@ -2239,7 +2239,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 14724993313470264370
+   "uuid": 4727792475493857352
   },
   {
    "active": true,
@@ -2257,8 +2257,8 @@
      0.0
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2267,7 +2267,7 @@
    "name": "Stone",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      1.1328636695395744e-08,
      0.10000000149011612,
@@ -2285,7 +2285,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 5551474010715641885
+   "uuid": 17648314809991634652
   },
   {
    "active": true,
@@ -2303,8 +2303,8 @@
      0.0
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2313,7 +2313,7 @@
    "name": "Stone",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      0.6717516779899597,
      0.10000000149011612,
@@ -2331,7 +2331,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 12907991827250787963
+   "uuid": 8101736775979667341
   },
   {
    "active": true,
@@ -2381,7 +2381,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      0.0,
      0.30000001192092896,
@@ -2399,7 +2399,7 @@
      1.0
     ]
    },
-   "uuid": 1779508673083124296
+   "uuid": 10969822793513794753
   },
   {
    "active": true,
@@ -2449,7 +2449,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      0.0,
      1.2999999523162842,
@@ -2467,7 +2467,7 @@
      1.0
     ]
    },
-   "uuid": 16480502701595384111
+   "uuid": 207963047237690119
   },
   {
    "active": true,
@@ -2517,7 +2517,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      0.0,
      0.5,
@@ -2535,7 +2535,7 @@
      1.0
     ]
    },
-   "uuid": 10585233861588189835
+   "uuid": 4640259746424540099
   },
   {
    "active": true,
@@ -2554,7 +2554,7 @@
    "name": "FireLight",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      0.0,
      1.0,
@@ -2572,7 +2572,7 @@
      1.0
     ]
    },
-   "uuid": 1640389916932705748
+   "uuid": 3392052112423179904
   },
   {
    "active": true,
@@ -2590,7 +2590,7 @@
    "name": "CampfireSound",
    "tag": "Untagged",
    "transform": {
-    "parent": 12308233314762179737,
+    "parent": 9497300218742899769,
     "position": [
      0.0,
      0.0,
@@ -2608,7 +2608,7 @@
      1.0
     ]
    },
-   "uuid": 17749443389244782514
+   "uuid": 14067312944589904318
   },
   {
    "active": true,
@@ -2639,8 +2639,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/stone_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.8500000238418579,
     "texture": "Textures/stone.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2667,7 +2669,7 @@
      0.8999999761581421
     ]
    },
-   "uuid": 17373500974182205256
+   "uuid": 9121119775432972804
   },
   {
    "active": true,
@@ -2698,8 +2700,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/stone_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.8500000238418579,
     "texture": "Textures/stone.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2726,7 +2730,7 @@
      0.8999999761581421
     ]
    },
-   "uuid": 2076588653697070786
+   "uuid": 9156812138058109246
   },
   {
    "active": true,
@@ -2757,8 +2761,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/stone_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.8500000238418579,
     "texture": "Textures/stone.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2785,7 +2791,7 @@
      0.8999999761581421
     ]
    },
-   "uuid": 14291829405495875636
+   "uuid": 11366254763869839650
   },
   {
    "active": true,
@@ -2816,8 +2822,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/stone_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.8500000238418579,
     "texture": "Textures/stone.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2844,7 +2852,7 @@
      0.8999999761581421
     ]
    },
-   "uuid": 5616390187793946556
+   "uuid": 8721151022134918429
   },
   {
    "active": true,
@@ -2875,8 +2883,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/stone_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.8500000238418579,
     "texture": "Textures/stone.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2903,7 +2913,7 @@
      0.8999999761581421
     ]
    },
-   "uuid": 11482441273237845009
+   "uuid": 1664789819889116360
   },
   {
    "active": true,
@@ -2934,8 +2944,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/stone_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.8500000238418579,
     "texture": "Textures/stone.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -2962,7 +2974,7 @@
      0.8999999761581421
     ]
    },
-   "uuid": 16438371565248364216
+   "uuid": 15118057256430456887
   },
   {
    "active": true,
@@ -2993,8 +3005,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/stone_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.8500000238418579,
     "texture": "Textures/stone.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3021,7 +3035,7 @@
      1.100000023841858
     ]
    },
-   "uuid": 17250968911079359630
+   "uuid": 16757742688950179348
   },
   {
    "active": true,
@@ -3052,8 +3066,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/crate_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.699999988079071,
     "texture": "Textures/crate.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3089,7 +3105,7 @@
      1.0
     ]
    },
-   "uuid": 15508571666317052293
+   "uuid": 1623007887986334817
   },
   {
    "active": true,
@@ -3120,8 +3136,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/crate_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.699999988079071,
     "texture": "Textures/crate.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3157,7 +3175,7 @@
      1.0
     ]
    },
-   "uuid": 2543342515430103631
+   "uuid": 3681510927422381481
   },
   {
    "active": true,
@@ -3188,8 +3206,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/crate_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.699999988079071,
     "texture": "Textures/crate.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3225,7 +3245,7 @@
      1.0
     ]
    },
-   "uuid": 18016707506028696710
+   "uuid": 13502208069830830306
   },
   {
    "active": true,
@@ -3256,8 +3276,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/crate_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.699999988079071,
     "texture": "Textures/crate.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3293,7 +3315,7 @@
      1.0
     ]
    },
-   "uuid": 966596699648456847
+   "uuid": 14815280299793920715
   },
   {
    "active": true,
@@ -3324,8 +3346,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/crate_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.699999988079071,
     "texture": "Textures/crate.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3361,7 +3385,7 @@
      1.0
     ]
    },
-   "uuid": 12340225022082781814
+   "uuid": 1999577856028422900
   },
   {
    "active": true,
@@ -3392,8 +3416,10 @@
      0.0
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "normalMap": "Textures/crate_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.699999988079071,
     "texture": "Textures/crate.png",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3429,7 +3455,7 @@
      1.0
     ]
    },
-   "uuid": 11826103879033949503
+   "uuid": 16649339983369208964
   },
   {
    "active": true,
@@ -3447,8 +3473,8 @@
      0.11999999731779099
     ],
     "mesh": "builtin:sphere",
-    "shininess": 64.0,
-    "specular": 0.800000011920929,
+    "metallic": 0.0,
+    "roughness": 0.25,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3481,7 +3507,7 @@
     {
      "class": "EnemyAI",
      "fields": {
-      "Player": 5949300380927347846
+      "Player": 9230377134319860870
      }
     }
    ],
@@ -3514,7 +3540,7 @@
      1.100000023841858
     ]
    },
-   "uuid": 4705787554227577242
+   "uuid": 8133577697386791695
   },
   {
    "active": true,
@@ -3532,8 +3558,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3542,7 +3568,7 @@
    "name": "Eye",
    "tag": "Untagged",
    "transform": {
-    "parent": 4705787554227577242,
+    "parent": 8133577697386791695,
     "position": [
      -0.17000000178813934,
      0.11999999731779099,
@@ -3560,7 +3586,7 @@
      0.11999999731779099
     ]
    },
-   "uuid": 13940083938556629302
+   "uuid": 14612257319575276995
   },
   {
    "active": true,
@@ -3578,8 +3604,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3588,7 +3614,7 @@
    "name": "Eye",
    "tag": "Untagged",
    "transform": {
-    "parent": 4705787554227577242,
+    "parent": 8133577697386791695,
     "position": [
      0.17000000178813934,
      0.11999999731779099,
@@ -3606,7 +3632,7 @@
      0.11999999731779099
     ]
    },
-   "uuid": 14625207589536207589
+   "uuid": 15411428698957225438
   },
   {
    "active": true,
@@ -3624,8 +3650,8 @@
      0.11999999731779099
     ],
     "mesh": "builtin:sphere",
-    "shininess": 64.0,
-    "specular": 0.800000011920929,
+    "metallic": 0.0,
+    "roughness": 0.25,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3658,7 +3684,7 @@
     {
      "class": "EnemyAI",
      "fields": {
-      "Player": 5949300380927347846
+      "Player": 9230377134319860870
      }
     }
    ],
@@ -3691,7 +3717,7 @@
      1.100000023841858
     ]
    },
-   "uuid": 3479171009412990340
+   "uuid": 2528629657414094401
   },
   {
    "active": true,
@@ -3709,8 +3735,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3719,7 +3745,7 @@
    "name": "Eye",
    "tag": "Untagged",
    "transform": {
-    "parent": 3479171009412990340,
+    "parent": 2528629657414094401,
     "position": [
      -0.17000000178813934,
      0.11999999731779099,
@@ -3737,7 +3763,7 @@
      0.11999999731779099
     ]
    },
-   "uuid": 3123443492328508652
+   "uuid": 13312798015961420293
   },
   {
    "active": true,
@@ -3755,8 +3781,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3765,7 +3791,7 @@
    "name": "Eye",
    "tag": "Untagged",
    "transform": {
-    "parent": 3479171009412990340,
+    "parent": 2528629657414094401,
     "position": [
      0.17000000178813934,
      0.11999999731779099,
@@ -3783,7 +3809,7 @@
      0.11999999731779099
     ]
    },
-   "uuid": 1678027726160534103
+   "uuid": 14960719121219418920
   },
   {
    "active": true,
@@ -3801,8 +3827,8 @@
      0.11999999731779099
     ],
     "mesh": "builtin:sphere",
-    "shininess": 64.0,
-    "specular": 0.800000011920929,
+    "metallic": 0.0,
+    "roughness": 0.25,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3835,7 +3861,7 @@
     {
      "class": "EnemyAI",
      "fields": {
-      "Player": 5949300380927347846
+      "Player": 9230377134319860870
      }
     }
    ],
@@ -3868,7 +3894,7 @@
      1.100000023841858
     ]
    },
-   "uuid": 7844097866821874008
+   "uuid": 1613320871489103452
   },
   {
    "active": true,
@@ -3886,8 +3912,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3896,7 +3922,7 @@
    "name": "Eye",
    "tag": "Untagged",
    "transform": {
-    "parent": 7844097866821874008,
+    "parent": 1613320871489103452,
     "position": [
      -0.17000000178813934,
      0.11999999731779099,
@@ -3914,7 +3940,7 @@
      0.11999999731779099
     ]
    },
-   "uuid": 5695021398463262264
+   "uuid": 5888342400130508548
   },
   {
    "active": true,
@@ -3932,8 +3958,8 @@
      0.20000000298023224
     ],
     "mesh": "builtin:sphere",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -3942,7 +3968,7 @@
    "name": "Eye",
    "tag": "Untagged",
    "transform": {
-    "parent": 7844097866821874008,
+    "parent": 1613320871489103452,
     "position": [
      0.17000000178813934,
      0.11999999731779099,
@@ -3960,7 +3986,7 @@
      0.11999999731779099
     ]
    },
-   "uuid": 6649353946272241911
+   "uuid": 11578784740542375551
   },
   {
    "active": true,
@@ -3977,8 +4003,8 @@
     {
      "class": "FoxWanderer",
      "fields": {
-      "Model": 1240239907435295384,
-      "Player": 5949300380927347846
+      "Model": 14297793848660774432,
+      "Player": 9230377134319860870
      }
     }
    ],
@@ -4002,7 +4028,7 @@
      1.0
     ]
    },
-   "uuid": 11228476828468266645
+   "uuid": 18229180322895190457
   },
   {
    "active": true,
@@ -4056,8 +4082,8 @@
      0.0
     ],
     "mesh": "Models/Fox/Fox.glb",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4066,7 +4092,7 @@
    "name": "FoxModel",
    "tag": "Untagged",
    "transform": {
-    "parent": 11228476828468266645,
+    "parent": 18229180322895190457,
     "position": [
      0.0,
      0.0,
@@ -4084,7 +4110,7 @@
      0.008999999612569809
     ]
    },
-   "uuid": 1240239907435295384
+   "uuid": 14297793848660774432
   },
   {
    "active": true,
@@ -4101,8 +4127,8 @@
     {
      "class": "FoxWanderer",
      "fields": {
-      "Model": 10387531244755585429,
-      "Player": 5949300380927347846
+      "Model": 4098251123349237137,
+      "Player": 9230377134319860870
      }
     }
    ],
@@ -4126,7 +4152,7 @@
      1.0
     ]
    },
-   "uuid": 4977000108041027466
+   "uuid": 5276072541130496180
   },
   {
    "active": true,
@@ -4180,8 +4206,8 @@
      0.0
     ],
     "mesh": "Models/Fox/Fox.glb",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4190,7 +4216,7 @@
    "name": "FoxModel",
    "tag": "Untagged",
    "transform": {
-    "parent": 4977000108041027466,
+    "parent": 5276072541130496180,
     "position": [
      0.0,
      0.0,
@@ -4208,7 +4234,7 @@
      0.008999999612569809
     ]
    },
-   "uuid": 10387531244755585429
+   "uuid": 4098251123349237137
   },
   {
    "active": true,
@@ -4225,8 +4251,8 @@
     {
      "class": "FoxWanderer",
      "fields": {
-      "Model": 600412712068587651,
-      "Player": 5949300380927347846
+      "Model": 8894012876492254493,
+      "Player": 9230377134319860870
      }
     }
    ],
@@ -4250,7 +4276,7 @@
      1.0
     ]
    },
-   "uuid": 17371232440746395455
+   "uuid": 1219662174955245390
   },
   {
    "active": true,
@@ -4304,8 +4330,8 @@
      0.0
     ],
     "mesh": "Models/Fox/Fox.glb",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4314,7 +4340,7 @@
    "name": "FoxModel",
    "tag": "Untagged",
    "transform": {
-    "parent": 17371232440746395455,
+    "parent": 1219662174955245390,
     "position": [
      0.0,
      0.0,
@@ -4332,7 +4358,7 @@
      0.008999999612569809
     ]
    },
-   "uuid": 600412712068587651
+   "uuid": 8894012876492254493
   },
   {
    "active": true,
@@ -4383,7 +4409,7 @@
      1.0
     ]
    },
-   "uuid": 11620276513700552787
+   "uuid": 9924649848619546250
   },
   {
    "active": true,
@@ -4401,8 +4427,8 @@
      0.4400000274181366
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4411,7 +4437,7 @@
    "name": "Ring",
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      1.600000023841858,
      1.899999976158142,
@@ -4429,7 +4455,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 9131128622280895729
+   "uuid": 11567257763627048366
   },
   {
    "active": true,
@@ -4447,8 +4473,8 @@
      0.4400000274181366
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4457,7 +4483,7 @@
    "name": "Ring",
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      1.2944272756576538,
      2.840456485748291,
@@ -4475,7 +4501,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 9070764645280053780
+   "uuid": 10682309553715109006
   },
   {
    "active": true,
@@ -4493,8 +4519,8 @@
      0.4400000274181366
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4503,7 +4529,7 @@
    "name": "Ring",
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      0.4944271743297577,
      3.4216904640197754,
@@ -4521,7 +4547,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 15255856326073894652
+   "uuid": 14196352893517237041
   },
   {
    "active": true,
@@ -4539,8 +4565,8 @@
      0.4400000274181366
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4549,7 +4575,7 @@
    "name": "Ring",
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      -0.4944274425506592,
      3.4216904640197754,
@@ -4567,7 +4593,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 8189630429336976616
+   "uuid": 315198714663309906
   },
   {
    "active": true,
@@ -4585,8 +4611,8 @@
      0.4400000274181366
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4595,7 +4621,7 @@
    "name": "Ring",
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      -1.2944272756576538,
      2.840456247329712,
@@ -4613,7 +4639,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 2251030457296793313
+   "uuid": 15719624673817107125
   },
   {
    "active": true,
@@ -4631,8 +4657,8 @@
      0.4400000274181366
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4641,7 +4667,7 @@
    "name": "Ring",
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      -1.600000023841858,
      1.8999998569488525,
@@ -4659,7 +4685,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 1940096699237073162
+   "uuid": 2716723850612242385
   },
   {
    "active": true,
@@ -4677,8 +4703,8 @@
      0.4400000274181366
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4687,7 +4713,7 @@
    "name": "Ring",
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      -1.2944267988204956,
      0.9595431089401245,
@@ -4705,7 +4731,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 1946049374590846647
+   "uuid": 53950792019074736
   },
   {
    "active": true,
@@ -4723,8 +4749,8 @@
      0.4400000274181366
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4733,7 +4759,7 @@
    "name": "Ring",
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      -0.494427353143692,
      0.37830960750579834,
@@ -4751,7 +4777,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 14560628325028907015
+   "uuid": 1325269833389690032
   },
   {
    "active": true,
@@ -4769,8 +4795,8 @@
      0.4400000274181366
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4779,7 +4805,7 @@
    "name": "Ring",
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      0.4944274127483368,
      0.37830960750579834,
@@ -4797,7 +4823,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 2808110315891818998
+   "uuid": 2890397906289618443
   },
   {
    "active": true,
@@ -4815,8 +4841,8 @@
      0.4400000274181366
     ],
     "mesh": "builtin:cube",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4825,7 +4851,7 @@
    "name": "Ring",
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      1.2944271564483643,
      0.9595434665679932,
@@ -4843,7 +4869,7 @@
      0.3499999940395355
     ]
    },
-   "uuid": 17637973143250183379
+   "uuid": 12323856673631310687
   },
   {
    "active": true,
@@ -4861,8 +4887,8 @@
      1.100000023841858
     ],
     "mesh": "builtin:cylinder",
-    "shininess": 32.0,
-    "specular": 0.25,
+    "metallic": 0.0,
+    "roughness": 0.5,
     "texture": "",
     "tiling": 1.0,
     "useModelMaterials": true,
@@ -4871,7 +4897,7 @@
    "name": "Gate",
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      0.0,
      1.899999976158142,
@@ -4889,7 +4915,7 @@
      2.799999952316284
     ]
    },
-   "uuid": 15412380344193637229
+   "uuid": 9790506099540290768
   },
   {
    "active": true,
@@ -4939,7 +4965,7 @@
    },
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      0.0,
      1.899999976158142,
@@ -4957,7 +4983,7 @@
      1.0
     ]
    },
-   "uuid": 14376696157009910689
+   "uuid": 12035150856456911031
   },
   {
    "active": true,
@@ -4976,7 +5002,7 @@
    "name": "PortalLight",
    "tag": "Untagged",
    "transform": {
-    "parent": 11620276513700552787,
+    "parent": 9924649848619546250,
     "position": [
      0.0,
      1.899999976158142,
@@ -4994,7 +5020,7 @@
      1.0
     ]
    },
-   "uuid": 4337365031278343746
+   "uuid": 17282882112628212170
   },
   {
    "active": true,
@@ -5008,8 +5034,8 @@
     {
      "class": "GameManager",
      "fields": {
-      "Player": 5949300380927347846,
-      "Portal": 11620276513700552787,
+      "Player": 9230377134319860870,
+      "Portal": 9924649848619546250,
       "Title": "EMBER ISLE"
      }
     }
@@ -5034,7 +5060,7 @@
      1.0
     ]
    },
-   "uuid": 6927087668103837344
+   "uuid": 8059375732349512754
   },
   {
    "active": true,
@@ -5070,7 +5096,7 @@
      1.0
     ]
    },
-   "uuid": 2455447638998852083
+   "uuid": 6375812907801918818
   },
   {
    "active": true,
@@ -5106,7 +5132,7 @@
      1.0
     ]
    },
-   "uuid": 9667754272531089049
+   "uuid": 734275495332463012
   },
   {
    "active": true,
@@ -5161,7 +5187,7 @@
     "value": 1.0,
     "visible": true
    },
-   "uuid": 18425718285389574564
+   "uuid": 7683088480393142050
   },
   {
    "active": true,
@@ -5216,7 +5242,7 @@
     "value": 1.0,
     "visible": true
    },
-   "uuid": 4498083426384122386
+   "uuid": 17911614981820088863
   },
   {
    "active": true,
@@ -5271,7 +5297,7 @@
     "value": 1.0,
     "visible": true
    },
-   "uuid": 14021882478815965588
+   "uuid": 2485469594128679486
   }
  ],
  "environment": {

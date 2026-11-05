@@ -8,6 +8,9 @@ namespace eu {
 
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, bool dynamic)
     : m_Vertices(vertices), m_Indices(indices) {
+    bool hasTangents = false;
+    for (auto& v : m_Vertices) if (v.tangent != vec4(0.0f)) { hasTangents = true; break; }
+    if (!hasTangents) ComputeTangents(m_Vertices, m_Indices);
     for (auto& v : vertices) {
         m_Bounds.Expand(v.position);
         if (v.weights.x + v.weights.y + v.weights.z + v.weights.w > 0.0f) m_Skinned = true;
@@ -17,10 +20,23 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     glGenBuffers(1, &m_IBO);
     glBindVertexArray(m_VAO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, m_Vertices.size() * sizeof(Vertex), m_Vertices.data(), dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
 
+    // Outline normals live in their own buffer so the main vertex layout stays unchanged.
+    // (Locations 5-8 are reserved for per-instance matrices, 10 for batched entity IDs.)
+    std::vector<vec3> outline = ComputeOutlineNormals(vertices, indices);
+    glGenBuffers(1, &m_OutlineVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_OutlineVBO);
+    glBufferData(GL_ARRAY_BUFFER, outline.size() * sizeof(vec3), outline.data(), GL_STATIC_DRAW);
+    BindVertexLayout();
+    glBindVertexArray(0);
+}
+
+void Mesh::BindVertexLayout() const {
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
     glEnableVertexAttribArray(1);
@@ -31,16 +47,46 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
     glVertexAttribIPointer(3, 4, GL_INT, sizeof(Vertex), (void*)offsetof(Vertex, joints));
     glEnableVertexAttribArray(4);
     glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, weights));
-
-    // Outline normals live in their own buffer so the main vertex layout stays unchanged.
-    // (Locations 5-8 are reserved for per-instance matrices.)
-    std::vector<vec3> outline = ComputeOutlineNormals(vertices, indices);
-    glGenBuffers(1, &m_OutlineVBO);
+    glEnableVertexAttribArray(11);
+    glVertexAttribPointer(11, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
     glBindBuffer(GL_ARRAY_BUFFER, m_OutlineVBO);
-    glBufferData(GL_ARRAY_BUFFER, outline.size() * sizeof(vec3), outline.data(), GL_STATIC_DRAW);
     glEnableVertexAttribArray(9);
     glVertexAttribPointer(9, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), (void*)0);
-    glBindVertexArray(0);
+}
+
+void Mesh::DrawBatch(const mat4* worlds, const int* ids, int count) const {
+    if (count <= 0) return;
+    if (!m_BatchVAO) {
+        glGenVertexArrays(1, &m_BatchVAO);
+        glGenBuffers(1, &m_BatchMatVBO);
+        glGenBuffers(1, &m_BatchIdVBO);
+        glBindVertexArray(m_BatchVAO);
+        BindVertexLayout();
+        glBindBuffer(GL_ARRAY_BUFFER, m_BatchMatVBO);
+        for (int i = 0; i < 4; i++) {
+            glEnableVertexAttribArray(5 + i);
+            glVertexAttribPointer(5 + i, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), (void*)(sizeof(vec4) * i));
+            glVertexAttribDivisor(5 + i, 1);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, m_BatchIdVBO);
+        glEnableVertexAttribArray(10);
+        glVertexAttribIPointer(10, 1, GL_INT, sizeof(int), (void*)0);
+        glVertexAttribDivisor(10, 1);
+    }
+    glBindVertexArray(m_BatchVAO);
+    if (count > m_BatchCapacity) {
+        m_BatchCapacity = std::max(count, m_BatchCapacity * 2);
+        glBindBuffer(GL_ARRAY_BUFFER, m_BatchMatVBO);
+        glBufferData(GL_ARRAY_BUFFER, m_BatchCapacity * sizeof(mat4), nullptr, GL_STREAM_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, m_BatchIdVBO);
+        glBufferData(GL_ARRAY_BUFFER, m_BatchCapacity * sizeof(int), nullptr, GL_STREAM_DRAW);
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, m_BatchMatVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(mat4), worlds);
+    glBindBuffer(GL_ARRAY_BUFFER, m_BatchIdVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(int), ids);
+    glDrawElementsInstanced(GL_TRIANGLES, (GLsizei)m_Indices.size(), GL_UNSIGNED_INT, nullptr, count);
+    Profiler::AddDrawCall((uint64_t)(m_Indices.size() / 3) * count);
 }
 
 Mesh::~Mesh() {
@@ -48,6 +94,11 @@ Mesh::~Mesh() {
     glDeleteBuffers(1, &m_VBO);
     glDeleteBuffers(1, &m_IBO);
     glDeleteBuffers(1, &m_OutlineVBO);
+    if (m_BatchVAO) {
+        glDeleteBuffers(1, &m_BatchMatVBO);
+        glDeleteBuffers(1, &m_BatchIdVBO);
+        glDeleteVertexArrays(1, &m_BatchVAO);
+    }
     glDeleteVertexArrays(1, &m_VAO);
 }
 
@@ -66,10 +117,13 @@ void Mesh::DrawInstanced(int count) const {
 
 void Mesh::Update(const std::vector<Vertex>& vertices) {
     m_Vertices = vertices;
+    bool hasTangents = false;
+    for (auto& v : m_Vertices) if (v.tangent != vec4(0.0f)) { hasTangents = true; break; }
+    if (!hasTangents) ComputeTangents(m_Vertices, m_Indices);
     m_Bounds = AABB();
     for (auto& v : vertices) m_Bounds.Expand(v.position);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(Vertex), vertices.data());
+    glBufferSubData(GL_ARRAY_BUFFER, 0, m_Vertices.size() * sizeof(Vertex), m_Vertices.data());
 }
 
 void Mesh::AttachInstanceBuffer(uint32_t vbo) {
@@ -133,6 +187,33 @@ std::vector<vec3> Mesh::ComputeOutlineNormals(const std::vector<Vertex>& vertice
         out[i] = len > 1e-6f ? s / len : vertices[i].normal;
     }
     return out;
+}
+
+void Mesh::ComputeTangents(std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {
+    std::vector<vec3> tan(vertices.size(), vec3(0.0f)), bit(vertices.size(), vec3(0.0f));
+    for (size_t i = 0; i + 2 < indices.size(); i += 3) {
+        uint32_t i0 = indices[i], i1 = indices[i + 1], i2 = indices[i + 2];
+        if (i0 >= vertices.size() || i1 >= vertices.size() || i2 >= vertices.size()) continue;
+        const Vertex &a = vertices[i0], &b = vertices[i1], &c = vertices[i2];
+        vec3 e1 = b.position - a.position, e2 = c.position - a.position;
+        vec2 d1 = b.uv - a.uv, d2 = c.uv - a.uv;
+        float det = d1.x * d2.y - d2.x * d1.y;
+        if (std::abs(det) < 1e-12f) continue;
+        float r = 1.0f / det;
+        vec3 t = (e1 * d2.y - e2 * d1.y) * r;
+        vec3 bt = (e2 * d1.x - e1 * d2.x) * r;
+        for (uint32_t k : { i0, i1, i2 }) { tan[k] += t; bit[k] += bt; }
+    }
+    for (size_t i = 0; i < vertices.size(); i++) {
+        vec3 n = vertices[i].normal;
+        vec3 t = tan[i] - n * glm::dot(n, tan[i]);           // Gram-Schmidt
+        if (glm::dot(t, t) < 1e-12f) {                         // no UVs: any vector perpendicular to n
+            t = std::abs(n.y) < 0.99f ? glm::cross(vec3(0, 1, 0), n) : glm::cross(vec3(1, 0, 0), n);
+        }
+        t = glm::normalize(t);
+        float w = glm::dot(glm::cross(n, t), bit[i]) < 0.0f ? -1.0f : 1.0f;
+        vertices[i].tangent = vec4(t, w);
+    }
 }
 
 void Mesh::ComputeNormals(std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) {

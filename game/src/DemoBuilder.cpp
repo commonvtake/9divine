@@ -34,6 +34,12 @@ Entity Box(Scene& s, const std::string& name, const vec3& pos, const vec3& size,
     mr.color = color;
     mr.texture = texture;
     mr.tiling = tiling;
+    // Textures that have a generated "_normal" companion get it as a normal map
+    // (see tools/textures/make_normal_map.py).
+    if (texture == "Textures/stone.png" || texture == "Textures/crate.png") {
+        mr.normalMap = texture.substr(0, texture.size() - 4) + "_normal.png";
+        mr.roughness = texture == "Textures/stone.png" ? 0.85f : 0.7f;
+    }
     e.Add<BoxColliderComponent>();
     if (body != BodyType::Static) {
         auto& rb = e.Add<RigidBodyComponent>();
@@ -334,8 +340,7 @@ void BuildIsland(const std::string& path) {
         Entity shade = Mesh(s, "Shade " + std::to_string(++si), "builtin:sphere", p, vec3(1.1f), { 0.16f, 0.12f, 0.22f, 1 });
         shade.Get<TagComponent>().tag = "Enemy";
         shade.Get<MeshRendererComponent>().emissive = { 0.08f, 0.0f, 0.12f };
-        shade.Get<MeshRendererComponent>().specular = 0.8f;
-        shade.Get<MeshRendererComponent>().shininess = 64.0f;
+        shade.Get<MeshRendererComponent>().roughness = 0.25f;   // glossy, wet-looking
         shade.Add<RigidBodyComponent>().type = BodyType::Kinematic;
         shade.Add<SphereColliderComponent>().radius = 0.5f;
         auto& agent = shade.Add<NavAgentComponent>();
@@ -415,8 +420,10 @@ void BuildArena(const std::string& path) {
     for (int i = 0; i < 3; i++) {
         Entity e = Mesh(s, "Showcase", i == 0 ? "builtin:sphere" : i == 1 ? "builtin:capsule" : "builtin:cone", { -6.0f + i * 3.0f, 1.2f, 14 },
                         vec3(1.2f), { 0.9f, 0.4f + i * 0.2f, 0.3f + i * 0.25f, 1 });
-        e.Get<MeshRendererComponent>().specular = 1.0f;
-        e.Get<MeshRendererComponent>().shininess = 96.0f;
+        // Showcase the PBR range: polished metal, brushed metal, glossy plastic
+        auto& smr = e.Get<MeshRendererComponent>();
+        smr.metallic = i < 2 ? 1.0f : 0.0f;
+        smr.roughness = i == 0 ? 0.15f : i == 1 ? 0.45f : 0.2f;
         AddScript(e, "Spinner", { { "Degrees/Second", 40.0f + i * 25.0f }, { "Axis", vec3(0.3f, 1, 0) } });
     }
     // Colored point lights

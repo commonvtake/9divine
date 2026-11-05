@@ -3,6 +3,7 @@
 #include <euphoria/Euphoria.h>
 #include <euphoria/scene/SceneSerializer.h>
 #include <euphoria/core/Json.h>
+#include <euphoria/renderer/RayTracer.h>
 #include <cstdio>
 #include <cmath>
 
@@ -486,6 +487,194 @@ TEST(Locomotion_BuildsController) {
     keep.defaultState = "Mine";
     CHECK(!SetupLocomotion(keep, { "Dance" }));
     CHECK(keep.defaultState == "Mine");
+}
+
+// ---------------------------------------------------------------------- Transform cache
+TEST(Scene_TransformCacheMatchesUncached) {
+    Scene s;
+    Entity root = s.CreateEntity("Root");
+    root.Transform().position = { 5, 0, 0 };
+    root.Transform().SetEulerDegrees({ 0, 45, 0 });
+    Entity mid = s.CreateEntity("Mid");
+    mid.Transform().parent = root.GetUUID();
+    mid.Transform().position = { 0, 2, -1 };
+    mid.Transform().scale = vec3(2.0f);
+    Entity leaf = s.CreateEntity("Leaf");
+    leaf.Transform().parent = mid.GetUUID();
+    leaf.Transform().position = { 1, 0, 0 };
+    Entity loose = s.CreateEntity("Loose");
+    mid.Get<TagComponent>().active = false;
+
+    s.CacheTransforms();
+    for (Entity e : { root, mid, leaf, loose }) {
+        mat4 a = s.WorldMatrix(e), b = s.CachedWorld(e.Id());
+        for (int c = 0; c < 4; c++) for (int r = 0; r < 4; r++) CHECK_NEAR(a[c][r], b[c][r], 1e-5f);
+        CHECK(s.CachedActive(e.Id()) == s.IsActiveInHierarchy(e));
+    }
+    CHECK(!s.CachedActive(leaf.Id()));          // inactive parent hides the child
+
+    // A snapshot: moving the root needs a new CacheTransforms() call
+    root.Transform().position = { -3, 0, 0 };
+    s.CacheTransforms();
+    CHECK_NEAR(s.CachedWorld(leaf.Id())[3].x, s.WorldMatrix(leaf)[3].x, 1e-5f);
+
+    // A parent cycle (corrupt file) must not hang
+    root.Transform().parent = leaf.GetUUID();
+    s.CacheTransforms();
+    CHECK(true);
+}
+
+// ---------------------------------------------------------------------- Ray tracing BVH
+TEST(RayTracing_BVHMatchesBruteForce) {
+    // 2000 random triangles in a 20 m cube; 500 random rays. The BVH must return exactly the
+    // closest hit a brute-force loop finds.
+    uint32_t seed = 12345;
+    auto rnd = [&]() { seed = seed * 1664525u + 1013904223u; return (seed >> 8) / 16777216.0f; };
+    std::vector<vec3> a, b, c;
+    for (int i = 0; i < 2000; i++) {
+        vec3 p(rnd() * 20 - 10, rnd() * 20 - 10, rnd() * 20 - 10);
+        a.push_back(p);
+        b.push_back(p + vec3(rnd() - 0.5f, rnd() - 0.5f, rnd() - 0.5f) * 1.5f);
+        c.push_back(p + vec3(rnd() - 0.5f, rnd() - 0.5f, rnd() - 0.5f) * 1.5f);
+    }
+    BVH bvh;
+    bvh.Build(a, b, c);
+    CHECK(bvh.nodes.size() > 1);
+    CHECK(bvh.triIndex.size() == a.size());
+    CHECK(bvh.Depth() < 40);
+    // Every triangle appears exactly once in the leaves
+    std::vector<int> seen(a.size(), 0);
+    for (auto& n : bvh.nodes)
+        if (n.count) for (uint32_t i = 0; i < n.count; i++) seen[bvh.triIndex[n.leftFirst + i]]++;
+    bool once = true;
+    for (int s : seen) once &= s == 1;
+    CHECK(once);
+
+    int mismatches = 0, hits = 0;
+    for (int r = 0; r < 500; r++) {
+        vec3 o(rnd() * 30 - 15, rnd() * 30 - 15, rnd() * 30 - 15);
+        vec3 d = glm::normalize(vec3(rnd() - 0.5f, rnd() - 0.5f, rnd() - 0.5f));
+        float best = -1.0f;
+        for (size_t t = 0; t < a.size(); t++) {
+            vec3 e1 = b[t] - a[t], e2 = c[t] - a[t], p = glm::cross(d, e2);
+            float det = glm::dot(e1, p);
+            if (std::abs(det) < 1e-9f) continue;
+            vec3 s = o - a[t];
+            float u = glm::dot(s, p) / det;
+            if (u < 0 || u > 1) continue;
+            vec3 q = glm::cross(s, e1);
+            float v = glm::dot(d, q) / det;
+            if (v < 0 || u + v > 1) continue;
+            float h = glm::dot(e2, q) / det;
+            if (h > 1e-5f && (best < 0 || h < best)) best = h;
+        }
+        float got = bvh.Intersect(o, d, a, b, c);
+        if (best > 0) hits++;
+        if ((best < 0) != (got < 0) || (best > 0 && std::abs(best - got) > 1e-4f)) mismatches++;
+    }
+    CHECK(hits > 50);          // the test actually exercises hits
+    CHECK(mismatches == 0);
+}
+
+// ---------------------------------------------------------------------- Events
+TEST(Events_EmitOnInvoke) {
+    EventSystem ev;
+    std::vector<std::string> got;
+    auto id = ev.On("Ping", [&](const Event& e) { got.push_back("ping:" + e.data.value("n", std::string())); });
+    ev.On("*", [&](const Event& e) { got.push_back("any:" + e.name); });
+    ev.Emit("Ping", { { "n", "1" } });
+    CHECK(got.empty());                       // queued, not delivered immediately
+    ev.Update(0.0f);
+    CHECK(got.size() == 2 && got[0] == "ping:1" && got[1] == "any:Ping");
+    CHECK(ev.Log().size() == 1 && ev.Log().back().listeners == 2);
+
+    // Listeners can emit; chains are delivered in the same Update
+    ev.On("A", [&](const Event&) { ev.Emit("B"); });
+    int b = 0;
+    ev.On("B", [&](const Event&) { b++; });
+    ev.Emit("A");
+    ev.Update(0.0f);
+    CHECK(b == 1);
+
+    // Off
+    got.clear();
+    ev.Off(id);
+    ev.Emit("Ping");
+    ev.Update(0.0f);
+    CHECK(got.size() == 1 && got[0] == "any:Ping");
+
+    // Timers
+    int once = 0, rep = 0;
+    ev.Invoke(1.0f, [&] { once++; });
+    auto r = ev.InvokeRepeating(0.5f, 0.5f, [&] { rep++; });
+    ev.Update(0.4f); CHECK(once == 0 && rep == 0);
+    ev.Update(0.2f); CHECK(once == 0 && rep == 1);   // t = 0.6
+    ev.Update(0.5f); CHECK(once == 1 && rep == 2);   // t = 1.1
+    ev.Cancel(r);
+    ev.Update(2.0f); CHECK(once == 1 && rep == 2);
+
+    // OffAll removes an owner's listeners and timers
+    int owned = 0;
+    ev.On("X", [&](const Event&) { owned++; }, UUID(42));
+    ev.Invoke(0.1f, [&] { owned += 10; }, UUID(42));
+    ev.OffAll(UUID(42));
+    ev.Emit("X");
+    ev.Update(1.0f);
+    CHECK(owned == 0);
+}
+
+TEST(Events_TriggerOpensGate) {
+    // The 3D Starter's setup in miniature: a ball tagged Player falls onto a trigger pad,
+    // which emits OpenGate; the gate listens and moves down 3 m over half a second.
+    Scene s;
+    Entity pad = s.CreateEntity("Pad");
+    auto& c = pad.Add<BoxColliderComponent>();
+    c.size = vec3(2.0f);
+    c.isTrigger = true;
+    EventRule step;
+    step.when = TriggerWhen::TriggerEnter;
+    step.tagFilter = "Player";
+    step.action = TriggerDo::EmitEvent;
+    step.param = "OpenGate";
+    step.once = true;
+    pad.Add<EventTriggerComponent>().rules = { step };
+
+    Entity gate = s.CreateEntity("Gate");
+    gate.Transform().position = { 10, 1, 0 };
+    EventRule open;
+    open.when = TriggerWhen::Event;
+    open.whenName = "OpenGate";
+    open.action = TriggerDo::Move;
+    open.vector = { 0, -3, 0 };
+    open.duration = 0.5f;
+    gate.Add<EventTriggerComponent>().rules = { open };
+
+    Entity decoy = s.CreateEntity("Rock");    // wrong tag: must not open the gate
+    decoy.Transform().position = { 0, 2, 0 };
+    decoy.Add<SphereColliderComponent>().radius = 0.25f;
+    decoy.Add<RigidBodyComponent>();
+
+    // Round trip through the serializer, as play mode does
+    json j = SceneSerializer(s).ToJson();
+    Scene play;
+    SceneSerializer(play).FromJson(j);
+    CHECK(play.FindByName("Gate").Get<EventTriggerComponent>().rules.size() == 1);
+    CHECK(play.FindByName("Pad").Get<EventTriggerComponent>().rules[0].tagFilter == "Player");
+    play.OnRuntimeStart();
+    for (int i = 0; i < 60; i++) play.OnUpdateRuntime(1.0f / 60.0f);
+    CHECK_NEAR(play.FindByName("Gate").Transform().position.y, 1.0f, 1e-4f);   // the rock didn't count
+
+    Entity ball = play.CreateEntity("Ball");
+    ball.Get<TagComponent>().tag = "Player";
+    ball.Transform().position = { 0, 3, 0 };
+    ball.Add<SphereColliderComponent>().radius = 0.25f;
+    ball.Add<RigidBodyComponent>();
+    for (int i = 0; i < 120; i++) play.OnUpdateRuntime(1.0f / 60.0f);
+    CHECK_NEAR(play.FindByName("Gate").Transform().position.y, -2.0f, 1e-3f);
+    bool logged = false;
+    for (auto& e : play.Events().Log()) logged |= e.name == "OpenGate" && e.listeners == 1;
+    CHECK(logged);
+    play.OnRuntimeStop();
 }
 
 int main() {

@@ -31,6 +31,12 @@ public:
 private:
     uint32_t m_Program = 0;
     std::string m_Path;
+    // Uniform names are almost always string literals, whose addresses never change, so the
+    // first-level cache is keyed by pointer (no string hashing or allocation per Set* call).
+    // Misses fall back to the by-name map, which is the source of truth.
+    struct PtrSlot { const char* key = nullptr; const char* text = nullptr; int location = -1; };
+    static constexpr size_t kPtrSlots = 64;   // power of two
+    PtrSlot m_PtrCache[kPtrSlots];
     std::unordered_map<std::string, int> m_Locations;
 };
 

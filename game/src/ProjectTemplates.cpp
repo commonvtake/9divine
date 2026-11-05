@@ -116,12 +116,61 @@ void BuildStarterScene(Scene& s, const std::string& title, bool hero) {
     auto& bm = ball.Add<MeshRendererComponent>();
     bm.mesh = "builtin:sphere";
     bm.color = { 0.35f, 0.55f, 0.95f, 1 };
-    bm.specular = 0.8f;
-    bm.shininess = 64.0f;
+    bm.roughness = 0.2f;
     ball.Add<SphereColliderComponent>();
     auto& brb = ball.Add<RigidBodyComponent>();
     brb.mass = 0.6f;
     brb.restitution = 0.5f;
+
+    // Event Trigger example (no code): stepping on the glowing pad emits "OpenGate"; the gate
+    // listens for it and sinks into the ground. Open Window > Event Log while playing to watch.
+    Entity pad = Box(s, "Gate Pad", { 4, 0.03f, -2 }, { 2, 0.06f, 2 }, { 0.3f, 0.9f, 1.0f, 1 });
+    pad.Get<MeshRendererComponent>().emissive = { 0.4f, 1.6f, 2.0f };
+    pad.Get<BoxColliderComponent>().isTrigger = true;
+    pad.Get<BoxColliderComponent>().size = { 1, 30, 1 };   // tall trigger volume above the flat pad
+    {
+        auto& et = pad.Add<EventTriggerComponent>();
+        EventRule step;
+        step.when = TriggerWhen::TriggerEnter;
+        step.tagFilter = "Player";
+        step.action = TriggerDo::EmitEvent;
+        step.param = "OpenGate";
+        step.once = true;
+        EventRule dim;   // the pad goes dark once used
+        dim.when = TriggerWhen::Event;
+        dim.whenName = "OpenGate";
+        dim.action = TriggerDo::SetActive;
+        dim.param = "false";
+        dim.delay = 1.6f;
+        et.rules = { step, dim };
+    }
+    Box(s, "Gate Post L", { -1.8f, 1.5f, -12 }, { 0.5f, 3, 0.5f }, { 0.62f, 0.64f, 0.7f, 1 });
+    Box(s, "Gate Post R", { 1.8f, 1.5f, -12 }, { 0.5f, 3, 0.5f }, { 0.62f, 0.64f, 0.7f, 1 });
+    Entity gate = Box(s, "Gate", { 0, 1.25f, -12 }, { 3.1f, 2.5f, 0.3f }, { 0.85f, 0.45f, 0.25f, 1 });
+    gate.Get<MeshRendererComponent>().metallic = 1.0f;
+    gate.Get<MeshRendererComponent>().roughness = 0.35f;
+    {
+        auto& et = gate.Add<EventTriggerComponent>();
+        EventRule open;
+        open.when = TriggerWhen::Event;
+        open.whenName = "OpenGate";
+        open.action = TriggerDo::Move;
+        open.vector = { 0, -2.6f, 0 };
+        open.duration = 1.5f;
+        open.once = true;
+        EventRule log;
+        log.when = TriggerWhen::Event;
+        log.whenName = "OpenGate";
+        log.action = TriggerDo::Log;
+        log.param = "The gate is opening!";
+        log.once = true;
+        et.rules = { open, log };
+    }
+    Entity prize = Box(s, "Prize", { 0, 0.6f, -15 }, vec3(0.8f), { 1.0f, 0.8f, 0.2f, 1 });
+    prize.Get<MeshRendererComponent>().emissive = { 1.2f, 0.8f, 0.1f };
+    prize.Get<MeshRendererComponent>().metallic = 1.0f;
+    prize.Get<MeshRendererComponent>().roughness = 0.2f;
+    Script(prize, "Spinner", { { "Degrees/Second", 60.0f } });
 
     // Player: physics body + capsule visual (with a nose so you can see where it faces)
     Entity player = s.CreateEntity("Player");

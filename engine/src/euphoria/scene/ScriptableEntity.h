@@ -71,6 +71,20 @@ public:
     void DestroySelf() { GetScene().DestroyEntity(m_Entity); }
     Entity Instantiate(Entity original, const vec3& position);
 
+    // Events & timers (see Events.h). Subscriptions and timers belong to this entity and are
+    // removed automatically when it is destroyed.
+    //   On("PlayerDied", [this](const Event& e) { ... });
+    //   Emit("CoinCollected", { { "value", 5 } });
+    //   Invoke(3.0f, [this] { Respawn(); });
+    EventSystem::Id On(const std::string& event, EventSystem::Handler fn) { return GetScene().Events().On(event, std::move(fn), m_Entity.GetUUID()); }
+    void Emit(const std::string& event, const json& data = json::object()) { GetScene().Events().Emit(event, data, m_Entity.GetUUID()); }
+    EventSystem::Id Invoke(float delay, std::function<void()> fn) { return GetScene().Events().Invoke(delay, std::move(fn), m_Entity.GetUUID()); }
+    EventSystem::Id InvokeRepeating(float delay, float interval, std::function<void()> fn) {
+        return GetScene().Events().InvokeRepeating(delay, interval, std::move(fn), m_Entity.GetUUID());
+    }
+    void CancelInvoke(EventSystem::Id id) { GetScene().Events().Cancel(id); }
+    void Off(EventSystem::Id id) { GetScene().Events().Off(id); }
+
     // Look up another script on the same (or another) entity.
     template <typename T> T* GetScript() { return GetScriptOn<T>(m_Entity); }
     template <typename T> static T* GetScriptOn(Entity e) {

@@ -82,6 +82,7 @@ private:
     void DrawSceneSettings();
     void DrawInputSettings();
     void DrawNetworkPanel();
+    void DrawEventLog();
     void DrawProjectSettings();
     void DrawPopups();
     void SetupDefaultLayout(unsigned int dockspaceId);
@@ -134,7 +135,8 @@ private:
 
     // Panels
     bool m_ShowHierarchy = true, m_ShowInspector = true, m_ShowAssets = true, m_ShowConsole = true;
-    bool m_ShowProfiler = true, m_ShowSceneSettings = true, m_ShowInput = false, m_ShowNetwork = false, m_ShowProject = false;
+    bool m_ShowProfiler = true, m_ShowSceneSettings = true, m_ShowInput = false, m_ShowNetwork = false, m_ShowProject = false, m_ShowEventLog = false;
+    std::string m_EventFilter, m_TestEvent = "OpenGate";
     bool m_ShowDemo = false;
     fs::path m_AssetDir;
     std::string m_AssetFilter;

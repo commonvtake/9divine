@@ -1,5 +1,6 @@
 #include "EditorApp.h"
 #include <euphoria/assets/AssetManager.h>
+#include <euphoria/renderer/RayTracer.h>
 #include <euphoria/renderer/GL.h>
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -159,9 +160,20 @@ void EditorApp::DrawToolbar() {
     flow(viewLabel); if (toolButton(viewLabel, false, "Switch between the game camera and the editor camera")) m_GameView = !m_GameView;
     ImGui::EndDisabled();
 
-    // --- view options (right-aligned when there's room)
-    float viewWidth = buttonWidth("View ...");
+    // --- render mode + view options (right-aligned when there's room)
+    bool& rt = Renderer::Settings().rayTraced;
+    const char* modeLabel = rt ? "Ray Traced" : "Lit";
+    float viewWidth = groupWidth({ modeLabel, "View ..." });
     placeGroup(viewWidth, right - viewWidth);
+    first = true;
+    flow(modeLabel);
+    if (rt) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.55f, 0.35f, 0.15f, 1.0f));
+    if (ImGui::Button(modeLabel)) rt = !rt;
+    if (rt) ImGui::PopStyleColor();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip(rt ? "Path traced: soft shadows, bounce light and reflections.\nRefines while the camera stays still. Click for rasterized."
+                             : "Rasterized (real time). Click to path trace.");
+    flow("View ...");
     if (ImGui::Button("View ...")) ImGui::OpenPopup("ViewOptions");
     if (ImGui::BeginPopup("ViewOptions")) {
         ImGui::Checkbox("Grid", &m_ShowGrid);
@@ -170,6 +182,7 @@ void EditorApp::DrawToolbar() {
         ImGui::Checkbox("Light gizmos", &m_RenderOptions.showLightGizmos);
         ImGui::Checkbox("Game UI", &m_ShowUI);
         ImGui::Checkbox("Stats overlay", &m_ShowStats);
+        ImGui::Checkbox("Batch identical meshes", &Renderer::Settings().batching);
         ImGui::Separator();
         ImGui::SliderFloat("Camera FOV", &m_Camera.fov, 20.0f, 100.0f);
         ImGui::SliderFloat("Fly speed", &m_Camera.flySpeed, 0.5f, 100.0f);
@@ -246,7 +259,11 @@ void EditorApp::DrawViewportWindow() {
         auto& st = Profiler::Stats();
         ImDrawList* dl = ImGui::GetWindowDrawList();
         char buf[256];
-        snprintf(buf, sizeof(buf), "%.0f FPS  %.2f ms\n%u draws  %.1fk tris\n%u entities", st.fps, st.frameMs, st.drawCalls, st.triangles / 1000.0f, st.entities);
+        if (Renderer::Settings().rayTraced)
+            snprintf(buf, sizeof(buf), "%.0f FPS  %.2f ms\nray traced: %d spp\n%.1fk tris traced", st.fps, st.frameMs, st.rtSamples,
+                     RayTracer::TriangleCount() / 1000.0f);
+        else
+            snprintf(buf, sizeof(buf), "%.0f FPS  %.2f ms\n%u draws  %.1fk tris\n%u entities", st.fps, st.frameMs, st.drawCalls, st.triangles / 1000.0f, st.entities);
         ImVec2 tp = m_State == PlayState::Play ? ImVec2(pos.x + avail.x - 180, pos.y + avail.y - 96) : ImVec2(pos.x + 10, pos.y + 10);
         dl->AddRectFilled(ImVec2(tp.x - 6, tp.y - 4), ImVec2(tp.x + 170, tp.y + 58), IM_COL32(0, 0, 0, 120), 4.0f);
         dl->AddText(tp, IM_COL32(230, 235, 240, 255), buf);

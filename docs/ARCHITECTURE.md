@@ -79,25 +79,49 @@ The `game/` target is a CMake **OBJECT library**: with a static library the link
 
 Callbacks: `OnCreate`, `OnStart` (after every script's `OnCreate`, so cross-script lookups work), `OnUpdate`, `OnFixedUpdate` (60 Hz, before physics), `OnLateUpdate` (after physics and animation – used by cameras), collision/trigger enter/exit, `OnGUI`, `OnUIButton`, `OnMessage`, `OnNetworkMessage`, `OnDestroy`.
 
+### Events, timers and Event Triggers
+`scene/Events.cpp`, `Scene::UpdateEventTriggers`
+
+Each scene owns an `EventSystem`: a bus of named events with JSON payloads plus a timer service.
+- **Delivery is deferred.** `Emit` only queues the event. The queue is drained once per frame, after scripts, physics and `OnLateUpdate`, so a listener never runs in the middle of another system's loop, such as during collision dispatch. Events emitted *by* listeners are delivered in the same frame (up to 8 rounds, so two listeners can't ping-pong forever). Listeners can subscribe to `"*"` to hear everything.
+- **Ownership.** `On` / `Invoke` called through a script tag the subscription with the entity's UUID. `Scene::DestroyImmediate` calls `OffAll(uuid)`, so a destroyed enemy's callbacks (which capture `this`) can never fire. Removal during dispatch only marks entries, which are swept after the loop. Iteration is by index, so handlers may subscribe safely.
+- **Timers** run on the scene's scaled game time, so they stop when the game is paused. A repeating timer catches up at most four intervals after a hitch, then skips ahead.
+- **Event Trigger component.** A list of `EventRule`s (*when → do*). Start, timer and input rules are polled after `OnUpdate`. Trigger, collision and exit rules hook into the same physics event loop that calls script callbacks, filtered by tag. Event rules subscribe lazily on their first frame. Actions run immediately or through `Invoke` when they have a delay. Move/Rotate actions become **tweens** (smoothstep, one per target and channel, replaced if re-triggered). Physics re-reads collider transforms every step, so a sinking gate stops blocking as it moves.
+- The **Event Log** window reads the bus's ring buffer of the last 300 events: time, name, sender, listener count (unheard events are highlighted, which usually means a typo) and payload.
+
 ## 5. Rendering
 `renderer/Renderer.cpp`, `assets/shaders/*.glsl`
 
-A **forward renderer** with these passes:
+A **forward renderer** that lights in linear HDR and finishes with a post-processing stack. A frame:
 
-1. **Shadow pass** – one orthographic shadow map for the first directional light. The light frustum is centred in front of the camera and **snapped to whole texels** so shadows don't shimmer as the camera moves. Polygon offset + normal-offset sampling remove acne. Sampling uses hardware depth comparison (`sampler2DShadow`) with a 3×3 PCF kernel and fades out at the map's edge.
-2. **Main pass** into an off-screen framebuffer with two colour attachments: `RGBA8` colour and `R32I` entity IDs (used for mouse picking in the editor).
-   - Procedural sky (fullscreen triangle; view rays reconstructed from the inverse view-projection).
-   - Opaque meshes (Blinn-Phong, up to 8 point lights sorted by distance + 4 spot lights, hemisphere ambient). Skinned meshes use a `SKINNED` shader variant; toon meshes use a `TOON` variant (see below).
-   - Ink outlines for meshes that want them (inverted hull, see below).
-   - Terrain (height/slope based material blend), instanced trees, instanced wind-animated grass with distance fade.
-   - Water (vertex waves with analytic normals, Fresnel, sun glint), alpha-blended.
-   - Particles (instanced billboards, additive or sorted alpha).
-   - Debug lines.
-3. **Game UI** batch on top.
+1. **Prepare** – `Scene::CacheTransforms` resolves every world matrix and active flag once (parents memoized), lights are gathered (8 nearest point lights, 4 spots), and the sky is projected to **spherical harmonics** (below).
+2. **Cascaded shadows** – 1-4 cascades (default 3, out to 150 m) in a depth texture array. The view frustum is split by a 75/25 blend of logarithmic and uniform splits. Each slice is fitted with a **bounding sphere**, which is rotation-invariant, so shadows don't swim as the camera turns, and **snapped to whole texels**, so they don't shimmer as it moves. Casters are culled per cascade, and identical static casters are drawn instanced. Sampling uses hardware comparison (`sampler2DArrayShadow`) with a 16-tap Poisson disk rotated per pixel by interleaved gradient noise, which gives soft edges without banding. Neighbouring cascades are blended over the last 10% of each slice so seams don't show.
+3. **Reflection probe** – an RGBA16F cubemap around the camera, re-captured **one face per frame** (all six on the first frame or after a teleport) with a reduced pass: no grass, particles or outlines, but *with* water. It is double-buffered: faces render into the back cubemap while shaders sample the front, then the two swap and the new one is mip-mapped. Rough surfaces sample blurrier mips.
+4. **Main pass** into an HDR framebuffer (`RGBA16F` color, `R32I` entity IDs for editor picking, depth):
+   - procedural sky (fullscreen triangle; rays from the inverse view-projection);
+   - opaque meshes, **PBR**: Cook-Torrance with GGX, height-correlated Smith visibility and Schlick Fresnel; metallic/roughness factors and textures, tangent-space normal maps (tangents from the file or generated from UVs), occlusion maps. Ambient is split into sky **diffuse** (the SH irradiance) and **specular** (the reflection cubemap with Karis' analytic split-sum BRDF). Variants: `SKINNED`, `TOON`, `BATCHED`;
+   - **automatic batching**: visible, non-skinned renderers whose model and every material setting match (hashed, then compared exactly to rule out collisions) become one instanced draw per sub-mesh. Each mesh owns a separate instancing VAO with per-instance matrices and entity IDs, so picking still works and terrain's own instance buffers are untouched;
+   - ink outlines, terrain (matte PBR), instanced trees, wind-animated grass, water (reflecting the cubemap), particles.
+5. **Post** (`renderer/PostProcess.cpp`):
+   - **SSAO** at half resolution from depth alone (normals reconstructed from depth derivatives, 16 hemisphere samples, range-checked), then a depth-aware 5×5 blur;
+   - **bloom**: soft-knee threshold and Karis average on the first downsample, a 13-tap filter chain down to ~8 px, tent-filter upsampling with additive blending;
+   - **composite**: AO, exposure, bloom, white balance (temperature/tint), contrast in log space around middle grey, the ACES filmic curve (Narkowicz's fit, chosen over the full RRT/ODT because it keeps saturated colors saturated, which matters for cel-shaded characters), saturation, vignette, gamma; luma goes into alpha;
+   - **FXAA** into the target. IDs and depth are then blitted from the HDR buffer, so editor picking and depth-tested debug lines keep working.
 
-Shaders are single files with `#type vertex` / `#type fragment` sections, an `#include` preprocessor and compile-time variants (`SKINNED`, `INSTANCED`, `TOON`) cached per define set. Colours are authored in sRGB and converted to linear in the shader; output goes through ACES tone mapping + gamma.
+Shaders are single files with `#type vertex` / `#type fragment` sections, an `#include` preprocessor and compile-time variants (`SKINNED`, `INSTANCED`, `BATCHED`, `TOON`) cached per define set. `Shader::Location` checks a small pointer-keyed cache before the by-name map, because uniform names are almost always string literals with stable addresses. Colors are authored in sRGB and converted to linear in the shader.
 
 Non-opaque passes mask out the ID attachment with `glColorMaski` so transparent effects never break picking.
+
+**Frustum culling** uses planes extracted from the view-projection matrix (Gribb–Hartmann) and transformed AABBs.
+
+### Ray tracing
+`renderer/RayTracer.cpp`, `assets/shaders/pathtrace.glsl`
+
+**Lit / Ray Traced** swaps the raster passes for a progressive GPU path tracer that works within OpenGL 3.3, so it has no compute shaders and no SSBOs:
+- **Scene → triangles.** Each frame, every mesh is flattened to world space: skinned meshes are posed on the CPU with the animator's bone matrices, terrain carries its procedural colors per vertex (the terrain shader's noise reimplemented in C++), and tree instances and water are expanded too. Textures are reduced to their average color (read from the 1×1 mip), so textured objects keep their tint but not their detail.
+- **BVH.** Binned SAH (12 bins, leaves of ≤ 4 triangles), stored depth-first with the two children adjacent. A unit test checks it against brute force. Triangles (9 texels each), nodes (2 texels) and materials (3 texels) are uploaded as `RGBA32F` **buffer textures**, with integers packed via `floatBitsToInt`.
+- **Shader.** A fullscreen pass traces one path per pixel per frame: a jittered primary ray (accumulated anti-aliasing), stack traversal visiting the nearer child first, then next-event estimation at every bounce for the sun (sampled in a ~1° cone for soft shadows) and every point/spot light, plus GGX half-vector or cosine-weighted diffuse sampling chosen by Fresnel/metalness, and Russian roulette after two bounces. Light units match the rasterizer (a light's color is irradiance/π), so both modes have the same brightness. Fireflies are tamed by **roughness regularization** for light sampling and by clamping indirect contributions.
+- **Accumulation.** Ping-pong RGBA32F targets hold a running mean. Only a real change restarts it: the camera moving > 2 cm or turning > 0.25°, a resolution or sky/fog change, or objects being added or removed. Small drift (a follow camera easing in), flickering lights and moving objects instead clamp the history to a 64-frame moving average, so the still parts keep converging and moving parts don't smear. The shader also writes entity IDs and `gl_FragDepth` of the primary hit, and the result goes through the normal post stack (minus SSAO).
 
 ### Toon shading and outlines
 `assets/shaders/toon.glsl`, `assets/shaders/outline.glsl`
@@ -226,7 +250,8 @@ Copies the player executable (renamed after the project), the engine's shaders a
 Honest list of simplifications – each is a good next project (see [ROADMAP.md](ROADMAP.md)):
 - Rigid bodies don't rotate from collisions (no angular dynamics); box-vs-box uses world-aligned bounds.
 - Navigation is grid based rather than a polygon nav mesh.
-- One shadow-casting light; no PBR or post-processing stack.
+- Only the sun casts shadows (point and spot lights don't); one reflection probe follows the camera, so reflections of nearby objects have parallax error.
+- The path tracer uses average texture colors, skips grass/particles/outlines and restarts accumulation when the camera moves (no reprojection or denoiser).
 - Networking is unreliable-channel snapshots without prediction or lag compensation.
 - FBX import is static meshes only (skinned FBX → convert to glTF).
 - Scripting is C++ only (no hot reload of game code).

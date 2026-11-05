@@ -9,6 +9,7 @@ struct Vertex {
     vec2 uv{ 0.0f };
     ivec4 joints{ 0 };       // skinning: up to 4 bone indices
     vec4 weights{ 0.0f };    // skinning weights
+    vec4 tangent{ 0.0f };    // xyz = tangent, w = bitangent sign; all zero = generate from UVs
 };
 
 // A GPU mesh (VAO + VBO + IBO). CPU copies are kept for physics, picking and terrain editing.
@@ -26,6 +27,11 @@ public:
     // Attach a per-instance buffer of mat4 (locations 5..8) for instanced drawing.
     void AttachInstanceBuffer(uint32_t vbo);
 
+    // Draws `count` copies in one call with per-instance world matrices (locations 5..8) and
+    // entity IDs (location 10, for picking). Uses a separate VAO + buffers owned by the mesh,
+    // so it never disturbs an instance buffer attached with AttachInstanceBuffer.
+    void DrawBatch(const mat4* worlds, const int* entityIds, int count) const;
+
     const std::vector<Vertex>& Vertices() const { return m_Vertices; }
     const std::vector<uint32_t>& Indices() const { return m_Indices; }
     const AABB& Bounds() const { return m_Bounds; }
@@ -33,6 +39,9 @@ public:
     bool IsSkinned() const { return m_Skinned; }
 
     static void ComputeNormals(std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+    // Per-vertex tangents from UV derivatives (accumulated per triangle, then Gram-Schmidt
+    // orthogonalized against the normal). Needed for normal mapping.
+    static void ComputeTangents(std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
 
     // Smoothed normals used to extrude ink outlines (vertex attribute 9). Vertices that share a
     // position - like the split corners of a cube - get one angle-weighted average, so pushing
@@ -41,6 +50,9 @@ public:
 
 private:
     uint32_t m_VAO = 0, m_VBO = 0, m_IBO = 0, m_OutlineVBO = 0;
+    mutable uint32_t m_BatchVAO = 0, m_BatchMatVBO = 0, m_BatchIdVBO = 0;
+    mutable int m_BatchCapacity = 0;
+    void BindVertexLayout() const;      // attributes 0-4 + 9 for the currently bound VAO
     std::vector<Vertex> m_Vertices;
     std::vector<uint32_t> m_Indices;
     AABB m_Bounds;

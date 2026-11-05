@@ -4,7 +4,7 @@
 
 **A 3D game engine and editor written from scratch in C++17 and OpenGL 3.3.**
 
-ECS architecture · Forward renderer with shadows · Toon shading & ink outlines · Physics · Skeletal animation · 3D audio · Terrain & foliage · Navigation & AI · Game UI · Save system · UDP multiplayer · One-click game export
+ECS architecture · PBR + HDR renderer · Cascaded soft shadows · Reflections · Bloom & SSAO · Path tracing mode · Toon shading & ink outlines · Event scripting · Physics · Skeletal animation · 3D audio · Terrain & foliage · Navigation & AI · Game UI · Save system · UDP multiplayer · One-click game export
 
 ![Gameplay](docs/images/gameplay.png)
 
@@ -20,6 +20,18 @@ ECS architecture · Forward renderer with shadows · Toon shading & ink outlines
 | **Editor** – dockable panels, gizmos, mouse picking, undo/redo, asset drag & drop | **Play mode** – run the game inside the editor, stop to restore the scene |
 | ![Animation](docs/images/animation.png) | ![Arena](docs/images/arena.png) |
 | **Skeletal animation** – glTF skins, blend spaces, state machines | **Physics arena** – stacking, ramps, moving platforms, projectiles |
+
+### Graphics
+
+![Graphics](docs/images/graphics.png)
+
+Physically based materials (metallic/roughness, normal maps) lit in HDR, with cascaded soft shadows out to 150 m, ambient light from the sky, a live reflection cubemap for glossy surfaces and water, and a post stack: SSAO, bloom, filmic tone mapping, color grading and FXAA. Identical objects are batched into single instanced draws automatically. All of it is tunable per scene under **Scene Settings → Post Processing**.
+
+### Ray tracing
+
+![Lit vs ray traced](docs/images/raytracing.png)
+
+Click **Lit / Ray Traced** in the viewport toolbar (or press **F4** in a game, or run `euphoria-player --ray-traced`) to switch the same scene to a GPU path tracer. It traces soft shadows, light bouncing between surfaces and true reflections, and refines the longer the camera stays still. It uses the same lights and units as the rasterizer, so the two modes match in brightness.
 
 ### Toon shading
 
@@ -56,12 +68,12 @@ The repository includes **Ember Isle**, a small game built entirely with the eng
 
 | System | What's implemented |
 |---|---|
-| **Rendering** | Forward Blinn-Phong renderer, **toon/cel shading** (banded lighting, tinted shadows, hard specular, rim light) with **inverted-hull ink outlines**, directional light with PCF shadow maps (texel-snapped), 8 point + 4 spot lights, procedural sky, distance fog, ACES tone mapping, frustum culling, GPU skinning, instancing, entity-ID picking buffer |
+| **Rendering** | Forward **PBR** renderer (Cook-Torrance GGX, metallic/roughness, normal/occlusion maps) in **HDR**; **cascaded shadow maps** with soft Poisson PCF; sky lighting via spherical harmonics; time-sliced **reflection cubemap**; post stack with **SSAO, bloom, ACES filmic tone mapping, color grading, FXAA**; **progressive GPU path tracer** (BVH, next-event estimation, accumulation); **toon/cel shading** with **inverted-hull ink outlines**; 8 point + 4 spot lights, procedural sky, fog, frustum culling, **automatic batching** of identical meshes, GPU skinning, entity-ID picking |
 | **Entity Component System** | Custom sparse-set ECS with versioned handles, stable component storage, multi-component views, parent/child hierarchy |
 | **Input** | Keyboard, mouse, up to 4 gamepads, named actions & axes, runtime rebinding with JSON persistence |
 | **Scenes** | Human-readable JSON scenes, scene switching at safe points, deep entity duplication with UUID remapping |
 | **Assets** | glTF/GLB (meshes, materials, skins, animations), OBJ, FBX, PNG/JPG/TGA, WAV/MP3/FLAC; caching and hot reload on file change |
-| **Scripting** | C++ gameplay scripts with lifecycle callbacks (`OnCreate`, `OnUpdate`, `OnFixedUpdate`, `OnLateUpdate`, collision/trigger events, `OnGUI`) and reflected fields editable in the inspector |
+| **Scripting** | C++ gameplay scripts with lifecycle callbacks (`OnCreate`, `OnUpdate`, `OnFixedUpdate`, `OnLateUpdate`, collision/trigger events, `OnGUI`) and reflected fields editable in the inspector; **events and timers** (`On`, `Emit`, `Invoke`); no-code **Event Trigger** rules ("when this happens → do that") and a live **Event Log** |
 | **Physics** | Impulse solver with friction & restitution, sphere and oriented-box colliders, heightfield terrain collision, triggers, raycasts, overlap queries, kinematic bodies, sort-and-sweep broad phase, fixed 60 Hz timestep |
 | **Animation** | Skeletal animation with slerp sampling, cross-fades, 1D blend spaces with phase sync, parameter-driven state machines, root motion, one-click locomotion setup from clip names (Blender/Mixamo) |
 | **Audio** | miniaudio backend, 2D and 3D spatial sound, streamed music, master/music/SFX buses, listener component |
@@ -74,7 +86,7 @@ The repository includes **Ember Isle**, a small game built entirely with the eng
 | **Build / Export** | Packages the runtime, engine data and project into a standalone folder from the editor or the command line |
 | **Save system** | Key/value save slots, checkpoints that snapshot every `Saveable` entity, restore across scene reloads |
 | **Networking** | Client/server over UDP with handshake, timeouts, ping, transform replication with interpolation, remote player spawning, custom JSON messages |
-| **Tests & CI** | 25 headless unit tests (CTest) covering ECS, serialization, physics, terrain, navigation, AI, animation, locomotion setup, input, saves and toon outline normals; GitHub Actions builds on Windows and Linux |
+| **Tests & CI** | 29 headless unit tests (CTest) covering ECS, serialization, transform cache, physics, terrain, navigation, AI, animation, locomotion setup, input, saves, toon outline normals, the ray-tracing BVH and events/triggers; GitHub Actions builds on Windows and Linux |
 
 ## Getting started
 
@@ -134,6 +146,7 @@ A project is a folder with `project.json`, `input.json`, `Scenes/`, `Models/`, `
 | Launch ball (arena) | Left click | RT |
 | Pause menu | Esc | Start |
 | Stats overlay / Screenshot | F3 / F12 | |
+| Toggle ray tracing | F4 | |
 
 ### Editor controls
 | | |
@@ -181,6 +194,29 @@ EU_SCRIPT(Coin)
 
 Then add a **Scripts** component in the inspector and pick `Coin`. See [`game/src`](game/src) for complete examples: a third-person controller, an orbit camera, a state-machine enemy, a behaviour-tree animal, checkpoints and a ball launcher.
 
+### Events and timers
+
+Scripts can talk to each other without holding references, and schedule work for later:
+
+```cpp
+void OnCreate() override {
+    On("OpenGate", [this](const Event&) { Get<MeshRendererComponent>().emissive = vec3(0.0f); });
+    InvokeRepeating(0.0f, 1.0f, [this] { Emit("Tick", { { "time", GetScene().Events().Time() } }); });
+}
+void OnTriggerEnter(Entity other) override {
+    if (other.Get<TagComponent>().tag == "Player") Emit("OpenGate");
+    Invoke(3.0f, [this] { DestroySelf(); });
+}
+```
+
+Events are queued and delivered after scripts and physics have run each frame. A script's listeners and timers are removed automatically when its entity is destroyed.
+
+### Event Triggers (no code)
+
+![Event Trigger](docs/images/events.png)
+
+Add an **Event Trigger** component and build rules in the inspector: *when* (game starts, something enters/exits a trigger, collision, an event, a timer, an input action) → *do* (emit an event, move/rotate something over time, show/hide, destroy, play a sound, send a message, load a scene, log). Rules can have a delay and run once. The **3D Starter** template's glowing pad that lowers a gate is built this way. Open **Window → Event Log** while playing to see every event, who sent it and how many listeners heard it.
+
 ## Architecture
 
 ```mermaid
@@ -217,11 +253,13 @@ flowchart LR
     C --> D[Navigation agents]
     D --> E[Animators]
     E --> F[OnLateUpdate<br/>cameras]
-    F --> G[Particles, audio,<br/>network sync]
+    F --> F2[Events + timers<br/>trigger rules, tweens]
+    F2 --> G[Particles, audio,<br/>network sync]
     G --> H[Deferred destroys]
-    H --> I[Shadow pass]
-    I --> J[Main pass:<br/>sky, opaque, terrain,<br/>foliage, water, particles]
-    J --> K[Game UI]
+    H --> I[Cascaded shadows<br/>+ 1 reflection face]
+    I --> J[HDR main pass:<br/>sky, PBR meshes, terrain,<br/>foliage, water, particles]
+    J --> J2[Post: SSAO, bloom,<br/>tone map, grade, FXAA]
+    J2 --> K[Game UI]
 ```
 
 A deeper walkthrough of each subsystem and the design decisions behind it is in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
@@ -237,6 +275,7 @@ assets/             engine shaders and fonts
 projects/Demo/      the Ember Isle sample project (scenes, models, audio, textures)
 tests/              unit tests
 tools/blender/      the Hero character generator (Blender script / standalone)
+tools/textures/     normal-map generator for the demo textures
 third_party/        vendored libraries
 docs/               architecture notes, roadmap, screenshots
 ```
@@ -254,6 +293,7 @@ docs/               architecture notes, roadmap, screenshots
 | `euphoria-player [projectDir]` | Run a project |
 | `euphoria-player --host [port]` / `--join <ip> [port]` | Start or join multiplayer |
 | `euphoria-player --build-demo <dir>` | Regenerate the sample project |
+| `euphoria-player --ray-traced` | Start in path-traced rendering (F4 toggles) |
 | `--width W --height H --fullscreen --no-vsync` | Window options |
 | `--screenshot file.png --screenshot-frame N` | Save frame N and exit (automated testing) |
 | `--fixed-dt 0.0166` | Advance exactly this many seconds per frame, so screenshots are deterministic |

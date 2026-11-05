@@ -240,6 +240,7 @@ void BuildFoliage(TerrainComponent& t) {
                     }
                     tb.vbo = MakeInstanceVBO(*tb.mesh, xforms);
                     tb.count = (int)xforms.size();
+                    tb.instances = xforms;
                     rt.trees.push_back(tb);
                 }
             } else {
@@ -258,6 +259,7 @@ void BuildFoliage(TerrainComponent& t) {
                 for (auto* tb : { &trunk, &canopy }) {
                     tb->vbo = MakeInstanceVBO(*tb->mesh, xforms);
                     tb->count = (int)xforms.size();
+                    tb->instances = xforms;
                     rt.trees.push_back(*tb);
                 }
             }

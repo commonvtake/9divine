@@ -50,8 +50,12 @@ struct MeshRendererComponent {
     vec4 color{ 1.0f };
     std::string texture;                    // optional albedo texture (project-relative)
     float tiling = 1.0f;
-    float specular = 0.25f;
-    float shininess = 32.0f;
+    // Physically based material (multiplied with the model's own material when used):
+    float metallic = 0.0f;                  // 0 = plastic/wood/skin, 1 = bare metal
+    float roughness = 0.5f;                 // 0 = mirror, 1 = chalk
+    std::string normalMap;                  // optional tangent-space normal map (project-relative)
+    float normalStrength = 1.0f;
+    std::string metallicRoughnessMap;       // optional, glTF packing: G = roughness, B = metallic
     vec3 emissive{ 0.0f };
     bool castShadows = true;
     bool visible = true;
@@ -161,6 +165,49 @@ struct ScriptInstance {
 };
 struct ScriptComponent {
     std::vector<ScriptInstance> scripts;
+};
+
+// ---------------------------------------------------------------- Event Trigger
+// "When this happens -> do that" rules, set up in the inspector without writing code.
+enum class TriggerWhen {
+    Start,           // the game starts
+    TriggerEnter,    // something enters this entity's trigger collider (optionally: with tag)
+    TriggerExit,
+    CollisionEnter,
+    Event,           // a named event is emitted (by scripts or other triggers)
+    Timer,           // every `interval` seconds
+    InputAction,     // an input action (from the project's input map) is pressed
+};
+enum class TriggerDo {
+    EmitEvent,       // emit event `param`
+    Move,            // move target by `vector` (local axes of the world) over `duration`
+    Rotate,          // rotate target by `vector` degrees over `duration`
+    SetActive,       // param: "true", "false" or "toggle"
+    Destroy,
+    PlaySound,       // param: audio clip; plays at the target's position
+    SendMessage,     // calls OnMessage(param) on the target's scripts
+    LoadScene,       // param: scene path
+    Log,             // writes param to the console
+};
+struct EventRule {
+    TriggerWhen when = TriggerWhen::TriggerEnter;
+    std::string whenName;        // event name / input action for Event / InputAction
+    std::string tagFilter;       // Trigger/Collision: only react to entities with this tag (empty = any)
+    float interval = 1.0f;       // Timer period
+    TriggerDo action = TriggerDo::EmitEvent;
+    uint64_t target = 0;         // entity acted on (0 = this entity)
+    std::string param;
+    vec3 vector{ 0.0f };
+    float duration = 1.0f;       // Move / Rotate
+    float delay = 0.0f;          // wait before acting
+    bool once = false;           // fire at most once per play session
+    // runtime
+    bool fired = false;
+    uint64_t subscription = 0;
+    float timer = 0.0f;
+};
+struct EventTriggerComponent {
+    std::vector<EventRule> rules;
 };
 
 struct AudioSourceComponent {

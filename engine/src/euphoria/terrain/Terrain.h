@@ -24,6 +24,7 @@ public:
         Ref<Texture2D> texture;
         uint32_t vbo = 0;
         int count = 0;
+        std::vector<mat4> instances;    // CPU copy of the instance transforms (ray tracing, queries)
     };
     std::vector<TreeBatch> trees;
 };

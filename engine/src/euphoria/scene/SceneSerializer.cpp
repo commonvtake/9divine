@@ -1,4 +1,5 @@
 #include "euphoria/scene/SceneSerializer.h"
+#include "euphoria/assets/Model.h"
 #include "euphoria/scene/ScriptableEntity.h"
 #include "euphoria/ai/Navigation.h"
 #include "euphoria/core/FileSystem.h"
@@ -21,6 +22,8 @@ const char* kParamTypes[] = { "Float", "Bool", "Trigger" };
 const char* kCondOps[] = { "Greater", "Less", "IsTrue", "IsFalse", "Trigger" };
 const char* kShapes[] = { "Point", "Sphere", "Box" };
 const char* kUITypes[] = { "Panel", "Text", "Button", "ProgressBar", "Image" };
+const char* kTriggerWhen[] = { "Start", "TriggerEnter", "TriggerExit", "CollisionEnter", "Event", "Timer", "InputAction" };
+const char* kTriggerDo[] = { "EmitEvent", "Move", "Rotate", "SetActive", "Destroy", "PlaySound", "SendMessage", "LoadScene", "Log" };
 const char* kAnchors[] = { "TopLeft", "Top", "TopRight", "Left", "Center", "Right", "BottomLeft", "Bottom", "BottomRight" };
 } // namespace
 
@@ -37,8 +40,10 @@ json SceneSerializer::SerializeEntity(Entity e) {
 
     if (auto* c = e.TryGet<MeshRendererComponent>()) {
         j["meshRenderer"] = { { "mesh", c->mesh }, { "useModelMaterials", c->useModelMaterials }, { "color", c->color }, { "texture", c->texture },
-                              { "tiling", c->tiling }, { "specular", c->specular }, { "shininess", c->shininess }, { "emissive", c->emissive },
+                              { "tiling", c->tiling }, { "metallic", c->metallic }, { "roughness", c->roughness }, { "emissive", c->emissive },
                               { "castShadows", c->castShadows }, { "visible", c->visible } };
+        if (!c->normalMap.empty()) { j["meshRenderer"]["normalMap"] = c->normalMap; j["meshRenderer"]["normalStrength"] = c->normalStrength; }
+        if (!c->metallicRoughnessMap.empty()) j["meshRenderer"]["metallicRoughnessMap"] = c->metallicRoughnessMap;
         // Only written when used, so existing scene files stay unchanged.
         if (c->toon || c->outline)
             j["meshRenderer"]["toon"] = { { "enabled", c->toon }, { "bands", c->toonBands }, { "softness", c->toonSoftness },
@@ -120,6 +125,14 @@ json SceneSerializer::SerializeEntity(Entity e) {
         j["network"] = { { "owner", c->owner }, { "syncTransform", c->syncTransform }, { "interpolate", c->interpolate } };
     if (auto* c = e.TryGet<SaveableComponent>())
         j["saveable"] = { { "transform", c->saveTransform }, { "scripts", c->saveScripts }, { "active", c->saveActive } };
+    if (auto* c = e.TryGet<EventTriggerComponent>()) {
+        json rules = json::array();
+        for (auto& r : c->rules)
+            rules.push_back({ { "when", EnumStr(r.when, kTriggerWhen) }, { "whenName", r.whenName }, { "tag", r.tagFilter },
+                              { "interval", r.interval }, { "do", EnumStr(r.action, kTriggerDo) }, { "target", r.target },
+                              { "param", r.param }, { "vector", r.vector }, { "duration", r.duration }, { "delay", r.delay }, { "once", r.once } });
+        j["eventTrigger"] = { { "rules", rules } };
+    }
     return j;
 }
 
@@ -153,8 +166,13 @@ Entity SceneSerializer::DeserializeEntity(Scene& scene, const json& j, std::unor
         c.color = JGet(jc, "color", c.color);
         c.texture = JGet<std::string>(jc, "texture", "");
         c.tiling = JGet(jc, "tiling", c.tiling);
-        c.specular = JGet(jc, "specular", c.specular);
-        c.shininess = JGet(jc, "shininess", c.shininess);
+        c.metallic = JGet(jc, "metallic", c.metallic);
+        // Scenes saved before PBR have "shininess" instead of "roughness": convert it.
+        if (jc.contains("roughness")) c.roughness = JGet(jc, "roughness", c.roughness);
+        else if (jc.contains("shininess")) c.roughness = RoughnessFromShininess(JGet(jc, "shininess", 32.0f));
+        c.normalMap = JGet<std::string>(jc, "normalMap", "");
+        c.normalStrength = JGet(jc, "normalStrength", c.normalStrength);
+        c.metallicRoughnessMap = JGet<std::string>(jc, "metallicRoughnessMap", "");
         c.emissive = JGet(jc, "emissive", c.emissive);
         c.castShadows = JGet(jc, "castShadows", c.castShadows);
         c.visible = JGet(jc, "visible", c.visible);
@@ -376,6 +394,25 @@ Entity SceneSerializer::DeserializeEntity(Scene& scene, const json& j, std::unor
         c.saveScripts = JGet(jc, "scripts", true);
         c.saveActive = JGet(jc, "active", true);
     }
+    if (j.contains("eventTrigger")) {
+        auto& c = e.Add<EventTriggerComponent>();
+        for (auto& jr : j["eventTrigger"].value("rules", json::array())) {
+            EventRule r;
+            r.when = EnumFrom(jr, "when", r.when, kTriggerWhen);
+            r.whenName = JGet<std::string>(jr, "whenName", "");
+            r.tagFilter = JGet<std::string>(jr, "tag", "");
+            r.interval = JGet(jr, "interval", r.interval);
+            r.action = EnumFrom(jr, "do", r.action, kTriggerDo);
+            r.target = JGet<uint64_t>(jr, "target", 0);
+            if (remap && r.target && remap->count(r.target)) r.target = (*remap)[r.target];   // duplicated hierarchies
+            r.param = JGet<std::string>(jr, "param", "");
+            r.vector = JGet(jr, "vector", r.vector);
+            r.duration = JGet(jr, "duration", r.duration);
+            r.delay = JGet(jr, "delay", r.delay);
+            r.once = JGet(jr, "once", r.once);
+            c.rules.push_back(r);
+        }
+    }
     return e;
 }
 
@@ -387,6 +424,10 @@ json SceneSerializer::ToJson() {
     j["environment"] = { { "skyTop", env.skyTop }, { "skyHorizon", env.skyHorizon }, { "groundColor", env.groundColor },
                          { "ambient", env.ambientIntensity }, { "fog", env.fog }, { "fogColor", env.fogColor }, { "fogDensity", env.fogDensity },
                          { "exposure", env.exposure }, { "gravity", env.gravity } };
+    j["environment"]["post"] = { { "reflections", env.reflectionIntensity }, { "ssao", env.ssaoStrength }, { "ssaoRadius", env.ssaoRadius },
+                                 { "bloom", env.bloomIntensity }, { "bloomThreshold", env.bloomThreshold }, { "contrast", env.contrast },
+                                 { "saturation", env.saturation }, { "temperature", env.temperature }, { "tint", env.tint },
+                                 { "vignette", env.vignette } };
     auto& ns = m_Scene.Nav().settings;
     j["navigation"] = { { "cellSize", ns.cellSize }, { "agentRadius", ns.agentRadius }, { "agentHeight", ns.agentHeight }, { "maxSlope", ns.maxSlope },
                         { "maxStep", ns.maxStep }, { "minWalkableHeight", ns.minWalkableHeight } };
@@ -414,6 +455,19 @@ bool SceneSerializer::FromJson(const json& j) {
         env.fogDensity = JGet(je, "fogDensity", env.fogDensity);
         env.exposure = JGet(je, "exposure", env.exposure);
         env.gravity = JGet(je, "gravity", env.gravity);
+        if (je.contains("post")) {
+            auto& jp = je["post"];
+            env.reflectionIntensity = JGet(jp, "reflections", env.reflectionIntensity);
+            env.ssaoStrength = JGet(jp, "ssao", env.ssaoStrength);
+            env.ssaoRadius = JGet(jp, "ssaoRadius", env.ssaoRadius);
+            env.bloomIntensity = JGet(jp, "bloom", env.bloomIntensity);
+            env.bloomThreshold = JGet(jp, "bloomThreshold", env.bloomThreshold);
+            env.contrast = JGet(jp, "contrast", env.contrast);
+            env.saturation = JGet(jp, "saturation", env.saturation);
+            env.temperature = JGet(jp, "temperature", env.temperature);
+            env.tint = JGet(jp, "tint", env.tint);
+            env.vignette = JGet(jp, "vignette", env.vignette);
+        }
     }
     if (j.contains("navigation")) {
         auto& jn = j["navigation"];

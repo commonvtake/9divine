@@ -85,6 +85,7 @@ void EditorApp::DrawMenuBar() {
         ImGui::MenuItem("Scene Settings", nullptr, &m_ShowSceneSettings);
         ImGui::MenuItem("Input Map", nullptr, &m_ShowInput);
         ImGui::MenuItem("Multiplayer", nullptr, &m_ShowNetwork);
+        ImGui::MenuItem("Event Log", nullptr, &m_ShowEventLog);
         ImGui::MenuItem("Project Settings", nullptr, &m_ShowProject);
         ImGui::Separator();
         ImGui::MenuItem("ImGui Demo", nullptr, &m_ShowDemo);
@@ -381,6 +382,7 @@ void EditorApp::DrawProfiler() {
     if (ImGui::BeginTable("##stats", 2, ImGuiTableFlags_SizingStretchProp)) {
         auto row = [](const char* k, const std::string& v) { ImGui::TableNextColumn(); ImGui::TextDisabled("%s", k); ImGui::TableNextColumn(); ImGui::Text("%s", v.c_str()); };
         row("Draw calls", std::to_string(st.drawCalls));
+        row("Batched objects", std::to_string(st.batchedObjects));
         row("Triangles", std::to_string(st.triangles));
         row("Entities", std::to_string(st.entities));
         row("Physics bodies", std::to_string(st.physicsBodies));
@@ -424,6 +426,32 @@ void EditorApp::DrawSceneSettings() {
             mark(ImGui::ColorEdit3("Fog color", glm::value_ptr(env.fogColor)));
             mark(ImGui::DragFloat("Fog density", &env.fogDensity, 0.0002f, 0.0f, 0.1f, "%.4f"));
         }
+    }
+    if (ImGui::CollapsingHeader("Post Processing", ImGuiTreeNodeFlags_DefaultOpen)) {
+        mark(ImGui::SliderFloat("Reflections", &env.reflectionIntensity, 0.0f, 2.0f));
+        mark(ImGui::SliderFloat("Ambient occlusion", &env.ssaoStrength, 0.0f, 2.0f));
+        if (env.ssaoStrength > 0.0f) mark(ImGui::SliderFloat("AO radius", &env.ssaoRadius, 0.1f, 3.0f));
+        mark(ImGui::SliderFloat("Bloom", &env.bloomIntensity, 0.0f, 0.5f));
+        if (env.bloomIntensity > 0.0f) mark(ImGui::SliderFloat("Bloom threshold", &env.bloomThreshold, 0.0f, 4.0f));
+        ImGui::SeparatorText("Color grading");
+        mark(ImGui::SliderFloat("Contrast", &env.contrast, 0.5f, 1.5f));
+        mark(ImGui::SliderFloat("Saturation", &env.saturation, 0.0f, 2.0f));
+        mark(ImGui::SliderFloat("Temperature", &env.temperature, -1.0f, 1.0f));
+        mark(ImGui::SliderFloat("Tint", &env.tint, -1.0f, 1.0f));
+        mark(ImGui::SliderFloat("Vignette", &env.vignette, 0.0f, 1.0f));
+        auto& rs = Renderer::Settings();
+        ImGui::SeparatorText("Quality (all scenes)");
+        ImGui::SliderInt("Shadow cascades", &rs.shadowCascades, 1, 4);
+        ImGui::SliderFloat("Shadow distance", &rs.shadowDistance, 20.0f, 400.0f);
+        ImGui::SliderFloat("Shadow softness", &rs.shadowSoftness, 0.0f, 4.0f);
+        ImGui::Checkbox("SSAO", &rs.ssao); ImGui::SameLine();
+        ImGui::Checkbox("Bloom##q", &rs.bloom); ImGui::SameLine();
+        ImGui::Checkbox("FXAA", &rs.fxaa); ImGui::SameLine();
+        ImGui::Checkbox("Reflections##q", &rs.reflections);
+        ImGui::SeparatorText("Ray tracing");
+        ImGui::Checkbox("Ray traced", &rs.rayTraced);
+        ImGui::SliderInt("Bounces", &rs.rtMaxBounces, 1, 8);
+        ImGui::SliderInt("Max samples", &rs.rtMaxSamples, 16, 16384);
     }
     if (ImGui::CollapsingHeader("Physics")) mark(ImGui::DragFloat3("Gravity", glm::value_ptr(env.gravity), 0.1f));
     if (ImGui::CollapsingHeader("Navigation")) {
@@ -516,6 +544,54 @@ void EditorApp::DrawInputSettings() {
     if (ImGui::Button("Add Action") && !newName.empty()) { map.actions.push_back({ newName, {} }); newName.clear(); }
     ImGui::SameLine();
     if (ImGui::Button("Add Axis") && !newName.empty()) { map.axes.push_back({ newName, {}, 0.15f }); newName.clear(); }
+    ImGui::End();
+}
+
+// ------------------------------------------------------------------ events
+void EditorApp::DrawEventLog() {
+    ImGui::Begin("Event Log", &m_ShowEventLog);
+    auto scene = ActiveScene();
+    if (!scene) { ImGui::End(); return; }
+    EventSystem& ev = scene->Events();
+    bool playing = m_State == PlayState::Play;
+    ImGui::SetNextItemWidth(160);
+    ImGui::InputTextWithHint("##filter", "Filter", &m_EventFilter);
+    ImGui::SameLine();
+    if (ImGui::Button("Clear")) ev.ClearLog();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!playing);
+    ImGui::SetNextItemWidth(140);
+    ImGui::InputTextWithHint("##emit", "Event name", &m_TestEvent);
+    ImGui::SameLine();
+    if (ImGui::Button("Emit") && !m_TestEvent.empty()) ev.Emit(m_TestEvent);
+    ImGui::EndDisabled();
+    ImGui::TextDisabled(playing ? "%zu timers pending" : "Events appear here while the game runs (Play).", ev.PendingTimers());
+    if (ImGui::BeginTable("events", 5, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable)) {
+        ImGui::TableSetupScrollFreeze(0, 1);
+        ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, 60);
+        ImGui::TableSetupColumn("Event");
+        ImGui::TableSetupColumn("From");
+        ImGui::TableSetupColumn("Heard by", ImGuiTableColumnFlags_WidthFixed, 60);
+        ImGui::TableSetupColumn("Data");
+        ImGui::TableHeadersRow();
+        auto& log = ev.Log();
+        for (auto it = log.rbegin(); it != log.rend(); ++it) {   // newest first
+            if (!m_EventFilter.empty() && it->name.find(m_EventFilter) == std::string::npos) continue;
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn(); ImGui::Text("%.2f", it->time);
+            ImGui::TableNextColumn();
+            if (it->listeners == 0) ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.3f, 1.0f), "%s", it->name.c_str());
+            else ImGui::TextUnformatted(it->name.c_str());
+            if (it->listeners == 0 && ImGui::IsItemHovered()) ImGui::SetTooltip("Nobody is listening for this event");
+            ImGui::TableNextColumn();
+            Entity from = it->sender ? scene->FindByUUID(it->sender) : Entity();
+            if (from) { if (ImGui::Selectable(from.Name().c_str(), false)) Select(from); }
+            else ImGui::TextDisabled("-");
+            ImGui::TableNextColumn(); ImGui::Text("%d", it->listeners);
+            ImGui::TableNextColumn(); ImGui::TextUnformatted(it->data.c_str());
+        }
+        ImGui::EndTable();
+    }
     ImGui::End();
 }
 
