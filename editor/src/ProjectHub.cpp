@@ -397,13 +397,13 @@ void EditorApp::DrawProjectHub() {
     ImGui::Spacing();
     bool sample = templates::SampleAvailable();
     ImGui::BeginDisabled(!sample);
-    if (ImGui::Button("Open Sample: Ember Isle", big)) {
+    if (ImGui::Button("Open Sample: Divine City", big)) {
         fs::path dir = fs::path(EU_SOURCE_DIR) / "projects" / "Demo";
         RequestProjectChange([this, dir] { OpenProject(dir); });
     }
     ImGui::EndDisabled();
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-        ImGui::SetTooltip(sample ? "Opens the bundled demo in place.\nUse New Project > Ember Isle to get your own copy." : "Sample not included in this build");
+        ImGui::SetTooltip(sample ? "Opens the bundled demo in place.\nUse New Project > Divine City to get your own copy." : "Sample not included in this build");
 
     ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 110);
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));

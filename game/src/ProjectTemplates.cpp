@@ -14,8 +14,8 @@ const std::vector<TemplateInfo>& All() {
           "A camera, a sun and a ground plane. Start from scratch." },
         { Template::Starter3D, "starter", "3D Starter",
           "A playable third-person character with camera, physics props, HUD and pause menu." },
-        { Template::Sample, "sample", "Ember Isle (Sample)",
-          "A copy of the full demo game: terrain, AI, animation, audio, two scenes." },
+        { Template::Sample, "sample", "Divine City (Sample)",
+          "A copy of the full demo game: a city with doors and interiors, an island with AI, a physics arena." },
     };
     return list;
 }
@@ -255,7 +255,7 @@ bool CreateProject(const fs::path& dirIn, const std::string& name, Template t, s
     }
 
     if (t == Template::Sample) {
-        if (!SampleAvailable()) { error = "The Ember Isle sample isn't available in this build."; return false; }
+        if (!SampleAvailable()) { error = "The sample project isn't available in this build."; return false; }
         fs::copy(SampleDir(), dir, fs::copy_options::recursive | fs::copy_options::overwrite_existing, ec);
         if (ec) { error = "Couldn't copy the sample: " + ec.message(); return false; }
         auto text = FileSystem::ReadText(dir / "project.json");
@@ -266,7 +266,7 @@ bool CreateProject(const fs::path& dirIn, const std::string& name, Template t, s
         } catch (...) {}
         FileSystem::WriteText(dir / ".gitignore", "Builds/\n");
         if (!Project::Load(dir)) { error = "The copied sample couldn't be loaded."; return false; }
-        EU_INFO("Created project '{}' from the Ember Isle sample in {}", name, dir.string());
+        EU_INFO("Created project '{}' from the sample in {}", name, dir.string());
         return true;
     }
 

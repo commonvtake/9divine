@@ -1,12 +1,15 @@
 {
   "fullscreen": false,
   "inputMap": "input.json",
-  "name": "Ember Isle",
+  "name": "Divine City",
   "scenes": [
+    "Scenes/City.scene",
+    "Scenes/NoodleBar.scene",
+    "Scenes/Apartment.scene",
     "Scenes/Island.scene",
     "Scenes/Arena.scene"
   ],
-  "startScene": "Scenes/Island.scene",
+  "startScene": "Scenes/City.scene",
   "vsync": true,
   "windowHeight": 900,
   "windowWidth": 1600

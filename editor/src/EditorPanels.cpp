@@ -98,7 +98,7 @@ void EditorApp::DrawMenuBar() {
         ImGui::Separator();
         std::error_code sameEc;
         bool isSample = fs::equivalent(Project::Root(), fs::path(EU_SOURCE_DIR) / "projects" / "Demo", sameEc) ||
-                        Project::Info().name == "Ember Isle";
+                        Project::Info().name == "Divine City" || Project::Info().name == "Ember Isle";
         if (ImGui::MenuItem("Rebuild Demo Scenes", nullptr, false, !playing && isSample)) {
             demo::BuildDemoProject(Project::Root());
             OpenScene(Project::Info().startScene);

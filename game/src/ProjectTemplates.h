@@ -18,7 +18,7 @@ struct TemplateInfo {
 
 const std::vector<TemplateInfo>& All();
 bool FromKey(const std::string& key, Template& out);
-bool SampleAvailable();      // the Ember Isle sample ships with the source tree
+bool SampleAvailable();      // the sample project ships with the source tree
 
 // Letters, digits, spaces, '-' and '_' (it becomes a folder name).
 bool IsValidProjectName(const std::string& name, std::string* why = nullptr);

@@ -1,4 +1,5 @@
 #include "DemoBuilder.h"
+#include "DemoKit.h"
 #include <euphoria/Euphoria.h>
 #include "Characters.h"
 #include <euphoria/scene/SceneSerializer.h>
@@ -9,21 +10,19 @@ using namespace eu;
 
 namespace demo {
 
-namespace {
-
-ScriptInstance Script(const std::string& name, json fields = json::object()) {
+static ScriptInstance Script(const std::string& name, json fields = json::object()) {
     ScriptInstance s;
     s.className = name;
     s.fields = std::move(fields);
     return s;
 }
 
-void AddScript(Entity e, const std::string& name, json fields = json::object()) {
+void AddScript(Entity e, const std::string& name, json fields) {
     e.GetOrAdd<ScriptComponent>().scripts.push_back(Script(name, std::move(fields)));
 }
 
-Entity Box(Scene& s, const std::string& name, const vec3& pos, const vec3& size, const vec4& color, const std::string& texture = "",
-           float tiling = 1.0f, BodyType body = BodyType::Static, const vec3& euler = vec3(0.0f)) {
+Entity Box(Scene& s, const std::string& name, const vec3& pos, const vec3& size, const vec4& color, const std::string& texture,
+           float tiling, BodyType body, const vec3& euler) {
     Entity e = s.CreateEntity(name);
     auto& t = e.Transform();
     t.position = pos;
@@ -40,6 +39,19 @@ Entity Box(Scene& s, const std::string& name, const vec3& pos, const vec3& size,
         mr.normalMap = texture.substr(0, texture.size() - 4) + "_normal.png";
         mr.roughness = texture == "Textures/stone.png" ? 0.85f : 0.7f;
     }
+    // City textures (tools/textures/make_city_textures.py) are drawn for world-space UVs
+    // and ship with normal maps; facades also have a lit-windows emissive map.
+    for (const char* t : { "asphalt", "sidewalk", "wood_floor", "facade_brick", "facade_concrete", "facade_tile" })
+        if (texture == std::string("Textures/") + t + ".png") {
+            mr.normalMap = std::string("Textures/") + t + "_normal.png";
+            mr.worldUV = true;
+            if (std::string(t).rfind("facade", 0) == 0) {
+                mr.emissiveMap = std::string("Textures/") + t + "_emissive.png";
+                mr.emissive = vec3(1.5f, 1.35f, 1.15f);
+                mr.roughness = 0.8f;
+            }
+        }
+    if (texture == "Textures/tile_floor.png" || texture == "Textures/wallpaper.png") mr.worldUV = true;
     e.Add<BoxColliderComponent>();
     if (body != BodyType::Static) {
         auto& rb = e.Add<RigidBodyComponent>();
@@ -50,7 +62,7 @@ Entity Box(Scene& s, const std::string& name, const vec3& pos, const vec3& size,
     return e;
 }
 
-Entity Mesh(Scene& s, const std::string& name, const std::string& mesh, const vec3& pos, const vec3& scale, const vec4& color, Entity parent = {}) {
+Entity Mesh(Scene& s, const std::string& name, const std::string& mesh, const vec3& pos, const vec3& scale, const vec4& color, Entity parent) {
     Entity e = s.CreateEntity(name);
     e.Transform().position = pos;
     e.Transform().scale = scale;
@@ -61,7 +73,7 @@ Entity Mesh(Scene& s, const std::string& name, const std::string& mesh, const ve
     return e;
 }
 
-void SetupFoxAnimator(AnimatorComponent& a) {
+static void SetupFoxAnimator(AnimatorComponent& a) {
     a.params = { { "Speed", AnimParamType::Float, 0.0f } };
     AnimState loco;
     loco.name = "Locomotion";
@@ -71,7 +83,7 @@ void SetupFoxAnimator(AnimatorComponent& a) {
     a.defaultState = "Locomotion";
 }
 
-Entity FoxModel(Scene& s, Entity parent, const std::string& name) {
+static Entity FoxModel(Scene& s, Entity parent, const std::string& name) {
     Entity m = s.CreateEntity(name);
     m.Transform().parent = parent.GetUUID();
     m.Transform().scale = vec3(0.012f);
@@ -81,8 +93,6 @@ Entity FoxModel(Scene& s, Entity parent, const std::string& name) {
     SetupFoxAnimator(m.Add<AnimatorComponent>());
     return m;
 }
-
-struct PlayerRig { Entity player, model, camera; };
 
 PlayerRig AddPlayer(Scene& s, const vec3& pos) {
     PlayerRig r;
@@ -155,7 +165,7 @@ void AddControlsCard(Scene& s, const std::string& extra) {
     b.layer = 1;
 }
 
-Entity AddAudio(Scene& s, const std::string& name, const std::string& clip, float volume, bool music, bool spatial, Entity parent = {}) {
+Entity AddAudio(Scene& s, const std::string& name, const std::string& clip, float volume, bool music, bool spatial, Entity parent) {
     Entity e = s.CreateEntity(name);
     if (parent) e.Transform().parent = parent.GetUUID();
     auto& a = e.Add<AudioSourceComponent>();
@@ -211,6 +221,8 @@ Entity AddGameManager(Scene& s, const std::string& title, Entity player, Entity 
     AddScript(gm, "GameManager", { { "Title", title }, { "Player", (uint64_t)player.GetUUID() }, { "Portal", portal ? (uint64_t)portal.GetUUID() : 0 } });
     return gm;
 }
+
+namespace {
 
 // ------------------------------------------------------------------ Island
 void BuildIsland(const std::string& path) {
@@ -448,7 +460,7 @@ void BuildArena(const std::string& path) {
     ball.Add<SphereColliderComponent>();
     AddScript(rig.player, "BallLauncher", { { "Ball Prefab", (uint64_t)ball.GetUUID() }, { "Camera", (uint64_t)rig.camera.GetUUID() } });
 
-    Entity portal = AddPortal(s, { 0, 0, 22 }, "Scenes/Island.scene", { 1.0f, 0.6f, 0.3f, 1.0f });
+    Entity portal = AddPortal(s, { 0, 0, 22 }, "Scenes/City.scene", { 1.0f, 0.6f, 0.3f, 1.0f });
     AddGameManager(s, "PHYSICS ARENA", rig.player, portal);
     AddControlsCard(s, "Left click / RT - launch ball\n");
     AddAudio(s, "Music", "Audio/music.wav", 0.3f, true, false);
@@ -461,9 +473,9 @@ void BuildArena(const std::string& path) {
 bool BuildDemoProject(const fs::path& dir) {
     fs::create_directories(dir / "Scenes");
     json project = {
-        { "name", "Ember Isle" },
-        { "startScene", "Scenes/Island.scene" },
-        { "scenes", { "Scenes/Island.scene", "Scenes/Arena.scene" } },
+        { "name", "Divine City" },
+        { "startScene", "Scenes/City.scene" },
+        { "scenes", { "Scenes/City.scene", "Scenes/NoodleBar.scene", "Scenes/Apartment.scene", "Scenes/Island.scene", "Scenes/Arena.scene" } },
         { "inputMap", "input.json" },
         { "windowWidth", 1600 },
         { "windowHeight", 900 },
@@ -477,6 +489,9 @@ bool BuildDemoProject(const fs::path& dir) {
     FileSystem::WriteText(dir / "input.json", map.ToJson().dump(2));
     BuildIsland("Scenes/Island.scene");
     BuildArena("Scenes/Arena.scene");
+    BuildCity("Scenes/City.scene");
+    BuildNoodleBar("Scenes/NoodleBar.scene");
+    BuildApartment("Scenes/Apartment.scene");
     EU_INFO("Demo project written to {}", dir.string());
     return true;
 }
