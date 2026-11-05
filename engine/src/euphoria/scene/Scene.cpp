@@ -12,6 +12,7 @@
 #include "euphoria/renderer/Renderer.h"
 #include "euphoria/ui/GameUI.h"
 #include "euphoria/ui/ScreenFade.h"
+#include "euphoria/scene/CameraShake.h"
 #include "euphoria/save/SaveGame.h"
 #include "euphoria/core/Application.h"
 #include "euphoria/net/Network.h"
@@ -287,6 +288,8 @@ void Scene::OnRuntimeStop() {
 
 void Scene::EndPlaySession() {
     ScreenFade::Reset();
+    CameraShake::Reset();
+    Time::ClearHitStop();
     SaveGame::Clear();   // session state (items, unlocked doors) must not leak into the next play
 }
 
@@ -399,6 +402,7 @@ void Scene::UpdateAudio() {
 
 void Scene::OnUpdateRuntime(float dt) {
     if (!m_Running) return;
+    CameraShake::Update(Time::UnscaledDelta());
     if (m_Paused) {
         if (m_StepFrames <= 0) { UpdateAudio(); return; }
         m_StepFrames--;
@@ -504,7 +508,9 @@ bool Scene::GetRuntimeCamera(float aspect, mat4& view, mat4& proj, vec3& positio
     Entity cam = PrimaryCamera();
     if (!cam) return false;
     auto& c = cam.Get<CameraComponent>();
-    RenderCamera rc = Renderer::MakeCamera(WorldMatrix(cam), c.fov, aspect, c.nearClip, c.farClip, c.orthographic, c.orthoSize);
+    mat4 world = WorldMatrix(cam);
+    if (m_Running) CameraShake::Apply(world);
+    RenderCamera rc = Renderer::MakeCamera(world, c.fov, aspect, c.nearClip, c.farClip, c.orthographic, c.orthoSize);
     view = rc.view;
     proj = rc.projection;
     position = rc.position;

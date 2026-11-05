@@ -250,6 +250,26 @@ struct AnimatorComponent {
     void SetTrigger(const std::string& n) { if (auto* p = FindParam(n)) p->value = 1.0f; else params.push_back({ n, AnimParamType::Trigger, 1.0f }); }
     float GetFloat(const std::string& n) { auto* p = FindParam(n); return p ? p->value : 0.0f; }
     std::string CurrentState() const { return runtime ? runtime->currentState : defaultState; }
+
+    // For scripts that drive the animator directly (attacks, hit reactions):
+    //   anim.AddClipState("Slash1", "Slash1");      // once, e.g. in OnCreate
+    //   anim.Play("Slash1", 0.06f);                  // cross-fade into it
+    //   if (anim.NormalizedTime() > 0.4f) ...        // where the clip is (0..1)
+    void Play(const std::string& state, float blend = 0.1f, bool restart = false) {
+        if (!runtime) runtime = std::make_shared<AnimatorRuntime>();
+        runtime->Play(*this, state, blend, restart);
+    }
+    void AddClipState(const std::string& name, const std::string& clip, bool loop = false, float stateSpeed = 1.0f) {
+        for (auto& s : states) if (s.name == name) return;
+        AnimState s;
+        s.name = name;
+        s.clip = clip;
+        s.loop = loop;
+        s.speed = stateSpeed;
+        states.push_back(s);
+    }
+    float StateTime() const { return runtime ? runtime->stateTime : 0.0f; }
+    float NormalizedTime() const { return runtime ? runtime->NormalizedTime() : 0.0f; }
 };
 
 struct TerrainComponent {

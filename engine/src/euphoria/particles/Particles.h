@@ -34,6 +34,7 @@ private:
     bool m_Started = false;
     uint32_t m_Seed = 12345;
     float Rand();   // 0..1
+    void EnsureGPU();
 };
 
 namespace ParticlePresets {

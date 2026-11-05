@@ -31,8 +31,25 @@ public:
     static float Scale() { return s_Scale; }
     static void SetScale(float s) { s_Scale = s < 0 ? 0 : s; }
     static uint64_t FrameCount() { return s_Frame; }
+
+    // Hit-stop: run the game at `timeScale` (0 = frozen) for `seconds` of real time, the
+    // brief freeze that gives a sword hit its weight. Overlapping calls keep the longer one.
+    // Real-time things (UI, screen fades, camera shake) keep moving.
+    static void HitStop(float seconds, float timeScale = 0.0f) {
+        if (seconds > s_HitStop) { s_HitStop = seconds; s_HitStopScale = timeScale; }
+    }
+    static bool InHitStop() { return s_HitStop > 0.0f; }
+    static void ClearHitStop() { s_HitStop = 0.0f; }
+    // Advances one frame of real time (the main loop calls this; tests can too).
+    static void Advance(float unscaledDt) {
+        s_Unscaled = unscaledDt;
+        float scale = s_Scale;
+        if (s_HitStop > 0.0f) { scale *= s_HitStopScale; s_HitStop -= unscaledDt; }
+        s_Delta = unscaledDt * scale;
+        s_Elapsed += unscaledDt;
+    }
 private:
-    static float s_Delta, s_Unscaled, s_Scale;
+    static float s_Delta, s_Unscaled, s_Scale, s_HitStop, s_HitStopScale;
     static double s_Elapsed;
     static uint64_t s_Frame;
     friend class Application;
