@@ -78,19 +78,42 @@ uniform sampler2D uNormalMap;      // tangent space; flat 1x1 when unused
 uniform float uNormalScale;        // 0 = ignore the normal map
 uniform sampler2D uMetalRoughMap;  // G = roughness, B = metallic (multiplies the factors)
 uniform sampler2D uOcclusionMap;   // R = ambient occlusion
+uniform sampler2D uEmissiveMap;    // multiplies uEmissive (white 1x1 when unused)
+uniform int uWorldUV;              // 1 = UVs from world position (tiling = repeats per metre)
 uniform vec3 uEmissive;
 uniform int uEntityID;
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out int oID;
+// World-space UVs: project the world position along the surface's dominant axis, so a
+// stretched box (a building) gets evenly sized texture repeats on every face.
+vec2 SurfaceUV() {
+    if (uWorldUV == 0) return vUV * uTiling;
+    vec3 n = abs(normalize(vNormal));
+    vec3 p = vWorldPos * uTiling;
+    if (n.y > n.x && n.y > n.z) return p.xz;
+    return n.x > n.z ? vec2(p.z * sign(vNormal.x), p.y) : vec2(-p.x * sign(vNormal.z), p.y);
+}
+
 void main() {
-    vec4 tex = texture(uAlbedoMap, vUV * uTiling);
+    vec2 uv = SurfaceUV();
+    vec4 tex = texture(uAlbedoMap, uv);
     vec4 base = vec4(ToLinear(uColor.rgb) * ToLinear(tex.rgb), uColor.a * tex.a);
     if (base.a < 0.35) discard;
-    vec2 uv = vUV * uTiling;
     vec3 N = normalize(vNormal);
-    if (uNormalScale > 0.0 && dot(vTangent.xyz, vTangent.xyz) > 1e-8) {
-        vec3 T = normalize(vTangent.xyz - N * dot(N, vTangent.xyz));
-        vec3 B = cross(N, T) * (vTangent.w < 0.0 ? -1.0 : 1.0);
+    if (uNormalScale > 0.0 && (uWorldUV != 0 || dot(vTangent.xyz, vTangent.xyz) > 1e-8)) {
+        vec3 T, B;
+        if (uWorldUV != 0) {
+            // Tangent frame matching SurfaceUV()'s projection
+            vec3 n = abs(N);
+            if (n.y > n.x && n.y > n.z) { T = vec3(1, 0, 0); B = vec3(0, 0, 1); }
+            else if (n.x > n.z) { T = vec3(0, 0, sign(N.x)); B = vec3(0, 1, 0); }
+            else { T = vec3(-sign(N.z), 0, 0); B = vec3(0, 1, 0); }
+            T = normalize(T - N * dot(N, T));
+            B = normalize(B - N * dot(N, B));
+        } else {
+            T = normalize(vTangent.xyz - N * dot(N, vTangent.xyz));
+            B = cross(N, T) * (vTangent.w < 0.0 ? -1.0 : 1.0);
+        }
         vec3 tn = texture(uNormalMap, uv).xyz * 2.0 - 1.0;
         tn.xy *= uNormalScale;
         N = normalize(mat3(T, B, N) * tn);
@@ -105,9 +128,10 @@ void main() {
     float a = roughness * roughness;
     float shininess = clamp(2.0 / max(a * a, 1e-4) - 2.0, 4.0, 512.0);
     float specular = mix(0.5 * (1.0 - roughness), 1.0, metallic);
-    vec3 c = ComputeToonLighting(base.rgb, N, vWorldPos, specular, shininess) * mix(1.0, ao, 0.5) + uEmissive;
+    vec3 emissive = uEmissive * ToLinear(texture(uEmissiveMap, uv).rgb);
+    vec3 c = ComputeToonLighting(base.rgb, N, vWorldPos, specular, shininess) * mix(1.0, ao, 0.5) + emissive;
 #else
-    vec3 c = ComputePBR(base.rgb, metallic, roughness, ao, N, vWorldPos) + uEmissive;
+    vec3 c = ComputePBR(base.rgb, metallic, roughness, ao, N, vWorldPos) + uEmissive * ToLinear(texture(uEmissiveMap, uv).rgb);
 #endif
     c = ApplyFog(c, vWorldPos);
     oColor = vec4(Tonemap(c), 1.0);

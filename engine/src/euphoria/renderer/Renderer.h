@@ -54,6 +54,7 @@ public:
     static RenderSettings& Settings() { return s_Settings; }
     static Ref<Shader> GetShader(const std::string& file, const std::vector<std::string>& defines = {});
     static void ReloadShaders();
+    static void Prewarm();          // compile all shader variants now (done at Init)
 
     // Builds a camera from a CameraComponent-bearing entity's world matrix.
     static RenderCamera MakeCamera(const mat4& world, float fovDeg, float aspect, float nearClip, float farClip, bool ortho = false, float orthoSize = 10.0f);

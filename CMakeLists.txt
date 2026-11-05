@@ -10,6 +10,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# Debug builds of math-heavy code (GLM, the physics solver, the BVH builder) are 10-50x slower
+# than optimized ones, which shows up as low *and uneven* frame rates. For multi-config
+# generators (the Visual Studio solution) inline small functions even in Debug so they stay
+# usable; for real performance use the "release" preset (RelWithDebInfo).
+if(MSVC)
+    string(REPLACE "/Ob0" "/Ob1" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+endif()
+
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()

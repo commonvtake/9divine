@@ -31,6 +31,11 @@ struct ProfileSection {
 // shows up in the editor's Profiler panel and the F3 overlay in games.
 class Profiler {
 public:
+#ifdef NDEBUG
+    static constexpr bool kOptimizedBuild = true;
+#else
+    static constexpr bool kOptimizedBuild = false;    // shown as a warning in the stats overlays
+#endif
     static constexpr int kHistory = 240;
 
     static void BeginFrame();

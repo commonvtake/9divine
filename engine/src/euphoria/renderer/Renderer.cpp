@@ -19,6 +19,7 @@
 #include <map>
 #include <unordered_map>
 #include <cmath>
+#include <chrono>
 
 namespace eu {
 
@@ -94,7 +95,8 @@ struct ReflectionProbe {
     uint32_t cube[2] = { 0, 0 };
     uint32_t fbo = 0, depthRb = 0;
     int size = 0, front = 0, nextFace = 0, mipCount = 1;
-    vec3 capturePos{ 0.0f };
+    vec3 capturePos{ 0.0f }, lastCameraPos{ 0.0f };
+    uint32_t frame = 0;
     bool valid = false;           // front has a complete capture
     void Ensure(int s) {
         if (cube[0] && s == size) return;
@@ -150,8 +152,21 @@ struct ReflectionProbe {
     }
 };
 
+// What each shadow cascade was last rendered with (they're refreshed at different rates).
+struct CascadeState {
+    mat4 mat{ 1.0f };
+    vec3 center{ 0.0f };
+    float radius = 0.0f, texel = 0.0f;
+    bool valid = false;
+};
+
 struct RendererData {
     std::map<std::string, Ref<Shader>> shaders;
+    CascadeState cascadeState[kMaxCascades];
+    uint32_t shadowFrame = 0;
+    vec3 shadowSunDir{ 0.0f };
+    int shadowConfig = 0;
+    bool cascadeUpdate[kMaxCascades] = {};
     // GPU timing: a ring of GL_TIME_ELAPSED queries read a few frames later, so the CPU
     // never waits for the GPU just to measure it.
     static constexpr int kQueries = 4;
@@ -246,6 +261,7 @@ uint64_t BatchKey(const MeshRendererComponent& m) {
     HashMix(h, m.useModelMaterials); HashMix(h, m.color); HashMix(h, m.tiling);
     HashMix(h, m.metallic); HashMix(h, m.roughness); HashMix(h, m.emissive); HashMix(h, m.normalStrength);
     HashMix(h, std::hash<std::string>()(m.normalMap)); HashMix(h, std::hash<std::string>()(m.metallicRoughnessMap));
+    HashMix(h, std::hash<std::string>()(m.emissiveMap)); HashMix(h, m.worldUV);
     HashMix(h, m.toon);
     if (m.toon) {
         HashMix(h, m.toonBands); HashMix(h, m.toonSoftness); HashMix(h, m.toonShadowColor);
@@ -257,6 +273,7 @@ bool SameLook(const MeshRendererComponent& a, const MeshRendererComponent& b) {
     bool same = a.model == b.model && a.texture == b.texture && a.useModelMaterials == b.useModelMaterials &&
                 a.color == b.color && a.tiling == b.tiling && a.metallic == b.metallic && a.roughness == b.roughness &&
                 a.normalMap == b.normalMap && a.normalStrength == b.normalStrength && a.metallicRoughnessMap == b.metallicRoughnessMap &&
+                a.emissiveMap == b.emissiveMap && a.worldUV == b.worldUV &&
                 a.emissive == b.emissive && a.toon == b.toon;
     if (same && a.toon)
         same = a.toonBands == b.toonBands && a.toonSoftness == b.toonSoftness && a.toonShadowColor == b.toonShadowColor &&
@@ -290,6 +307,7 @@ struct Frame {
 struct PassFlags {
     bool ids = true;              // target has an entity-ID attachment at location 1
     bool outlines = true, grass = true, water = true, particles = true;
+    float minAngularSize = 0.0f;  // skip objects smaller than this (radius / distance)
 };
 
 void ApplyLights(Shader& s, const Frame& F, const RenderCamera& cam) {
@@ -363,6 +381,12 @@ void SetupCascades(LightData& L, const RenderCamera& cam) {
     };
     vec3 dir = glm::normalize(L.sunDir);
     vec3 up = std::abs(dir.y) > 0.99f ? vec3(0, 0, 1) : vec3(0, 1, 0);
+    // Any change to the sun or the settings refreshes every cascade at once.
+    int config = count * 1000003 + rs.shadowMapSize * 31 + (int)(rs.shadowDistance * 10.0f);
+    bool forceAll = config != s_Data->shadowConfig || glm::dot(dir, s_Data->shadowSunDir) < 0.99999f;
+    s_Data->shadowConfig = config;
+    s_Data->shadowSunDir = dir;
+    uint32_t frame = s_Data->shadowFrame++;
     float prev = n;
     for (int i = 0; i < count; i++) {
         float t = (i + 1) / (float)count;
@@ -379,17 +403,34 @@ void SetupCascades(LightData& L, const RenderCamera& cam) {
         center /= 8.0f;
         float radius = 0.0f;
         for (auto& c : corners) radius = std::max(radius, glm::length(c - center));
+        // Cascades refreshed less often get 10% slack so the camera can move a little meanwhile.
+        if (i > 0) radius *= 1.1f;
         radius = std::ceil(radius * 16.0f) / 16.0f;
-        mat4 lightView = glm::lookAt(center - dir * (radius + 150.0f), center, up);
-        float texel = 2.0f * radius / rs.shadowMapSize;
-        vec4 lc = lightView * vec4(center, 1.0f);
-        vec2 snapped = glm::floor(vec2(lc) / texel) * texel;
-        lightView = glm::translate(mat4(1.0f), vec3(snapped - vec2(lc), 0.0f)) * lightView;
-        mat4 lightProj = glm::ortho(-radius, radius, -radius, radius, 1.0f, 2.0f * radius + 300.0f);
-        L.cascadeMats[i] = lightProj * lightView;
-        L.cascadeEnds[i] = split;
-        L.cascadeTexel[i] = texel;
         prev = split;
+        L.cascadeEnds[i] = split;
+
+        // Refresh rate: cascade 0 every frame, 1 every other frame, 2 and 3 every 4th (offset
+        // so at most two cascades render in any frame) - plus whenever the view has drifted
+        // far enough that the stale one wouldn't cover it.
+        CascadeState& st = s_Data->cascadeState[i];
+        bool due = i == 0 || (i == 1 && frame % 2 == 0) || (i == 2 && frame % 4 == 1) || (i == 3 && frame % 4 == 3);
+        bool drifted = !st.valid || glm::distance(st.center, center) > st.radius * 0.08f || std::abs(st.radius - radius) > radius * 0.05f;
+        s_Data->cascadeUpdate[i] = forceAll || due || drifted;
+        if (s_Data->cascadeUpdate[i]) {
+            mat4 lightView = glm::lookAt(center - dir * (radius + 150.0f), center, up);
+            float texel = 2.0f * radius / rs.shadowMapSize;
+            vec4 lc = lightView * vec4(center, 1.0f);
+            vec2 snapped = glm::floor(vec2(lc) / texel) * texel;
+            lightView = glm::translate(mat4(1.0f), vec3(snapped - vec2(lc), 0.0f)) * lightView;
+            mat4 lightProj = glm::ortho(-radius, radius, -radius, radius, 1.0f, 2.0f * radius + 300.0f);
+            st.mat = lightProj * lightView;
+            st.center = center;
+            st.radius = radius;
+            st.texel = texel;
+            st.valid = true;
+        }
+        L.cascadeMats[i] = st.mat;
+        L.cascadeTexel[i] = st.texel;
     }
     L.cascadeCount = count;
 }
@@ -417,15 +458,21 @@ void ShadowPass(Frame& F) {
     std::vector<mat4> worlds;
     std::vector<int> ids;
     for (int c = 0; c < F.L.cascadeCount; c++) {
+        if (!s_Data->cascadeUpdate[c]) continue;   // reusing last frame's depth for this one
         C.BindLayer(c);
         glClear(GL_DEPTH_BUFFER_BIT);
         const mat4& ls = F.L.cascadeMats[c];
         Frustum lightFrustum(ls);
+        // Casters smaller than ~2 texels of this cascade can't produce a visible shadow
+        float minRadius = c > 0 ? F.L.cascadeTexel[c] * 2.0f : 0.0f;
         for (auto& [model, group] : groups) {
             worlds.clear();
             ids.clear();
-            for (auto* d : group)
-                if (lightFrustum.Visible(TransformAABB(model->bounds, d->world))) { worlds.push_back(d->world); ids.push_back((int)d->id); }
+            for (auto* d : group) {
+                AABB box = TransformAABB(model->bounds, d->world);
+                if (glm::length(box.Extents()) < minRadius) continue;
+                if (lightFrustum.Visible(box)) { worlds.push_back(d->world); ids.push_back((int)d->id); }
+            }
             if (worlds.empty()) continue;
             if (worlds.size() >= 2 && rs.batching) {
                 shInst->Bind();
@@ -528,6 +575,7 @@ void DrawWorld(Frame& F, const RenderCamera& cam, const PassFlags& flags, int vi
                 s->SetInt("uNormalMap", 1);
                 s->SetInt("uMetalRoughMap", 2);
                 s->SetInt("uOcclusionMap", 3);
+                s->SetInt("uEmissiveMap", 4);
                 bound = s;
             }
             return s;
@@ -541,9 +589,10 @@ void DrawWorld(Frame& F, const RenderCamera& cam, const PassFlags& flags, int vi
             s->SetFloat("uToonRim", mr.toonRim);
         };
         // Texture overrides set on the renderer (they win over the model's own maps).
-        struct Overrides { Ref<Texture2D> albedo, normal, metalRough; };
+        struct Overrides { Ref<Texture2D> albedo, normal, metalRough, emissive; };
         auto overridesOf = [](const MeshRendererComponent& mr) {
             Overrides o;
+            if (!mr.emissiveMap.empty()) o.emissive = AssetManager::GetTexture(mr.emissiveMap);
             if (!mr.texture.empty()) o.albedo = AssetManager::GetTexture(mr.texture);
             if (!mr.normalMap.empty()) o.normal = AssetManager::GetTexture(mr.normalMap);
             if (!mr.metallicRoughnessMap.empty()) o.metalRough = AssetManager::GetTexture(mr.metallicRoughnessMap);
@@ -565,6 +614,8 @@ void DrawWorld(Frame& F, const RenderCamera& cam, const PassFlags& flags, int vi
             (normal ? normal : flatNormal)->Bind(1);
             (o.metalRough ? o.metalRough : (mat && mat->metallicRoughnessMap ? mat->metallicRoughnessMap : white))->Bind(2);
             (mat && mat->occlusionMap ? mat->occlusionMap : white)->Bind(3);
+            (o.emissive ? o.emissive : white)->Bind(4);
+            s->SetInt("uWorldUV", mr.worldUV ? 1 : 0);
             return mat && mat->doubleSided;
         };
 
@@ -574,7 +625,13 @@ void DrawWorld(Frame& F, const RenderCamera& cam, const PassFlags& flags, int vi
         std::unordered_map<uint64_t, std::vector<std::vector<const DrawItem*>>> groups;
         for (auto& d : F.items) {
             if (!d.skinned && !d.mr->model->IsSkinned()) {
-                if (!frustum.Visible(TransformAABB(d.mr->model->bounds, d.world))) continue;
+                AABB box = TransformAABB(d.mr->model->bounds, d.world);
+                if (!frustum.Visible(box)) continue;
+                if (flags.minAngularSize > 0.0f) {
+                    float radius = glm::length(box.Extents());
+                    float dist = std::max(glm::distance(box.Center(), cam.position), 1e-3f);
+                    if (radius / dist < flags.minAngularSize) continue;
+                }
             }
             if (d.mr->outline && flags.outlines) outlined.push_back(&d);
             if (d.skinned || d.mr->model->IsSkinned() || !rs.batching) { singles.push_back(&d); continue; }
@@ -695,9 +752,12 @@ void DrawWorld(Frame& F, const RenderCamera& cam, const PassFlags& flags, int vi
                 treeShader->SetInt("uNormalMap", 1);
                 treeShader->SetInt("uMetalRoughMap", 2);
                 treeShader->SetInt("uOcclusionMap", 3);
+                treeShader->SetInt("uEmissiveMap", 4);
+                treeShader->SetInt("uWorldUV", 0);
                 Texture2D::FlatNormal()->Bind(1);
                 white->Bind(2);
                 white->Bind(3);
+                white->Bind(4);
                 treeShader->SetVec3("uEmissive", vec3(0.0f));
                 for (auto& tb : tc.runtime->trees) {
                     treeShader->SetVec4("uColor", tb.color);
@@ -799,15 +859,23 @@ void UpdateReflectionProbe(Frame& F, const RenderCamera& cam) {
     EU_PROFILE_SCOPE("Reflections");
     auto& P = s_Data->probe;
     P.Ensure(Renderer::Settings().reflectionSize);
+    P.frame++;
     if (P.nextFace == 0) P.capturePos = cam.position;
-    bool jumped = P.valid && glm::distance(P.capturePos, cam.position) > 25.0f;
-    if (jumped) { P.valid = false; P.nextFace = 0; P.capturePos = cam.position; }
-    int faces = P.valid ? 1 : 6;
+    // After a teleport or scene switch, restart the cycle from the new spot but keep showing
+    // the old reflections until it completes (no 6-face burst, no frame without reflections).
+    if (P.valid && glm::distance(P.capturePos, cam.position) > 25.0f) { P.nextFace = 0; P.capturePos = cam.position; }
+    // Budget: the very first capture takes 2 faces a frame (valid after 3 frames); after that
+    // one face a frame while the camera moves, and one every 3rd frame while it stays put.
+    bool still = glm::distance(P.lastCameraPos, cam.position) < 0.05f;
+    P.lastCameraPos = cam.position;
+    int faces = !P.valid ? 2 : (still && P.frame % 3 != 0 ? 0 : 1);
+    if (faces == 0) return;
     PassFlags flags;
     flags.ids = false;
     flags.outlines = false;
     flags.grass = false;
     flags.particles = false;
+    flags.minAngularSize = 0.02f;   // a 128 px face can't show anything smaller
     glBindFramebuffer(GL_FRAMEBUFFER, P.fbo);
     glViewport(0, 0, P.size, P.size);
     vec3 clear = SRGBToLinear(F.env->skyHorizon);
@@ -848,6 +916,31 @@ void Renderer::Init() {
     glGenQueries(RendererData::kQueries, s_Data->timeQuery);
     PostProcess::Init();
     RayTracer::Init();
+    Prewarm();
+}
+
+// Compiles every shader variant the renderer can use, at startup. Otherwise each one compiles
+// the first time something needs it - the first outlined character on screen, the first time
+// two identical crates are batched, the first skinned toon model - and that frame stalls.
+void Renderer::Prewarm() {
+    auto start = std::chrono::steady_clock::now();
+    for (bool toon : { false, true })
+        for (const char* kind : { "", "SKINNED", "BATCHED" }) {
+            std::vector<std::string> defs;
+            if (*kind) defs.push_back(kind);
+            if (toon) defs.push_back("TOON");
+            GetShader("lit.glsl", defs);
+        }
+    GetShader("lit.glsl", { "INSTANCED" });
+    for (const char* v : { "", "SKINNED", "INSTANCED" }) GetShader("shadow.glsl", *v ? std::vector<std::string>{ v } : std::vector<std::string>{});
+    GetShader("outline.glsl");
+    GetShader("outline.glsl", { "SKINNED" });
+    for (const char* f : { "sky.glsl", "terrain.glsl", "grass.glsl", "water.glsl", "particle.glsl", "line.glsl", "post_ssao.glsl",
+                           "post_ao_blur.glsl", "post_bloom_down.glsl", "post_bloom_up.glsl", "post_composite.glsl", "post_fxaa.glsl" })
+        GetShader(f);
+    if (s_Settings.rayTraced) GetShader("pathtrace.glsl");
+    float ms = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - start).count();
+    EU_INFO("Shaders compiled in {} ms", (int)ms);
 }
 
 void Renderer::Shutdown() {
@@ -877,6 +970,7 @@ Ref<Shader> Renderer::GetShader(const std::string& file, const std::vector<std::
 
 void Renderer::ReloadShaders() {
     s_Data->shaders.clear();
+    Prewarm();
     EU_INFO("Shaders reloaded");
 }
 

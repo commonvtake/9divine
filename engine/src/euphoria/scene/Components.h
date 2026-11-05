@@ -57,6 +57,8 @@ struct MeshRendererComponent {
     float normalStrength = 1.0f;
     std::string metallicRoughnessMap;       // optional, glTF packing: G = roughness, B = metallic
     vec3 emissive{ 0.0f };
+    std::string emissiveMap;                // optional: glowing parts (lit windows, screens); x emissive
+    bool worldUV = false;                   // texture by world position (tiling = repeats per metre)
     bool castShadows = true;
     bool visible = true;
     // Toon / cel shading: lighting is snapped into flat bands instead of a smooth gradient.

@@ -215,6 +215,8 @@ void EditorApp::DrawComponents(Entity e) {
         PAsset("Normal map", m.normalMap, IsTexture);
         if (!m.normalMap.empty()) PFloat("Normal strength", m.normalStrength, 0.01f, 0.0f, 4.0f);
         PAsset("Metal/rough map", m.metallicRoughnessMap, IsTexture);
+        PAsset("Emissive map", m.emissiveMap, IsTexture);
+        PBool("World-space UVs", m.worldUV);
         PColor3("Emissive", m.emissive, true);
         PBool("Cast shadows", m.castShadows);
         PBool("Visible", m.visible);

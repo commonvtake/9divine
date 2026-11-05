@@ -149,6 +149,9 @@ void Application::ApplyEditorStyle() {
 }
 
 void Application::Run() {
+#ifndef NDEBUG
+    EU_WARN("This is a Debug build: frame rates will be low and uneven. Build the Release (RelWithDebInfo) configuration to play or measure performance.");
+#endif
     OnInit();
     if (m_Config.benchmarkFrames > 0) Profiler::BeginBenchmark(m_Config.benchmarkFrames);
     auto last = std::chrono::steady_clock::now();
