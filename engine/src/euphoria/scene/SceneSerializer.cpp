@@ -128,6 +128,19 @@ json SceneSerializer::SerializeEntity(Entity e) {
         j["network"] = { { "owner", c->owner }, { "syncTransform", c->syncTransform }, { "interpolate", c->interpolate } };
     if (auto* c = e.TryGet<SaveableComponent>())
         j["saveable"] = { { "transform", c->saveTransform }, { "scripts", c->saveScripts }, { "active", c->saveActive } };
+    if (auto* c = e.TryGet<SpriteRendererComponent>())
+        j["sprite"] = { { "texture", c->texture }, { "region", c->region }, { "pivot", c->pivot }, { "color", c->color },
+                        { "flipX", c->flipX }, { "flipY", c->flipY }, { "order", c->order }, { "ySort", c->ySort },
+                        { "pixelsPerUnit", c->pixelsPerUnit }, { "visible", c->visible } };
+    if (auto* c = e.TryGet<SpriteAnimatorComponent>()) {
+        json anims = json::array();
+        for (auto& a : c->animations)
+            anims.push_back({ { "name", a.name }, { "texture", a.texture }, { "frameWidth", a.frameWidth }, { "frameHeight", a.frameHeight },
+                              { "firstFrame", a.firstFrame }, { "frameCount", a.frameCount }, { "fps", a.fps }, { "loop", a.loop } });
+        j["spriteAnimator"] = { { "animations", anims }, { "default", c->defaultAnimation }, { "speed", c->speed } };
+    }
+    if (auto* c = e.TryGet<TilemapComponent>())
+        j["tilemap"] = { { "map", c->map }, { "order", c->order }, { "color", c->color }, { "collisions", c->collisions } };
     if (auto* c = e.TryGet<EventTriggerComponent>()) {
         json rules = json::array();
         for (auto& r : c->rules)
@@ -400,6 +413,46 @@ Entity SceneSerializer::DeserializeEntity(Scene& scene, const json& j, std::unor
         c.saveScripts = JGet(jc, "scripts", true);
         c.saveActive = JGet(jc, "active", true);
     }
+    if (j.contains("sprite")) {
+        auto& jc = j["sprite"];
+        auto& c = e.Add<SpriteRendererComponent>();
+        c.texture = JGet<std::string>(jc, "texture", "");
+        c.region = JGet(jc, "region", c.region);
+        c.pivot = JGet(jc, "pivot", c.pivot);
+        c.color = JGet(jc, "color", c.color);
+        c.flipX = JGet(jc, "flipX", c.flipX);
+        c.flipY = JGet(jc, "flipY", c.flipY);
+        c.order = JGet(jc, "order", c.order);
+        c.ySort = JGet(jc, "ySort", c.ySort);
+        c.pixelsPerUnit = JGet(jc, "pixelsPerUnit", c.pixelsPerUnit);
+        c.visible = JGet(jc, "visible", c.visible);
+    }
+    if (j.contains("spriteAnimator")) {
+        auto& jc = j["spriteAnimator"];
+        auto& c = e.Add<SpriteAnimatorComponent>();
+        c.defaultAnimation = JGet<std::string>(jc, "default", "");
+        c.speed = JGet(jc, "speed", c.speed);
+        for (auto& ja : jc.value("animations", json::array())) {
+            SpriteAnimation a;
+            a.name = JGet<std::string>(ja, "name", a.name);
+            a.texture = JGet<std::string>(ja, "texture", "");
+            a.frameWidth = JGet(ja, "frameWidth", 0);
+            a.frameHeight = JGet(ja, "frameHeight", 0);
+            a.firstFrame = JGet(ja, "firstFrame", 0);
+            a.frameCount = JGet(ja, "frameCount", 0);
+            a.fps = JGet(ja, "fps", a.fps);
+            a.loop = JGet(ja, "loop", a.loop);
+            c.animations.push_back(a);
+        }
+    }
+    if (j.contains("tilemap")) {
+        auto& jc = j["tilemap"];
+        auto& c = e.Add<TilemapComponent>();
+        c.map = JGet<std::string>(jc, "map", "");
+        c.order = JGet(jc, "order", c.order);
+        c.color = JGet(jc, "color", c.color);
+        c.collisions = JGet(jc, "collisions", c.collisions);
+    }
     if (j.contains("eventTrigger")) {
         auto& c = e.Add<EventTriggerComponent>();
         for (auto& jr : j["eventTrigger"].value("rules", json::array())) {
@@ -434,6 +487,10 @@ json SceneSerializer::ToJson() {
                                  { "bloom", env.bloomIntensity }, { "bloomThreshold", env.bloomThreshold }, { "contrast", env.contrast },
                                  { "saturation", env.saturation }, { "temperature", env.temperature }, { "tint", env.tint },
                                  { "vignette", env.vignette } };
+    if (env.mode2D)
+        j["environment"]["2d"] = { { "enabled", true }, { "background", env.background2D }, { "pixelsPerUnit", env.pixelsPerUnit },
+                                   { "pixelPerfect", env.pixelPerfect },
+                                   { "referenceResolution", { env.referenceResolution.x, env.referenceResolution.y } } };
     auto& ns = m_Scene.Nav().settings;
     j["navigation"] = { { "cellSize", ns.cellSize }, { "agentRadius", ns.agentRadius }, { "agentHeight", ns.agentHeight }, { "maxSlope", ns.maxSlope },
                         { "maxStep", ns.maxStep }, { "minWalkableHeight", ns.minWalkableHeight } };
@@ -474,6 +531,16 @@ bool SceneSerializer::FromJson(const json& j) {
             env.tint = JGet(jp, "tint", env.tint);
             env.vignette = JGet(jp, "vignette", env.vignette);
         }
+    }
+    if (j.contains("environment") && j["environment"].contains("2d")) {
+        auto& j2 = j["environment"]["2d"];
+        auto& env = m_Scene.Environment();
+        env.mode2D = JGet(j2, "enabled", true);
+        env.background2D = JGet(j2, "background", env.background2D);
+        env.pixelsPerUnit = std::max(1.0f, JGet(j2, "pixelsPerUnit", env.pixelsPerUnit));
+        env.pixelPerfect = JGet(j2, "pixelPerfect", env.pixelPerfect);
+        auto rr = JGet(j2, "referenceResolution", std::vector<int>{ 320, 180 });
+        if (rr.size() == 2) env.referenceResolution = ivec2(std::max(16, rr[0]), std::max(16, rr[1]));
     }
     if (j.contains("navigation")) {
         auto& jn = j["navigation"];

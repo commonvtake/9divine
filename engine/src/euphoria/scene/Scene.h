@@ -36,6 +36,13 @@ struct SceneEnvironment {
     float temperature = 0.0f;          // -1 cool ... +1 warm
     float tint = 0.0f;                 // -1 green ... +1 magenta
     float vignette = 0.22f;
+
+    // --- 2D (sprites and tilemaps; see docs/2D.md) ---
+    bool mode2D = false;               // draw the scene as flat 2D (no lighting/post), physics in the XY plane
+    vec3 background2D{ 0.10f, 0.10f, 0.14f };
+    float pixelsPerUnit = 16.0f;       // texture pixels per world unit
+    bool pixelPerfect = true;          // render at a low resolution and scale up by whole pixels
+    ivec2 referenceResolution{ 320, 180 };   // the low resolution (the window gets the largest whole-number scale)
 };
 
 class Scene {

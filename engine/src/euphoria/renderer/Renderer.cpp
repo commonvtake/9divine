@@ -6,6 +6,7 @@
 #include "euphoria/renderer/Mesh.h"
 #include "euphoria/renderer/PostProcess.h"
 #include "euphoria/renderer/RayTracer.h"
+#include "euphoria/renderer/Renderer2D.h"
 #include "euphoria/scene/Scene.h"
 #include "euphoria/scene/Entity.h"
 #include "euphoria/assets/AssetManager.h"
@@ -932,6 +933,7 @@ void Renderer::Prewarm() {
             GetShader("lit.glsl", defs);
         }
     GetShader("lit.glsl", { "INSTANCED" });
+    GetShader("sprite.glsl");
     for (const char* v : { "", "SKINNED", "INSTANCED" }) GetShader("shadow.glsl", *v ? std::vector<std::string>{ v } : std::vector<std::string>{});
     GetShader("outline.glsl");
     GetShader("outline.glsl", { "SKINNED" });
@@ -945,6 +947,7 @@ void Renderer::Prewarm() {
 
 void Renderer::Shutdown() {
     if (!s_Data) return;
+    Renderer2D::Shutdown();
     RayTracer::Shutdown();
     PostProcess::Shutdown();
     s_Data->cascades.Release();
@@ -1015,6 +1018,12 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
         }
         s_Data->activeQuery = q;
         s_Data->queryIndex = (s_Data->queryIndex + 1) % RendererData::kQueries;
+    }
+    if (scene.Environment().mode2D) {
+        RenderCamera used = Renderer2D::Render(scene, cam, target, opt);
+        DrawDebugOverlay(scene, used, opt);
+        if (s_Data->activeQuery >= 0) glEndQuery(GL_TIME_ELAPSED);
+        return;
     }
     Registry& reg = scene.Reg();
     Frame F;
@@ -1166,7 +1175,12 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
         glReadBuffer(GL_COLOR_ATTACHMENT0);
     }
 
-    // ---- Debug lines (drawn on the final image, depth-tested) -------------
+    DrawDebugOverlay(scene, cam, opt);
+    if (s_Data->activeQuery >= 0) glEndQuery(GL_TIME_ELAPSED);
+}
+
+// Debug lines (drawn on the final image, depth-tested)
+void Renderer::DrawDebugOverlay(Scene& scene, const RenderCamera& cam, const RenderOptions& opt) {
     if (opt.showColliders) scene.Physics().DebugDraw();
     if (opt.showNavGrid) scene.Nav().DebugDraw();
     auto& lines = DebugDraw::Lines();
@@ -1196,7 +1210,6 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
     DebugDraw::Clear();
     glColorMaski(1, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glBindVertexArray(0);
-    if (s_Data->activeQuery >= 0) glEndQuery(GL_TIME_ELAPSED);
 }
 
 } // namespace eu
