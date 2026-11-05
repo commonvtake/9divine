@@ -159,6 +159,7 @@ void Section(Entity e, const char* name, Fn&& draw, bool removable = true) {
 bool IsModel(const std::string& p) { return AssetManager::IsModelFile(p); }
 bool IsTexture(const std::string& p) { return AssetManager::IsTextureFile(p); }
 bool IsAudio(const std::string& p) { return AssetManager::IsAudioFile(p); }
+bool IsTilemap(const std::string& p) { return AssetManager::IsTilemapFile(p); }
 
 } // namespace
 
@@ -542,11 +543,9 @@ void EditorApp::DrawComponents(Entity e) {
         ImGui::Image((ImTextureID)(uintptr_t)tex->Id(), ImVec2(r.z * scale, r.w * scale), ImVec2(r.x / W, 1.0f - r.y / H),
                      ImVec2((r.x + r.z) / W, 1.0f - (r.y + r.w) / H));
     };
-    auto isTexture = [](const std::string& p) { return AssetManager::IsTextureFile(p); };
 
     Section<SpriteRendererComponent>(e, "Sprite Renderer", [&](SpriteRendererComponent& sr) {
-        PAsset("Image", sr.texture, +[](const std::string& p) { return AssetManager::IsTextureFile(p); });
-        (void)isTexture;
+        PAsset("Image", sr.texture, IsTexture);
         if (!sr.texture.empty()) {
             Label("");
             spritePreview(sr.texture, sr.region, 96.0f);
@@ -602,7 +601,7 @@ void EditorApp::DrawComponents(Entity e) {
             if (open) {
                 BeginProps();
                 PText("Name", a.name);
-                PAsset("Sheet", a.texture, +[](const std::string& p) { return AssetManager::IsTextureFile(p); });
+                PAsset("Sheet", a.texture, IsTexture);
                 Sprite2D::FrameGrid grid;
                 bool ok = Sprite2D::Grid(a, fallback, grid);
                 Label("Frame size");
@@ -660,7 +659,7 @@ void EditorApp::DrawComponents(Entity e) {
     });
 
     Section<TilemapComponent>(e, "Tilemap", [&](TilemapComponent& tm) {
-        PAsset("Map", tm.map, +[](const std::string& p) { return AssetManager::IsTilemapFile(p); });
+        PAsset("Map", tm.map, IsTilemap);
         PInt("Order", tm.order);
         PColor4("Color", tm.color);
         PBool("Collisions", tm.collisions);

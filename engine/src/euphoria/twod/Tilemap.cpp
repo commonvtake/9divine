@@ -9,6 +9,9 @@
 #include <stb_image.h>
 #include <sstream>
 #include <set>
+#include <tuple>
+#include <climits>
+#include <initializer_list>
 
 namespace eu {
 
