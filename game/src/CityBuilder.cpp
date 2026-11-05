@@ -7,6 +7,7 @@
 // 8.5 m from each street's centre line. Each quadrant has a corner building plus a row of
 // buildings along each street; tall buildings close off all four street ends.
 #include "DemoKit.h"
+#include "Characters.h"
 #include <euphoria/scene/SceneSerializer.h>
 #include <cmath>
 
@@ -452,7 +453,7 @@ void BuildCity(const std::string& path) {
     Car(s, "Parked Car", { -22, 0, -3.6f }, 180, paints[1]);
     Car(s, "Parked Car", { 26, 0, 3.6f }, 0, paints[2]);
     Car(s, "Parked Car", { 44, 0, -3.6f }, 180, paints[3]);
-    Car(s, "Parked Car", { -3.6f, 0, -30 }, 90, paints[4]);
+    Car(s, "Parked Car", { -3.6f, 0, -14 }, 90, paints[4]);
     Car(s, "Parked Car", { 3.6f, 0, 50 }, -90, paints[5]);
     AddExamine(s.FindByName("Parked Car"), "Parked Car", "The hood is still warm.\nWhoever parked it left in a hurry.", 2.8f, { 0, 0.5f, 0 });
     // Benches, bins and hydrants
@@ -474,6 +475,53 @@ void BuildCity(const std::string& path) {
         Entity tube = Decor(s, "Neon Tube", p + vec3(0, 9.0f, 0), { 0.14f, 9.0f, 0.14f }, vec4(neon[ni % 3] * 0.3f, 1.0f));
         Glow(tube, neon[ni++ % 3]);
         if (ni == 2) AddScript(tube, "Flicker", { { "Amount", 0.5f }, { "Cut Outs", true } });
+    }
+
+    // ---- The fight: Cross Street north of the crossing is a battle zone. Step past the police
+    // line and red seals close it off while puppets crawl out of the asphalt in two waves.
+    {
+        const vec4 tape(0.95f, 0.75f, 0.1f, 1);
+        for (int k = -1; k <= 1; k += 2) {
+            Entity barrier = Box(s, "Police Barrier", { k * 6.8f, kWalk + 0.55f, -21.0f }, { 2.6f, 0.18f, 0.12f }, tape);
+            Decor(s, "Barrier Leg", { k * 6.8f - 1.0f, kWalk + 0.28f, -21.0f }, { 0.1f, 0.56f, 0.3f }, { 0.15f, 0.15f, 0.15f, 1 });
+            Decor(s, "Barrier Leg", { k * 6.8f + 1.0f, kWalk + 0.28f, -21.0f }, { 0.1f, 0.56f, 0.3f }, { 0.15f, 0.15f, 0.15f, 1 });
+            if (k > 0) AddExamine(barrier, "Police Line", "POLICE LINE - DO NOT CROSS.\nSomething is moving down the street.", 2.0f);
+        }
+        Entity zone = s.CreateEntity("Battle Zone");
+        zone.Transform().position = { 0, 2.0f, -27.0f };
+        auto& trig = zone.Add<BoxColliderComponent>();
+        trig.size = { 17.0f, 4.0f, 2.0f };
+        trig.isTrigger = true;
+        // Seal: a wall of red light across the street behind you (shown by the BattleZone)
+        Entity seal = s.CreateEntity("Seal");
+        seal.Get<TagComponent>().tag = "Seal";
+        seal.Transform().position = { 0, 0, -23.4f };
+        Entity wall = Box(s, "Seal Wall", { 0, 3.5f, 0 }, { 17.2f, 7.0f, 0.25f }, { 0.6f, 0.02f, 0.05f, 1 });
+        wall.Transform().parent = seal.GetUUID();
+        Glow(wall, { 2.2f, 0.12f, 0.2f });
+        Entity sealFx = s.CreateEntity("Seal Embers");
+        sealFx.Transform().parent = seal.GetUUID();
+        sealFx.Transform().position = { 0, 1.0f, -0.3f };
+        auto& sp = sealFx.Add<ParticleEmitterComponent>();
+        ParticlePresets::Magic(sp);
+        sp.shape = ParticleShape::Box;
+        sp.shapeSize = { 16.0f, 1.5f, 0.3f };
+        sp.startColor = { 1.0f, 0.25f, 0.15f, 1.0f };
+        sp.endColor = { 0.5f, 0.0f, 0.1f, 0.0f };
+        sp.rate = 90;
+        sp.velocity = { 0, 1.6f, 0 };
+        PointLight(s, "Seal Light", { 0, 3.0f, -0.8f }, { 1.0f, 0.15f, 0.12f }, 3.0f, 14.0f).Transform().parent = seal.GetUUID();
+        for (vec3 p : { vec3(-3, 0, -36), vec3(3, 0, -38), vec3(0, 0, -44), vec3(-4, 0, -50), vec3(4, 0, -52), vec3(0, 0, -58) }) {
+            Entity sp2 = s.CreateEntity("Enemy Spawn");
+            sp2.Transform().position = p + vec3(0, 0.2f, 0);
+            sp2.Get<TagComponent>().tag = "EnemySpawn";
+        }
+        Entity puppet = characters::AddPuppet(s, { 0, 0.2f, -66 }, false);
+        Entity brute = characters::AddPuppet(s, { 3, 0.2f, -66 }, true);
+        puppet.Get<TagComponent>().active = false;
+        brute.Get<TagComponent>().active = false;
+        AddScript(zone, "BattleZone", { { "Title", "AMBUSH ON CROSS STREET" }, { "Waves", "3,4" }, { "Heavies", "0,1" },
+                                        { "Enemy Template", (uint64_t)puppet.GetUUID() }, { "Heavy Template", (uint64_t)brute.GetUUID() } });
     }
 
     // ---- Player, camera, rules, sound

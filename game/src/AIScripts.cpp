@@ -2,12 +2,14 @@
 #include <euphoria/Euphoria.h>
 #include "GameManager.h"
 #include "PlayerController.h"
+#include "PlayerCombat.h"
 
 using namespace eu;
 
-// Shade: patrols, chases the player when it sees them, attacks up close.
+// Shade: patrols, chases the player when it sees them, attacks up close. The sword can cut
+// it down: it flinches back when hit and bursts apart when its health runs out.
 // Demonstrates StateMachine + NavAgent pathfinding.
-class EnemyAI : public ScriptableEntity {
+class EnemyAI : public Combatant {
 public:
     uint64_t player = 0;
     float sightRange = 14.0f;
@@ -15,6 +17,7 @@ public:
     float damage = 15.0f;
     float patrolRadius = 12.0f;
     bool debugDraw = false;
+    float maxHealth = 40.0f;
 
     void Reflect(FieldVisitor& v) override {
         v.EntityRef("Player", player);
@@ -23,9 +26,32 @@ public:
         v.Float("Damage", damage);
         v.Float("Patrol Radius", patrolRadius);
         v.Bool("Debug Draw", debugDraw);
+        v.Float("Max Health", maxHealth);
+    }
+
+    bool IsDead() const override { return m_Health <= 0.0f; }
+    float HealthFraction() override { return m_Health / maxHealth; }
+    vec3 AimPoint() override { return Transform().position; }
+    bool ReceiveHit(const HitInfo& hit) override {
+        if (IsDead()) return false;
+        m_Health -= hit.damage;
+        m_Flash = 1.0f;
+        vec3 away = Transform().position - hit.from;
+        away.y = 0.0f;
+        if (glm::length(away) > 1e-3f) m_Knock = glm::normalize(away) * (2.0f + hit.knockback);
+        m_FSM.Change("Chase");
+        if (m_Health <= 0.0f) {
+            combat::Burst(GetScene(), Transform().position, { 0.35f, 0.1f, 0.6f, 1.0f }, 40, 5.0f, 0.3f, 0.7f);
+            Audio::PlayOneShot("Audio/enemy_die.wav", 0.6f);
+            Emit("EnemyDefeated");
+            DestroySelf();
+        }
+        return true;
     }
 
     void OnCreate() override {
+        team = Team::Enemy;
+        m_Health = maxHealth;
         m_Home = Transform().position;
         m_Seed = (uint32_t)(GetEntity().GetUUID() & 0xFFFFFFFF);
         auto& agent = Get<NavAgentComponent>();
@@ -56,7 +82,13 @@ public:
                 m_AttackTimer -= dt;
                 if (m_AttackTimer <= 0.0f) {
                     m_AttackTimer = 1.0f;
-                    if (auto* pc = GetScriptOn<PlayerController>(p)) pc->TakeDamage(damage, Transform().position);
+                    if (auto* pcom = GetScriptOn<PlayerCombat>(p)) {
+                        HitInfo h;
+                        h.damage = damage;
+                        h.from = Transform().position;
+                        h.move = "Shade";
+                        pcom->ReceiveHit(h);
+                    } else if (auto* pc = GetScriptOn<PlayerController>(p)) pc->TakeDamage(damage, Transform().position);
                 }
             },
             nullptr });
@@ -65,6 +97,13 @@ public:
     }
 
     void OnUpdate(float dt) override {
+        // Knocked back by a hit: slide away, then carry on
+        if (glm::length(m_Knock) > 0.05f) {
+            Transform().position += m_Knock * dt;
+            m_Knock *= 1.0f / (1.0f + 6.0f * dt);
+        }
+        m_Flash = std::max(0.0f, m_Flash - dt * 6.0f);
+        if (auto* mr = TryGet<MeshRendererComponent>()) mr->emissive = vec3(0.08f, 0.0f, 0.12f) + vec3(m_Flash * 1.5f);
         m_FSM.Update(dt);
         // Pulse while chasing
         m_Pulse += dt * (m_FSM.Current() == "Patrol" ? 2.0f : 8.0f);
@@ -107,6 +146,8 @@ private:
     vec3 m_Home{ 0.0f };
     uint32_t m_Seed = 1;
     float m_Wait = 0.0f, m_AttackTimer = 0.0f, m_Pulse = 0.0f;
+    float m_Health = 40.0f, m_Flash = 0.0f;
+    vec3 m_Knock{ 0.0f };
 };
 EU_SCRIPT(EnemyAI)
 

@@ -19,6 +19,9 @@ public:
     void OnGUI() override;
 
     void TakeDamage(float amount, const eu::vec3& from);
+    // The stick / WASD direction turned into a world direction relative to the camera, on the
+    // ground plane (length 0..1).
+    eu::vec3 MoveInputWorld();
     void Heal(float amount) { health = std::min(maxHealth, health + amount); }
     bool IsDead() const { return m_Dead; }
     float HurtFlash() const { return m_HurtFlash; }

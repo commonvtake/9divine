@@ -1,6 +1,7 @@
 #include "PlayerController.h"
 #include "GameManager.h"
 #include "Interaction.h"
+#include "PlayerCombat.h"
 
 using namespace eu;
 
@@ -43,6 +44,19 @@ void PlayerController::OnUpdate(float dt) {
     GameManager* gm = GameManager::Instance();
     // No control while paused or while the screen is fading (a door transition is playing).
     bool blocked = (gm && gm->IsPaused()) || ScreenFade::Busy();
+    PlayerCombat* combat = GetScript<PlayerCombat>();
+    m_AirTime = rb.grounded ? 0.0f : m_AirTime + dt;
+    if (combat && combat->ControlsMovement()) {
+        // An attack, dodge or hit reaction is playing: PlayerCombat moves and animates us.
+        if (Entity model = FindByUUID(modelEntity))
+            if (auto* anim = model.TryGet<AnimatorComponent>()) {
+                anim->SetFloat("Speed", glm::length(vec2(rb.velocity.x, rb.velocity.z)));
+                anim->SetBool("Grounded", rb.grounded);
+            }
+        m_Focus = 0;
+        if (t.position.y < -15.0f) Die();
+        return;
+    }
 
     vec2 input(Input::GetAxis("MoveX"), Input::GetAxis("MoveY"));
     if (Profiler::BenchmarkActive()) {
@@ -67,6 +81,7 @@ void PlayerController::OnUpdate(float dt) {
     bool sprint = (Input::GetAction("Sprint") || (Profiler::BenchmarkActive() && std::fmod((float)Time::Elapsed(), 8.0f) > 5.0f)) && !blocked;
     float speed = sprint ? sprintSpeed : moveSpeed;
     vec3 wish = (right * input.x + fwd * input.y) * speed;
+    if (combat && combat->autoFight && !blocked) wish = combat->AutoDirection() * moveSpeed * 1.3f;
 
     vec2 hv(rb.velocity.x, rb.velocity.z);
     vec2 target(wish.x, wish.z);
@@ -78,13 +93,21 @@ void PlayerController::OnUpdate(float dt) {
     rb.velocity.x = hv.x;
     rb.velocity.z = hv.y;
 
-    if (rb.grounded && Input::GetActionPressed("Jump") && !blocked) {
+    if (rb.grounded && Input::GetActionPressed("Jump") && !blocked && (!combat || combat->WantsJump())) {
         rb.velocity.y = jumpSpeed;
         Audio::PlayOneShot("Audio/jump.wav", 0.5f);
     }
 
-    // Face the direction of travel
-    if (glm::length(target) > 0.1f) {
+    // Face the lock-on target (strafing around it), else the direction of travel
+    Entity lockTarget = combat ? combat->LockTarget() : Entity();
+    if (lockTarget) {
+        vec3 to = GetScene().WorldPosition(lockTarget) - t.position;
+        to.y = 0.0f;
+        if (glm::length(to) > 0.1f) {
+            quat want = glm::angleAxis(std::atan2(-to.x, -to.z), vec3(0, 1, 0));
+            t.rotation = glm::normalize(glm::slerp(t.rotation, want, 1.0f - std::exp(-16.0f * dt)));
+        }
+    } else if (glm::length(target) > 0.1f) {
         float yaw = std::atan2(-target.x, -target.y);
         quat want = glm::angleAxis(yaw, vec3(0, 1, 0));
         t.rotation = glm::normalize(glm::slerp(t.rotation, want, 1.0f - std::exp(-12.0f * dt)));
@@ -92,7 +115,6 @@ void PlayerController::OnUpdate(float dt) {
 
     // Drive the animator: Speed (m/s) feeds the idle/walk/run blend; Grounded switches to the
     // jump/fall state. Short drops (stairs, slopes) under 0.15 s don't count as airborne.
-    m_AirTime = rb.grounded ? 0.0f : m_AirTime + dt;
     bool airborne = !rb.grounded && (m_AirTime > 0.15f || rb.velocity.y > 1.0f);
     if (Entity model = FindByUUID(modelEntity))
         if (auto* anim = model.TryGet<AnimatorComponent>()) {
@@ -125,8 +147,25 @@ void PlayerController::OnGUI() {
     UI::Text(at + vec2(60, 10), text, 30, { 1, 1, 1, 0.95f });
 }
 
+vec3 PlayerController::MoveInputWorld() {
+    if (auto* combat = GetScript<PlayerCombat>(); combat && combat->autoFight) return combat->AutoDirection();
+    vec2 input(Input::GetAxis("MoveX"), Input::GetAxis("MoveY"));
+    if (glm::length(input) > 1.0f) input = glm::normalize(input);
+    vec3 fwd(0, 0, -1), right(1, 0, 0);
+    if (Entity cam = FindByUUID(cameraEntity)) {
+        vec3 f = cam.Transform().Forward();
+        f.y = 0.0f;
+        if (glm::length(f) > 1e-3f) {
+            fwd = glm::normalize(f);
+            right = glm::normalize(glm::cross(fwd, vec3(0, 1, 0)));
+        }
+    }
+    return right * input.x + fwd * input.y;
+}
+
 void PlayerController::TakeDamage(float amount, const vec3& from) {
     if (m_Invulnerable > 0.0f || m_Dead) return;
+    if (auto* combat = GetScript<PlayerCombat>(); combat && combat->Invulnerable()) return;
     health -= amount;
     EU_INFO("Player hit for {} (health {})", amount, health);
     m_Invulnerable = 0.8f;

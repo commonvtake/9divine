@@ -33,7 +33,7 @@
     {
       "bindings": [
         {
-          "code": 0,
+          "code": 2,
           "scale": 1.0,
           "type": "mouseButton"
         },
@@ -59,6 +59,86 @@
         }
       ],
       "name": "Interact"
+    },
+    {
+      "bindings": [
+        {
+          "code": 0,
+          "scale": 1.0,
+          "type": "mouseButton"
+        },
+        {
+          "code": 74,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 3,
+          "scale": 1.0,
+          "type": "gamepadButton"
+        }
+      ],
+      "name": "Attack"
+    },
+    {
+      "bindings": [
+        {
+          "code": 1,
+          "scale": 1.0,
+          "type": "mouseButton"
+        },
+        {
+          "code": 75,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 1,
+          "scale": 1.0,
+          "type": "gamepadButton"
+        }
+      ],
+      "name": "Heavy"
+    },
+    {
+      "bindings": [
+        {
+          "code": 81,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 341,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 5,
+          "scale": 1.0,
+          "type": "gamepadButton"
+        }
+      ],
+      "name": "LockOn"
+    },
+    {
+      "bindings": [
+        {
+          "code": 67,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 342,
+          "scale": 1.0,
+          "type": "key"
+        },
+        {
+          "code": 4,
+          "scale": 1.0,
+          "type": "gamepadButton"
+        }
+      ],
+      "name": "Dodge"
     },
     {
       "bindings": [
