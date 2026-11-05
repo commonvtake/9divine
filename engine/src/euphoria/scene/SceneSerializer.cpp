@@ -82,6 +82,7 @@ json SceneSerializer::SerializeEntity(Entity e) {
         a["defaultState"] = c->defaultState;
         a["speed"] = c->speed;
         a["rootMotion"] = c->rootMotion;
+        if (!c->animationSources.empty()) a["animationSources"] = c->animationSources;
         a["params"] = json::array();
         for (auto& p : c->params) a["params"].push_back({ { "name", p.name }, { "type", EnumStr(p.type, kParamTypes) }, { "value", p.type == AnimParamType::Trigger ? 0.0f : p.value } });
         a["states"] = json::array();
@@ -272,6 +273,7 @@ Entity SceneSerializer::DeserializeEntity(Scene& scene, const json& j, std::unor
         c.defaultState = JGet<std::string>(ja, "defaultState", "");
         c.speed = JGet(ja, "speed", 1.0f);
         c.rootMotion = JGet(ja, "rootMotion", false);
+        for (auto& src : ja.value("animationSources", json::array())) if (src.is_string()) c.animationSources.push_back(src.get<std::string>());
         for (auto& jp : ja.value("params", json::array()))
             c.params.push_back({ JGet<std::string>(jp, "name", ""), EnumFrom(jp, "type", AnimParamType::Float, kParamTypes), JGet(jp, "value", 0.0f) });
         for (auto& js : ja.value("states", json::array())) {

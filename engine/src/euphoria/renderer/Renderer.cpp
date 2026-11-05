@@ -614,7 +614,7 @@ void DrawWorld(Frame& F, const RenderCamera& cam, const PassFlags& flags, int vi
             (normal ? normal : flatNormal)->Bind(1);
             (o.metalRough ? o.metalRough : (mat && mat->metallicRoughnessMap ? mat->metallicRoughnessMap : white))->Bind(2);
             (mat && mat->occlusionMap ? mat->occlusionMap : white)->Bind(3);
-            (o.emissive ? o.emissive : white)->Bind(4);
+            (o.emissive ? o.emissive : (mat && mat->emissiveMap ? mat->emissiveMap : white))->Bind(4);
             s->SetInt("uWorldUV", mr.worldUV ? 1 : 0);
             return mat && mat->doubleSided;
         };

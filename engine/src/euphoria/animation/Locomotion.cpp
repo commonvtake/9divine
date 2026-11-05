@@ -20,22 +20,46 @@ std::string BaseName(const std::string& clip) {
     return s;
 }
 
+// "Walk_Loop" / "Jog_Fwd_Loop" / "Idle_InPlace" -> "walk" / "jog" / "idle"
+std::string Core(const std::string& base) {
+    std::string s = base;
+    for (const char* junk : { "_inplace", "_in_place", "_loop", "_fwd", "_forward", "_f", "loop", "_ip", "_01", "_1" }) {
+        std::string j = junk;
+        size_t at;
+        while ((at = s.rfind(j)) != std::string::npos && at + j.size() == s.size() && at > 0) s.erase(at);
+    }
+    return s;
+}
+
+// Best clip for a role. Exact names win ("Walk", "Walk_Loop"), then names starting with the
+// key, then names containing it; variants for other situations (crouching, carrying a pistol,
+// swimming...) only count when nothing else matches.
 std::string Pick(const std::vector<std::string>& clips, std::initializer_list<const char*> keys,
                  std::initializer_list<const char*> avoid = {}) {
-    // Pass 1: exact base name. Pass 2: substring.
-    for (int pass = 0; pass < 2; pass++) {
+    static const char* variants[] = { "crouch", "pistol", "rifle", "sword", "swim", "sitting", "sit_", "torch", "talk", "formal",
+                                      "injured", "drunk", "zombie", "old", "carry", "aim", "strafe", "back", "left", "right", "turn" };
+    std::string best;
+    int bestScore = -1;
+    for (auto& c : clips) {
+        std::string b = BaseName(c), core = Core(b);
+        bool skip = false;
+        for (const char* a : avoid) if (b.find(a) != std::string::npos) skip = true;
+        if (skip) continue;
+        int keyRank = 0;
         for (const char* key : keys) {
-            for (auto& c : clips) {
-                std::string b = BaseName(c);
-                bool hit = pass == 0 ? b == key : b.find(key) != std::string::npos;
-                if (!hit) continue;
-                bool skip = false;
-                for (const char* a : avoid) if (b.find(a) != std::string::npos) skip = true;
-                if (!skip) return c;
-            }
+            int score = 0;
+            if (core == key || b == key) score = 300;
+            else if (b.rfind(key, 0) == 0) score = 200;
+            else if (b.find(key) != std::string::npos) score = 100;
+            if (score == 0) { keyRank++; continue; }
+            score -= keyRank * 10;                        // earlier keys are preferred
+            for (const char* v : variants) if (b.find(v) != std::string::npos) score -= 150;
+            score -= (int)b.size();                       // shorter = more basic
+            if (score > bestScore) { bestScore = score; best = c; }
+            break;
         }
     }
-    return {};
+    return best;
 }
 
 } // namespace
@@ -45,8 +69,8 @@ LocomotionClips FindLocomotionClips(const std::vector<std::string>& clips) {
     r.idle = Pick(clips, { "idle", "survey", "stand", "breath" });
     r.walk = Pick(clips, { "walk" });
     r.run = Pick(clips, { "run", "jog", "sprint" }, { "walk" });
-    r.jump = Pick(clips, { "jump" });
-    r.fall = Pick(clips, { "fall", "falling", "air" }, { "jump" });
+    r.fall = Pick(clips, { "fall", "falling", "jump_loop", "inair", "in_air", "airborne", "air" }, { "land", "start" });
+    r.jump = Pick(clips, { "jump_start", "jump_up", "jump" }, { "land", "loop" });
     return r;
 }
 
