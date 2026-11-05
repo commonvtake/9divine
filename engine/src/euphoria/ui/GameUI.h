@@ -52,6 +52,8 @@ void TextInRect(const Rect& r, const std::string& text, float size = 28.0f, cons
 bool Button(const std::string& label, const Rect& r, float textSize = 30.0f);
 void ProgressBar(const Rect& r, float value, const vec4& fill = vec4(-1.0f), const vec4& back = vec4(-1.0f));
 void Image(const Rect& r, const Ref<Texture2D>& texture, const vec4& tint = vec4(1.0f));
+// Part of an image: region = x, y, width, height in pixels from its top-left (a sprite-sheet frame).
+void ImageRegion(const Rect& r, const Ref<Texture2D>& texture, const vec4& region, const vec4& tint = vec4(1.0f));
 
 // World-space helpers (needs SetCamera, which Scene does automatically).
 bool WorldToCanvas(const vec3& world, vec2& out);

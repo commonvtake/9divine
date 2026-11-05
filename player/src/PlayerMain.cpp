@@ -7,6 +7,7 @@
 //   euphoria-player --join <ip> [port]    join a session
 //   euphoria-player --ray-traced          start in path-traced rendering
 //   euphoria-player --scene <path>        start in another scene of the project (e.g. Scenes/Arena.scene)
+//   euphoria-player --simulate-input "D@0.5-3,Space@1-1.3"   hold keys at set times (automated tests)
 //   euphoria-player --model-info <file>   load a model and print what the engine found in it, then exit
 //                   [--retarget <file>]   ...and how another file's animations map onto it
 //   F3 = stats overlay, F4 = toggle ray tracing, F11 = fullscreen, F12 = screenshot
@@ -164,7 +165,7 @@ int main(int argc, char** argv) {
     auto isNum = [](const char* s) { return s && *s && std::strspn(s, "0123456789") == std::strlen(s); };
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
-        if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--fixed-dt" || a == "--benchmark-report" || a == "--width" || a == "--height" || a == "--scene" || a == "--model-info" || a == "--retarget") { i++; continue; }
+        if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--fixed-dt" || a == "--benchmark-report" || a == "--width" || a == "--height" || a == "--scene" || a == "--model-info" || a == "--retarget" || a == "--simulate-input") { i++; continue; }
         if (a == "--host" || a == "--benchmark") { if (i + 1 < argc && isNum(argv[i + 1])) i++; continue; }
         if (a == "--join") { i++; if (i + 1 < argc && isNum(argv[i + 1])) i++; continue; }
         if (a.rfind("--", 0) == 0) continue;

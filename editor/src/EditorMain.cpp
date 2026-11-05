@@ -3,7 +3,7 @@
 //   euphoria-editor                                   open the Project Hub
 //   euphoria-editor <projectDir>                      open a project (an empty folder becomes a new project)
 //   euphoria-editor --new-project                     open the hub's New Project dialog
-//   euphoria-editor --create-project <dir> [--template empty|starter|sample] [--name "My Game"]
+//   euphoria-editor --create-project <dir> [--template empty|starter|platformer2d|topdown2d|sample] [--name "My Game"]
 //   euphoria-editor <projectDir> --export <outDir>    build a standalone game without opening a window
 //   euphoria-editor <projectDir> --play               open and enter play mode
 //   euphoria-editor <projectDir> --import <path>      import a file or folder (repeatable), as if dropped on the editor
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
     if (!createDir.empty()) {
         templates::Template t;
         if (!templates::FromKey(templateKey, t)) {
-            std::fprintf(stderr, "Unknown template '%s' (use empty, starter or sample)\n", templateKey.c_str());
+            std::fprintf(stderr, "Unknown template '%s' (use empty, starter, platformer2d, topdown2d or sample)\n", templateKey.c_str());
             return 1;
         }
         std::string error;

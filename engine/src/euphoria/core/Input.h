@@ -75,6 +75,9 @@ public:
     static bool IsGameInputEnabled() { return s_GameEnabled; }
 
     // Keyboard / mouse
+    // Holds a key down as if pressed (automated tests, demos). Combined with the real keyboard.
+    static void SimulateKey(int key, bool down);
+    static int KeyFromName(const std::string& name);   // "Space", "A", "Left"... -1 if unknown
     static bool IsKeyDown(int key);
     static bool IsKeyPressed(int key);    // went down this frame
     static bool IsKeyReleased(int key);
@@ -126,7 +129,7 @@ private:
 
     static GLFWwindow* s_Window;
     static bool s_GameEnabled;
-    static bool s_Keys[Key::Last + 1], s_PrevKeys[Key::Last + 1];
+    static bool s_Keys[Key::Last + 1], s_PrevKeys[Key::Last + 1], s_SimKeys[Key::Last + 1];
     static bool s_Mouse[Mouse::Last + 1], s_PrevMouse[Mouse::Last + 1];
     static bool s_Pad[4][Gamepad::ButtonCount], s_PrevPad[4][Gamepad::ButtonCount];
     static float s_PadAxes[4][Gamepad::AxisCount];

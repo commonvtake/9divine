@@ -267,10 +267,12 @@ void EditorApp::DrawProjectDialogs() {
         ImGui::Spacing();
 
         const auto& list = templates::All();
+        const int perRow = std::min<int>(3, (int)list.size());
         float total = std::max(720.0f, ImGui::GetContentRegionAvail().x);
-        float cardW = (total - ImGui::GetStyle().ItemSpacing.x * (list.size() - 1)) / list.size();
+        float cardW = (total - ImGui::GetStyle().ItemSpacing.x * (perRow - 1)) / perRow;
         for (int i = 0; i < (int)list.size(); i++) {
-            bool available = list[i].id != templates::Template::Sample || templates::SampleAvailable();
+            bool available = list[i].id == templates::Template::Sample ? templates::SampleAvailable()
+                           : (list[i].id == templates::Template::Platformer2D || list[i].id == templates::Template::TopDown2D) ? templates::Starter2DAvailable() : true;
             bool selected = m_NewProjectTemplate == i;
             ImGui::PushID(i);
             ImGui::PushStyleColor(ImGuiCol_ChildBg, selected ? ImVec4(0.17f, 0.36f, 0.29f, 1.0f) : ImVec4(0.15f, 0.16f, 0.18f, 1.0f));
@@ -287,7 +289,7 @@ void EditorApp::DrawProjectDialogs() {
             ImGui::EndChild();
             ImGui::PopStyleColor(2);
             ImGui::PopID();
-            if (i + 1 < (int)list.size()) ImGui::SameLine();
+            if (i + 1 < (int)list.size() && (i + 1) % perRow != 0) ImGui::SameLine();
         }
 
         ImGui::Spacing();

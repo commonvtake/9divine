@@ -473,7 +473,7 @@ XmlNode JsonLayer(const json& j) {
     XmlNode n;
     std::string type = j.value("type", std::string("tilelayer"));
     n.name = type == "objectgroup" ? "objectgroup" : type == "imagelayer" ? "imagelayer" : type == "group" ? "group" : "layer";
-    CopyAttrs(j, n, { "id", "name", "class", "width", "height", "visible", "opacity", "tintcolor", "offsetx", "offsety", "parallaxx", "parallaxy" });
+    CopyAttrs(j, n, { "id", "name", "class", "width", "height", "visible", "opacity", "tintcolor", "offsetx", "offsety", "parallaxx", "parallaxy", "repeatx", "repeaty" });
     if (type == "tilelayer") {
         if (j.contains("chunks")) {
             XmlNode data;
@@ -632,6 +632,8 @@ void ReadLayers(const XmlNode& parent, const Inherit& in, const fs::path& baseDi
             }
         } else {
             l.type = TiledLayerType::Image;
+            l.repeatX = n.Bool("repeatx");
+            l.repeatY = n.Bool("repeaty");
             if (auto* img = n.Child("image")) {
                 l.image = MakePath(baseDir, img->Str("source"));
                 l.imageWidth = img->Int("width");

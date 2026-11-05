@@ -231,6 +231,12 @@ void Image(const Rect& r, const Ref<Texture2D>& tex, const vec4& tint) {
     PushQuad(r.pos, r.pos + r.size, { 0, 1 }, { 1, 0 }, tint, tex->Id());
 }
 
+void ImageRegion(const Rect& r, const Ref<Texture2D>& tex, const vec4& region, const vec4& tint) {
+    if (!s || !tex || tex->Width() <= 0) return;
+    float W = (float)tex->Width(), H = (float)tex->Height();
+    PushQuad(r.pos, r.pos + r.size, { region.x / W, 1.0f - region.y / H }, { (region.x + region.z) / W, 1.0f - (region.y + region.w) / H }, tint, tex->Id());
+}
+
 bool WorldToCanvas(const vec3& world, vec2& out) {
     if (!s) return false;
     vec4 clip = s->viewProj * vec4(world, 1.0f);

@@ -36,6 +36,10 @@ public:
     };
     static View ComputeView(const SceneEnvironment& env, const RenderCamera& camera, int width, int height, bool editor);
 
+    // The view of the last frame drawn for the game (not the editor's scene view). Cameras use
+    // it to know how much of the world is on screen (e.g. to stop at a map's edges).
+    static View LastGameView();
+
     struct Stats { int quads = 0, drawCalls = 0; };
     static Stats LastStats();
 };

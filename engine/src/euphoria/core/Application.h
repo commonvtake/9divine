@@ -21,6 +21,9 @@ struct AppConfig {
     float fixedDelta = 0.0f;              // > 0: every frame advances exactly this long (deterministic screenshots)
     int benchmarkFrames = 0;              // > 0: record N frames, print a frame-time report, quit
     std::string benchmarkReport = "benchmark.txt";
+    // Automated testing: hold keys at set times, e.g. "D@0.5-3, Space@1.2-1.5" (seconds of game
+    // time; key names as in the input settings: A-Z, 0-9, Space, Left, Right, Up, Down, Enter...).
+    std::string simulateInput;
 };
 
 class Time {
@@ -102,6 +105,8 @@ private:
     bool m_Fullscreen = false;
     ivec2 m_WindowedPos{ 100 }, m_WindowedSize{ 1280, 720 };
     std::string m_PendingScreenshot;
+    struct SimKey { int key; float from, to; };
+    std::vector<SimKey> m_SimulatedKeys;      // --simulate-input
     static Application* s_Instance;
 };
 
