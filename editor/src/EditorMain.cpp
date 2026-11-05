@@ -41,7 +41,8 @@ int main(int argc, char** argv) {
         else if (a == "--name") projectName = next();
         else if (a == "--play") play = true;
         else if (a == "--new-project") newProject = true;
-        else if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--fixed-dt" || a == "--width" || a == "--height") next();
+        else if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--fixed-dt" || a == "--benchmark-report" || a == "--width" || a == "--height") next();
+        else if (a == "--benchmark") { if (i + 1 < argc && argv[i + 1][0] >= '0' && argv[i + 1][0] <= '9') i++; }
         else if (a.rfind("--", 0) == 0) continue;
         else positional.push_back(a);
     }

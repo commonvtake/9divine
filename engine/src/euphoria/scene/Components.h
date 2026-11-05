@@ -57,6 +57,8 @@ struct MeshRendererComponent {
     float normalStrength = 1.0f;
     std::string metallicRoughnessMap;       // optional, glTF packing: G = roughness, B = metallic
     vec3 emissive{ 0.0f };
+    std::string emissiveMap;                // optional: glowing parts (lit windows, screens); x emissive
+    bool worldUV = false;                   // texture by world position (tiling = repeats per metre)
     bool castShadows = true;
     bool visible = true;
     // Toon / cel shading: lighting is snapped into flat bands instead of a smooth gradient.
@@ -136,10 +138,14 @@ struct RigidBodyComponent {
     float friction = 0.6f;
     bool lockY = false;                     // keep on its height (top-down games)
     vec3 velocity{ 0.0f };
+    bool interpolate = true;                // smooth rendering between 60 Hz physics steps
     // runtime
     vec3 force{ 0.0f };
     bool grounded = false;
     vec3 groundNormal{ 0, 1, 0 };
+    // Render interpolation state (see Scene::OnUpdateRuntime)
+    vec3 physicsPos{ 0.0f }, previousPos{ 0.0f }, shownPos{ 0.0f };
+    bool interpValid = false;
 
     void AddForce(const vec3& f) { force += f; }
     void AddImpulse(const vec3& j) { if (type == BodyType::Dynamic && mass > 0) velocity += j / mass; }

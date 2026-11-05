@@ -43,6 +43,12 @@ void PlayerController::OnUpdate(float dt) {
     bool blocked = gm && gm->IsPaused();
 
     vec2 input(Input::GetAxis("MoveX"), Input::GetAxis("MoveY"));
+    if (Profiler::BenchmarkActive()) {
+        // --benchmark: walk a slow figure-eight so the camera, shadows and reflections all
+        // move the way they do in real play (an idle player would flatter the numbers).
+        float t = (float)Time::Elapsed();
+        input = vec2(std::sin(t * 0.5f), std::cos(t * 0.25f));
+    }
     if (glm::length(input) > 1.0f) input = glm::normalize(input);
     if (blocked) input = vec2(0.0f);
 
@@ -56,7 +62,7 @@ void PlayerController::OnUpdate(float dt) {
             right = glm::normalize(glm::cross(fwd, vec3(0, 1, 0)));
         }
     }
-    bool sprint = Input::GetAction("Sprint") && !blocked;
+    bool sprint = (Input::GetAction("Sprint") || (Profiler::BenchmarkActive() && std::fmod((float)Time::Elapsed(), 8.0f) > 5.0f)) && !blocked;
     float speed = sprint ? sprintSpeed : moveSpeed;
     vec3 wish = (right * input.x + fwd * input.y) * speed;
 

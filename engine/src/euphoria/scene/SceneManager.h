@@ -21,6 +21,7 @@ public:
     static bool Update();
     // Loads synchronously (used at startup / by the editor).
     static Ref<Scene> LoadNow(const std::string& path);
+    static void Preload(Scene& scene);   // load the scene's models and textures up front
 
     // "Quit" from gameplay code: the player app closes, the editor leaves play mode.
     static void RequestQuit() { if (onQuitRequested) onQuitRequested(); }

@@ -265,8 +265,9 @@ void EditorApp::DrawViewportWindow() {
         else
             snprintf(buf, sizeof(buf), "%.0f FPS  %.2f ms\n%u draws  %.1fk tris\n%u entities", st.fps, st.frameMs, st.drawCalls, st.triangles / 1000.0f, st.entities);
         ImVec2 tp = m_State == PlayState::Play ? ImVec2(pos.x + avail.x - 180, pos.y + avail.y - 96) : ImVec2(pos.x + 10, pos.y + 10);
-        dl->AddRectFilled(ImVec2(tp.x - 6, tp.y - 4), ImVec2(tp.x + 170, tp.y + 58), IM_COL32(0, 0, 0, 120), 4.0f);
+        dl->AddRectFilled(ImVec2(tp.x - 6, tp.y - 4), ImVec2(tp.x + 170, tp.y + 58 + (Profiler::kOptimizedBuild ? 0 : 16)), IM_COL32(0, 0, 0, 120), 4.0f);
         dl->AddText(tp, IM_COL32(230, 235, 240, 255), buf);
+        if (!Profiler::kOptimizedBuild) dl->AddText(ImVec2(tp.x, tp.y + 56), IM_COL32(255, 170, 60, 255), "Debug build: slow, uneven");
     }
     if (m_State == PlayState::Play) {
         ImDrawList* dl = ImGui::GetWindowDrawList();

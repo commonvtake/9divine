@@ -16,6 +16,8 @@ struct FrameStats {
     uint32_t particles = 0;
     uint32_t batchedObjects = 0;    // objects drawn through automatic instancing this frame
     int rtSamples = 0;              // ray tracing: samples accumulated per pixel (0 = rasterized)
+    float gpuMs = 0.0f;             // GPU time of the scene render (timer query, a frame or two old)
+    int physicsSteps = 0;           // fixed physics steps run this frame
     size_t memoryBytes = 0;
 };
 
@@ -29,6 +31,11 @@ struct ProfileSection {
 // shows up in the editor's Profiler panel and the F3 overlay in games.
 class Profiler {
 public:
+#ifdef NDEBUG
+    static constexpr bool kOptimizedBuild = true;
+#else
+    static constexpr bool kOptimizedBuild = false;    // shown as a warning in the stats overlays
+#endif
     static constexpr int kHistory = 240;
 
     static void BeginFrame();
@@ -42,6 +49,14 @@ public:
 
     // Renderer counters
     static void AddDrawCall(uint64_t triangles) { s_Stats.drawCalls++; s_Stats.triangles += triangles; }
+
+    // Benchmark recording (--benchmark N): every frame's interval and section times, then a
+    // report with percentiles, 1% lows, jitter and the sections behind the worst frames.
+    static void BeginBenchmark(int frames);
+    static bool BenchmarkDone();
+    static bool BenchmarkActive();      // recording: gameplay code may drive a scripted test path
+    static void RecordBenchmarkFrame(float intervalMs);
+    static std::string BenchmarkReport(const std::string& title);
 
 private:
     static FrameStats s_Stats;

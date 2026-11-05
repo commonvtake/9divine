@@ -83,7 +83,8 @@ protected:
         ImGui::SetNextWindowPos({ 10, 10 });
         ImGui::SetNextWindowBgAlpha(0.6f);
         ImGui::Begin("##overlay", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs);
-        ImGui::Text("%.0f FPS  (%.2f ms)", st.fps, st.frameMs);
+        ImGui::Text("%.0f FPS  (%.2f ms)   GPU %.2f ms", st.fps, st.frameMs, st.gpuMs);
+        if (!Profiler::kOptimizedBuild) ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.25f, 1.0f), "Debug build: frame rate will be low and uneven");
         ImGui::PlotLines("##ft", Profiler::FrameHistory(), Profiler::kHistory, Profiler::HistoryOffset(), nullptr, 0.0f, 40.0f, ImVec2(240, 50));
         ImGui::Text("Draw calls: %u   Triangles: %llu", st.drawCalls, (unsigned long long)st.triangles);
         if (Renderer::Settings().rayTraced)
@@ -132,8 +133,8 @@ int main(int argc, char** argv) {
     auto isNum = [](const char* s) { return s && *s && std::strspn(s, "0123456789") == std::strlen(s); };
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
-        if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--fixed-dt" || a == "--width" || a == "--height") { i++; continue; }
-        if (a == "--host") { if (i + 1 < argc && isNum(argv[i + 1])) i++; continue; }
+        if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--fixed-dt" || a == "--benchmark-report" || a == "--width" || a == "--height") { i++; continue; }
+        if (a == "--host" || a == "--benchmark") { if (i + 1 < argc && isNum(argv[i + 1])) i++; continue; }
         if (a == "--join") { i++; if (i + 1 < argc && isNum(argv[i + 1])) i++; continue; }
         if (a.rfind("--", 0) == 0) continue;
         paths.push_back(a);

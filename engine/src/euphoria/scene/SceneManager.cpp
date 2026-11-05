@@ -1,5 +1,8 @@
 #include "euphoria/scene/SceneManager.h"
 #include "euphoria/scene/SceneSerializer.h"
+#include "euphoria/assets/AssetManager.h"
+#include "euphoria/renderer/Renderer.h"
+#include "euphoria/core/Profiler.h"
 #include "euphoria/audio/Audio.h"
 #include "euphoria/core/Log.h"
 
@@ -23,7 +26,25 @@ Ref<Scene> SceneManager::LoadNow(const std::string& path) {
     auto scene = MakeRef<Scene>();
     SceneSerializer s(*scene);
     if (!s.Load(path)) return nullptr;
+    Preload(*scene);
     return scene;
+}
+
+// Loads every model and texture the scene references now, while the screen is already
+// switching, instead of the first time each one comes into view (a mid-game hitch).
+void SceneManager::Preload(Scene& scene) {
+    EU_PROFILE_SCOPE("Preload");
+    auto& reg = scene.Reg();
+    reg.View<MeshRendererComponent>([&](EntityId, MeshRendererComponent& mr) {
+        if (!mr.mesh.empty() && (!mr.model || mr.loadedMesh != mr.mesh)) {
+            mr.model = AssetManager::GetModel(mr.mesh);
+            mr.loadedMesh = mr.mesh;
+            mr.loadedVersion = AssetManager::Version();
+        }
+        for (const std::string* t : { &mr.texture, &mr.normalMap, &mr.metallicRoughnessMap, &mr.emissiveMap })
+            if (!t->empty()) AssetManager::GetTexture(*t);
+    });
+    reg.View<UIElementComponent>([&](EntityId, UIElementComponent& u) { if (!u.image.empty()) AssetManager::GetTexture(u.image); });
 }
 
 bool SceneManager::Update() {

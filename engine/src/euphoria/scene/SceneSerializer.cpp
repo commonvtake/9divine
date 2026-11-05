@@ -44,6 +44,8 @@ json SceneSerializer::SerializeEntity(Entity e) {
                               { "castShadows", c->castShadows }, { "visible", c->visible } };
         if (!c->normalMap.empty()) { j["meshRenderer"]["normalMap"] = c->normalMap; j["meshRenderer"]["normalStrength"] = c->normalStrength; }
         if (!c->metallicRoughnessMap.empty()) j["meshRenderer"]["metallicRoughnessMap"] = c->metallicRoughnessMap;
+        if (!c->emissiveMap.empty()) j["meshRenderer"]["emissiveMap"] = c->emissiveMap;
+        if (c->worldUV) j["meshRenderer"]["worldUV"] = true;
         // Only written when used, so existing scene files stay unchanged.
         if (c->toon || c->outline)
             j["meshRenderer"]["toon"] = { { "enabled", c->toon }, { "bands", c->toonBands }, { "softness", c->toonSoftness },
@@ -173,6 +175,8 @@ Entity SceneSerializer::DeserializeEntity(Scene& scene, const json& j, std::unor
         c.normalMap = JGet<std::string>(jc, "normalMap", "");
         c.normalStrength = JGet(jc, "normalStrength", c.normalStrength);
         c.metallicRoughnessMap = JGet<std::string>(jc, "metallicRoughnessMap", "");
+        c.emissiveMap = JGet<std::string>(jc, "emissiveMap", "");
+        c.worldUV = JGet(jc, "worldUV", false);
         c.emissive = JGet(jc, "emissive", c.emissive);
         c.castShadows = JGet(jc, "castShadows", c.castShadows);
         c.visible = JGet(jc, "visible", c.visible);

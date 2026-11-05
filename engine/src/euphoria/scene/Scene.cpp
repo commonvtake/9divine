@@ -258,6 +258,7 @@ void Scene::OnRuntimeStart() {
     m_Events.Clear();
     m_Tweens.clear();
     ResetEventTriggers();
+    m_Registry.View<RigidBodyComponent>([&](EntityId, RigidBodyComponent& rb) { rb.interpValid = false; });
     InstantiateScripts();
 }
 
@@ -395,6 +396,16 @@ void Scene::OnUpdateRuntime(float dt) {
         m_StepFrames--;
         dt = kFixedStep;
     }
+    // Physics runs at a fixed 60 Hz, but frames don't line up with steps: at 144 Hz most
+    // frames run zero steps and some run one, so a body drawn at its raw physics position
+    // moves in uneven jumps (judder) - and so does the camera following it. Bodies are
+    // therefore *drawn* between their previous and current physics positions. Before
+    // gameplay runs, the true positions are put back (unless a script moved the body since).
+    m_Registry.View<TransformComponent, RigidBodyComponent>([&](EntityId, TransformComponent& t, RigidBodyComponent& rb) {
+        if (!rb.interpValid) return;
+        if (t.position == rb.shownPos) t.position = rb.physicsPos;   // untouched since we drew it
+        else rb.interpValid = false;                                // teleported by a script
+    });
     InstantiateScripts();
     UpdateScripts(dt);
     UpdateEventTriggers(dt);
@@ -403,6 +414,9 @@ void Scene::OnUpdateRuntime(float dt) {
     m_FixedAccumulator += dt;
     int steps = 0;
     while (m_FixedAccumulator >= kFixedStep && steps < 5) {
+        m_Registry.View<TransformComponent, RigidBodyComponent>([&](EntityId, TransformComponent& t, RigidBodyComponent& rb) {
+            rb.previousPos = rb.interpValid ? rb.physicsPos : t.position;
+        });
         ForEachScript(m_Registry, this, [&](ScriptInstance&, ScriptableEntity& inst) { inst.OnFixedUpdate(kFixedStep); });
         m_Physics->Step(kFixedStep);
         for (auto& ev : m_Physics->Events()) {
@@ -434,8 +448,23 @@ void Scene::OnUpdateRuntime(float dt) {
         m_Physics->ClearEvents();
         m_FixedAccumulator -= kFixedStep;
         steps++;
+        m_Registry.View<TransformComponent, RigidBodyComponent>([&](EntityId, TransformComponent& t, RigidBodyComponent& rb) {
+            rb.physicsPos = t.position;
+            rb.interpValid = true;
+        });
     }
     if (steps == 5) m_FixedAccumulator = 0.0f;
+    Profiler::Stats().physicsSteps += steps;
+    // Draw each body at (previous -> current) by how far we are into the next step.
+    {
+        float alpha = glm::clamp(m_FixedAccumulator / kFixedStep, 0.0f, 1.0f);
+        m_Registry.View<TransformComponent, RigidBodyComponent>([&](EntityId, TransformComponent& t, RigidBodyComponent& rb) {
+            if (!rb.interpValid) return;
+            if (!rb.interpolate || rb.type == BodyType::Static || t.position != rb.physicsPos) { rb.interpValid = false; return; }
+            t.position = glm::mix(rb.previousPos, rb.physicsPos, alpha);
+            rb.shownPos = t.position;
+        });
+    }
 
     UpdateNavAgents(dt);
     UpdateAnimators(dt);

@@ -72,6 +72,9 @@ Application::Application(const AppConfig& config) : m_Config(config) {
         std::exit(1);
     }
     glfwSwapInterval(config.vsync ? 1 : 0);
+    m_VSync = config.vsync;
+    if (GLFWmonitor* mon = glfwGetPrimaryMonitor())
+        if (const GLFWvidmode* mode = glfwGetVideoMode(mon); mode && mode->refreshRate > 0) m_RefreshInterval = 1.0f / mode->refreshRate;
     EU_INFO("OpenGL {} | {}", (const char*)glGetString(GL_VERSION), (const char*)glGetString(GL_RENDERER));
 #ifdef EU_GL_DEBUG
     if (GLAD_GL_KHR_debug) { glEnable(GL_DEBUG_OUTPUT); glDebugMessageCallback(GLDebug, nullptr); }
@@ -146,7 +149,11 @@ void Application::ApplyEditorStyle() {
 }
 
 void Application::Run() {
+#ifndef NDEBUG
+    EU_WARN("This is a Debug build: frame rates will be low and uneven. Build the Release (RelWithDebInfo) configuration to play or measure performance.");
+#endif
     OnInit();
+    if (m_Config.benchmarkFrames > 0) Profiler::BeginBenchmark(m_Config.benchmarkFrames);
     auto last = std::chrono::steady_clock::now();
     while (m_Running) {
         if (glfwWindowShouldClose(m_Window)) {
@@ -156,7 +163,16 @@ void Application::Run() {
         auto now = std::chrono::steady_clock::now();
         float dt = std::chrono::duration<float>(now - last).count();
         last = now;
+        if (Time::s_Frame > 0) Profiler::RecordBenchmarkFrame(dt * 1000.0f);   // the previous frame, start to start
+        if (Profiler::BenchmarkDone()) {
+            std::string report = Profiler::BenchmarkReport(m_Config.title);
+            std::printf("%s", report.c_str());
+            FileSystem::WriteText(m_Config.benchmarkReport, report);
+            EU_INFO("Benchmark report written to {}", m_Config.benchmarkReport);
+            break;
+        }
         dt = std::min(dt, 0.1f);               // avoid huge steps after a hitch
+        dt = SmoothFrameTime(dt);
         if (m_Config.fixedDelta > 0.0f) dt = m_Config.fixedDelta;
         Time::s_Unscaled = dt;
         Time::s_Delta = dt * Time::s_Scale;
@@ -204,7 +220,27 @@ void Application::Run() {
 ivec2 Application::FramebufferSize() const { int w, h; glfwGetFramebufferSize(m_Window, &w, &h); return { w, h }; }
 ivec2 Application::WindowSize() const { int w, h; glfwGetWindowSize(m_Window, &w, &h); return { w, h }; }
 void Application::SetTitle(const std::string& title) { glfwSetWindowTitle(m_Window, title.c_str()); }
-void Application::SetVSync(bool on) { glfwSwapInterval(on ? 1 : 0); }
+void Application::SetVSync(bool on) { glfwSwapInterval(on ? 1 : 0); m_VSync = on; }
+
+// With vsync every frame is shown a whole number of refresh intervals apart, but the time we
+// measure wobbles around that (16.4, 16.9, 16.6 ms...) from OS scheduling. Feeding the wobble
+// into movement makes motion micro-stutter even at a steady 60 FPS, so a measured time close
+// to a multiple of the refresh interval is snapped to it. Any leftover is kept in a small
+// residual so game time never drifts from real time.
+float Application::SmoothFrameTime(float dt) {
+    if (!m_VSync || m_RefreshInterval <= 0.0f) return dt;
+    float frames = std::round(dt / m_RefreshInterval);
+    if (frames >= 1.0f && frames <= 4.0f) {
+        float snapped = frames * m_RefreshInterval;
+        if (std::abs(dt - snapped) < m_RefreshInterval * 0.2f) {
+            m_TimeResidual += dt - snapped;
+            // Pay the residual back once it amounts to a real difference
+            if (std::abs(m_TimeResidual) > m_RefreshInterval * 0.5f) { snapped += m_TimeResidual; m_TimeResidual = 0.0f; }
+            return snapped;
+        }
+    }
+    return dt;
+}
 
 void Application::SetFullscreen(bool on) {
     if (on == m_Fullscreen) return;
@@ -243,6 +279,11 @@ AppConfig ParseCommandLine(int argc, char** argv, AppConfig base, std::vector<st
         else if (a == "--screenshot-frame") base.screenshotFrame = std::atoi(next().c_str());
         else if (a == "--frames") base.maxFrames = std::atoi(next().c_str());
         else if (a == "--fixed-dt") base.fixedDelta = (float)std::atof(next().c_str());
+        else if (a == "--benchmark") {   // optional frame count
+            bool num = i + 1 < argc && argv[i + 1][0] >= '0' && argv[i + 1][0] <= '9';
+            base.benchmarkFrames = num ? std::max(60, std::atoi(argv[++i])) : 1200;
+        }
+        else if (a == "--benchmark-report") base.benchmarkReport = next();
         else if (a == "--width") base.width = std::atoi(next().c_str());
         else if (a == "--height") base.height = std::atoi(next().c_str());
         else if (a == "--fullscreen") base.fullscreen = true;

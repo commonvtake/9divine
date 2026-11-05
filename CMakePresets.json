@@ -1,0 +1,24 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "release",
+      "displayName": "Release (fast - use this to play and profile)",
+      "description": "Optimized with debug info: full speed, and breakpoints still work in most places.",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug (slow - for stepping through code)",
+      "description": "No optimization. Frame rates are much lower and uneven; don't judge performance here.",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "release", "configurePreset": "release", "displayName": "Release" },
+    { "name": "debug", "configurePreset": "debug", "displayName": "Debug" }
+  ]
+}
