@@ -1,4 +1,5 @@
 #include "EditorApp.h"
+#include <euphoria/renderer/Texture.h>
 #include <euphoria/scene/SceneSerializer.h>
 #include <euphoria/assets/AssetManager.h>
 #include <euphoria/renderer/GL.h>
@@ -107,9 +108,18 @@ bool EditorApp::OpenScene(const std::string& path) {
     m_Snapshot = SceneSerializer(*m_EditorScene).ToJson().dump();
     m_Dirty = false;
     // Frame the scene's main camera if there is one
+    m_Camera.mode2D = m_EditorScene->Environment().mode2D;
     if (Entity cam = m_EditorScene->PrimaryCamera()) {
         vec3 p = m_EditorScene->WorldPosition(cam);
-        m_Camera.Focus(p + vec3(0, -1.5f, -8.0f), 14.0f);
+        if (m_Camera.mode2D) {
+            // Show what the game camera shows, with a margin
+            auto& env = m_EditorScene->Environment();
+            m_Camera.pivot = vec3(p.x, p.y, 0.0f);
+            m_Camera.zoom2D = env.pixelPerfect ? env.referenceResolution.y / std::max(1.0f, env.pixelsPerUnit) * 1.25f
+                                               : cam.Get<CameraComponent>().orthoSize * 1.25f;
+        } else {
+            m_Camera.Focus(p + vec3(0, -1.5f, -8.0f), 14.0f);
+        }
     }
     UpdateTitle();
     return true;
@@ -205,6 +215,7 @@ void EditorApp::Redo() {
 // ----------------------------------------------------------------- entities
 vec3 EditorApp::SpawnPoint() {
     auto scene = ActiveScene();
+    if (scene && scene->Environment().mode2D) return vec3(std::round(m_Camera.pivot.x), std::round(m_Camera.pivot.y), 0.0f);
     Ray ray{ m_Camera.Position(), m_Camera.Forward() };
     RaycastHit hit;
     if (scene && scene->Physics().Raycast(ray, 60.0f, hit)) return hit.point;
@@ -235,6 +246,34 @@ Entity EditorApp::CreatePrimitive(const std::string& shape) {
 Entity EditorApp::CreateFromAsset(const std::string& path, const vec3& position) {
     auto scene = ActiveScene();
     if (AssetManager::IsSceneFile(path)) { if (m_State == PlayState::Edit) OpenScene(path); return {}; }
+    if (AssetManager::IsTilemapFile(path)) {
+        // A Tiled map: placed with its bottom-left corner at the drop point (whole units)
+        Entity e = scene->CreateEntity(fs::u8path(path).stem().u8string());
+        e.Transform().position = vec3(glm::round(vec2(position)), 0.0f);
+        e.Add<TilemapComponent>().map = path;
+        if (!scene->Environment().mode2D) EU_INFO("Tilemaps are drawn in 2D scenes: turn on Scene Settings > 2D > 2D scene");
+        Select(e);
+        Commit();
+        return e;
+    }
+    if (AssetManager::IsTextureFile(path) && scene->Environment().mode2D) {
+        // An image in a 2D scene: a sprite. Sprite sheets (several frames) get an animator.
+        Entity e = scene->CreateEntity(fs::u8path(path).stem().u8string());
+        e.Transform().position = position;
+        auto& sr = e.Add<SpriteRendererComponent>();
+        sr.texture = path;
+        auto tex = AssetManager::GetTexture(path, true);
+        ivec2 frame = SpriteSheet::DetectFrameSize(path);
+        if (tex && frame.x > 0 && frame.y > 0 && (frame.x < tex->Width() || frame.y < tex->Height())) {
+            sr.region = vec4(0, 0, frame.x, frame.y);
+            e.Add<SpriteAnimatorComponent>().animations.push_back(Sprite2D::FromSheet(path));
+            EU_INFO("{}: sprite sheet of {}x{} frames - animation '{}' plays all of them (edit it in the Sprite Animator)", path, frame.x, frame.y,
+                    fs::u8path(path).stem().u8string());
+        }
+        Select(e);
+        Commit();
+        return e;
+    }
     if (!AssetManager::IsModelFile(path)) return {};
     size_t hash = path.find('#');
     Entity e = scene->CreateEntity(hash != std::string::npos ? path.substr(hash + 1) : fs::path(path).stem().string());
@@ -341,7 +380,7 @@ void EditorApp::OnImGui() {
             if (ImGui::IsKeyPressed(ImGuiKey_W, false)) m_GizmoOp = 1;
             if (ImGui::IsKeyPressed(ImGuiKey_E, false)) m_GizmoOp = 2;
             if (ImGui::IsKeyPressed(ImGuiKey_R, false)) m_GizmoOp = 3;
-            if (ImGui::IsKeyPressed(ImGuiKey_F, false)) if (Entity e = Selected()) m_Camera.Focus(ActiveScene()->WorldPosition(e), 6.0f);
+            if (ImGui::IsKeyPressed(ImGuiKey_F, false)) if (Entity e = Selected()) m_Camera.Focus(ActiveScene()->WorldPosition(e), m_Camera.mode2D ? m_Camera.zoom2D / 1.5f : 6.0f);
             if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && m_State == PlayState::Edit) DeleteSelected();
         }
         // Release the mouse from a running game
