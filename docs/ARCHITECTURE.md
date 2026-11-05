@@ -114,6 +114,8 @@ Non-opaque passes mask out the ID attachment with `glColorMaski` so transparent 
 
 **Frustum culling** uses planes extracted from the view-projection matrix (Gribb–Hartmann) and transformed AABBs.
 
+**Light budget.** The forward shaders take the 8 point lights nearest the camera. When a scene has more (a street of lamps), the lights near the cut-off are dimmed by how close the 9th light is to taking their slot, so a light is already dark when it swaps in or out and nothing pops.
+
 ### Ray tracing
 `renderer/RayTracer.cpp`, `assets/shaders/pathtrace.glsl`
 
@@ -191,6 +193,13 @@ The demo shows both: the *Shade* enemy is a state machine (Patrol → Chase → 
 `ui/GameUI.cpp`
 
 An **immediate-mode** API (`UI::Button(...)` returns true when clicked) drawn as one batched vertex buffer with a texture switch only when needed. Text uses an `stb_truetype` font atlas packed with oversampling; a white texel in the same atlas draws solid panels, so most UI is a single draw call. Layout uses a 1920×1080 reference canvas scaled by window height plus anchors, so HUDs work at any resolution. `UIElement` components provide retained UI that designers can edit in the inspector; buttons call `OnUIButton(entityName)` on scripts.
+
+### Screen fades
+`ui/ScreenFade.cpp`
+
+`ScreenFade` is a static state machine (idle → out → hold → in) drawn as one full-screen panel at the end of `Scene::RenderGameUI`, after every script's `OnGUI`, so it covers the HUD too. It lives outside any scene, so a fade started in one scene finishes in the next. The callback passed to `FadeOut` / `Transition` runs exactly once, on the first frame the screen is fully black. That's where doors call `SceneManager::LoadScene`, so the load and its hitch happen out of sight. Fades run on unscaled time, so they work while the game is paused, and the step is clamped to 50 ms, so the long frame a scene load causes can't skip the hold. `Scene::EndPlaySession()` (called when the editor leaves play mode) clears any fade and the session's `SaveGame` values (items, unlocked doors).
+
+The demo's doors are game scripts built on it (`game/src/Interaction.cpp`). A door captures the target scene and spawn name by value before fading, because the door entity and its whole scene are gone by the time the callback runs. The player is then moved to the spawn point with its interpolation reset, and a `PlayerTeleported` event tells the camera to cut instead of swooping across the map.
 
 ## 12. Particles
 `particles/Particles.cpp`
