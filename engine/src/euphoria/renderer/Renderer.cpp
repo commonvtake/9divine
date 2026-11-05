@@ -1053,11 +1053,16 @@ void Renderer::RenderScene(Scene& scene, const RenderCamera& cam, Framebuffer& t
             else DebugDraw::Ray(pos, fwd * 2.0f, c);
         }
     });
+    // The shaders take the 8 nearest point lights. With more in the scene (a street of lamps),
+    // lights near the cut-off fade by how close the next light is to taking their slot, so a
+    // light swapping in or out is at zero brightness at that moment instead of popping.
     std::sort(points.begin(), points.end(), [](const PL& a, const PL& b) { return a.dist < b.dist; });
+    const float cutoff = points.size() > 8 ? points[8].dist : 1e30f;
     for (auto& p : points) {
         if (L.pointCount >= 8) break;
         int i = L.pointCount++;
-        L.pointPos[i] = p.pos; L.pointColor[i] = p.color; L.pointRange[i] = p.range;
+        float fade = glm::clamp((cutoff - p.dist) / 6.0f, 0.0f, 1.0f);
+        L.pointPos[i] = p.pos; L.pointColor[i] = p.color * fade * fade * (3.0f - 2.0f * fade); L.pointRange[i] = p.range;
     }
     ComputeSkySH(*F.env, s_Data->skySH);
 

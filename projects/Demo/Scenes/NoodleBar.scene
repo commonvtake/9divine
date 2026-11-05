@@ -1,0 +1,4380 @@
+{
+ "entities": [
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.4000000059604645,
+    "texture": "Textures/tile_floor.png",
+    "tiling": 0.5,
+    "useModelMaterials": true,
+    "visible": true,
+    "worldUV": true
+   },
+   "name": "Floor",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     -0.10000000149011612,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     12.600000381469727,
+     0.20000000298023224,
+     8.600000381469727
+    ]
+   },
+   "uuid": 9503014210470952142
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.949999988079071,
+     0.8999999761581421,
+     0.8500000238418579,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "Textures/wallpaper.png",
+    "tiling": 0.5,
+    "useModelMaterials": true,
+    "visible": true,
+    "worldUV": true
+   },
+   "name": "Wall",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     1.7999999523162842,
+     -4.150000095367432
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     12.600000381469727,
+     3.5999999046325684,
+     0.30000001192092896
+    ]
+   },
+   "uuid": 3578814623921093993
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.949999988079071,
+     0.8999999761581421,
+     0.8500000238418579,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "Textures/wallpaper.png",
+    "tiling": 0.5,
+    "useModelMaterials": true,
+    "visible": true,
+    "worldUV": true
+   },
+   "name": "Wall",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -6.150000095367432,
+     1.7999999523162842,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.30000001192092896,
+     3.5999999046325684,
+     8.0
+    ]
+   },
+   "uuid": 6097677395743250455
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.20000000298023224,
+     0.14000000059604645,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Baseboard",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.05999999865889549,
+     -3.990000009536743
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     12.0,
+     0.11999999731779099,
+     0.029999999329447746
+    ]
+   },
+   "uuid": 11275907450967409620
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.20000000298023224,
+     0.14000000059604645,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Baseboard",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -5.989999771118164,
+     0.05999999865889549,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.029999999329447746,
+     0.11999999731779099,
+     8.0
+    ]
+   },
+   "uuid": 3060171653930042032
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.949999988079071,
+     0.8999999761581421,
+     0.8500000238418579,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "Textures/wallpaper.png",
+    "tiling": 0.5,
+    "useModelMaterials": true,
+    "visible": true,
+    "worldUV": true
+   },
+   "name": "Wall",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     1.7999999523162842,
+     4.150000095367432
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     12.600000381469727,
+     3.5999999046325684,
+     0.30000001192092896
+    ]
+   },
+   "uuid": 9521065943121179118
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.949999988079071,
+     0.8999999761581421,
+     0.8500000238418579,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "Textures/wallpaper.png",
+    "tiling": 0.5,
+    "useModelMaterials": true,
+    "visible": true,
+    "worldUV": true
+   },
+   "name": "Wall",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     6.150000095367432,
+     1.7999999523162842,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.30000001192092896,
+     3.5999999046325684,
+     8.0
+    ]
+   },
+   "uuid": 8324028461305381790
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.20000000298023224,
+     0.14000000059604645,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Baseboard",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.05999999865889549,
+     3.990000009536743
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     12.0,
+     0.11999999731779099,
+     0.029999999329447746
+    ]
+   },
+   "uuid": 958513678254648292
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.20000000298023224,
+     0.14000000059604645,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Baseboard",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     5.989999771118164,
+     0.05999999865889549,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.029999999329447746,
+     0.11999999731779099,
+     8.0
+    ]
+   },
+   "uuid": 12837285611947576449
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.2199999988079071,
+     0.15000000596046448,
+     0.10999999940395355,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Ceiling",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     3.75,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     12.600000381469727,
+     0.30000001192092896,
+     8.600000381469727
+    ]
+   },
+   "uuid": 4055365217171251026
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.75,
+     0.6000000238418579,
+     0.5,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "normalMap": "Textures/wood_floor_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.5,
+    "texture": "Textures/wood_floor.png",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true,
+    "worldUV": true
+   },
+   "name": "Wainscot",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.550000011920929,
+     -3.9700000286102295
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     12.0,
+     1.100000023841858,
+     0.05999999865889549
+    ]
+   },
+   "uuid": 4217058866524728048
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.75,
+     0.6000000238418579,
+     0.5,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "normalMap": "Textures/wood_floor_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.5,
+    "texture": "Textures/wood_floor.png",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true,
+    "worldUV": true
+   },
+   "name": "Wainscot",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -5.96999979019165,
+     0.550000011920929,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.05999999865889549,
+     1.100000023841858,
+     8.0
+    ]
+   },
+   "uuid": 11746896163507380418
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.75,
+     0.6000000238418579,
+     0.5,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "normalMap": "Textures/wood_floor_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.5,
+    "texture": "Textures/wood_floor.png",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true,
+    "worldUV": true
+   },
+   "name": "Wainscot",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.550000011920929,
+     3.9700000286102295
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     12.0,
+     1.100000023841858,
+     0.05999999865889549
+    ]
+   },
+   "uuid": 13102775594000606049
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.75,
+     0.6000000238418579,
+     0.5,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "normalMap": "Textures/wood_floor_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.5,
+    "texture": "Textures/wood_floor.png",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true,
+    "worldUV": true
+   },
+   "name": "Wainscot",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     5.96999979019165,
+     0.550000011920929,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.05999999865889549,
+     1.100000023841858,
+     8.0
+    ]
+   },
+   "uuid": 16798338857865549641
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.699999988079071,
+     0.550000011920929,
+     0.44999998807907104,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "normalMap": "Textures/wood_floor_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.5,
+    "texture": "Textures/wood_floor.png",
+    "tiling": 0.5,
+    "useModelMaterials": true,
+    "visible": true,
+    "worldUV": true
+   },
+   "name": "Counter",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.5,
+     0.5,
+     -1.899999976158142
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     9.0,
+     1.0,
+     0.6000000238418579
+    ]
+   },
+   "uuid": 15301697117079754015
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.44999998807907104,
+     0.07000000029802322,
+     0.05000000074505806,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.18000000715255737,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Counter Top",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.5,
+     1.0299999713897705,
+     -1.899999976158142
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     9.199999809265137,
+     0.05999999865889549,
+     0.8500000238418579
+    ]
+   },
+   "uuid": 16605343067362467041
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.699999988079071,
+     0.699999988079071,
+     0.7200000286102295,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Stool Post",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.5,
+     0.3499999940395355,
+     -1.149999976158142
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.07999999821186066,
+     0.699999988079071,
+     0.07999999821186066
+    ]
+   },
+   "uuid": 4271391810299480807
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.6499999761581421,
+     0.10000000149011612,
+     0.07999999821186066,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cylinder",
+    "metallic": 0.0,
+    "roughness": 0.3499999940395355,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Stool",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.5,
+     0.7200000286102295,
+     -1.149999976158142
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.41999998688697815,
+     0.07999999821186066,
+     0.41999998688697815
+    ]
+   },
+   "uuid": 18444988283173643759
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.699999988079071,
+     0.699999988079071,
+     0.7200000286102295,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Stool Post",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -2.200000047683716,
+     0.3499999940395355,
+     -1.149999976158142
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.07999999821186066,
+     0.699999988079071,
+     0.07999999821186066
+    ]
+   },
+   "uuid": 17765762676563051542
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.6499999761581421,
+     0.10000000149011612,
+     0.07999999821186066,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cylinder",
+    "metallic": 0.0,
+    "roughness": 0.3499999940395355,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Stool",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -2.200000047683716,
+     0.7200000286102295,
+     -1.149999976158142
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.41999998688697815,
+     0.07999999821186066,
+     0.41999998688697815
+    ]
+   },
+   "uuid": 17706461614027333365
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.699999988079071,
+     0.699999988079071,
+     0.7200000286102295,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Stool Post",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -0.9000000953674316,
+     0.3499999940395355,
+     -1.149999976158142
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.07999999821186066,
+     0.699999988079071,
+     0.07999999821186066
+    ]
+   },
+   "uuid": 2179805881183927158
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.6499999761581421,
+     0.10000000149011612,
+     0.07999999821186066,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cylinder",
+    "metallic": 0.0,
+    "roughness": 0.3499999940395355,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Stool",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -0.9000000953674316,
+     0.7200000286102295,
+     -1.149999976158142
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.41999998688697815,
+     0.07999999821186066,
+     0.41999998688697815
+    ]
+   },
+   "uuid": 7814729171022671645
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.699999988079071,
+     0.699999988079071,
+     0.7200000286102295,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Stool Post",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.39999985694885254,
+     0.3499999940395355,
+     -1.149999976158142
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.07999999821186066,
+     0.699999988079071,
+     0.07999999821186066
+    ]
+   },
+   "uuid": 16124043837383047931
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.6499999761581421,
+     0.10000000149011612,
+     0.07999999821186066,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cylinder",
+    "metallic": 0.0,
+    "roughness": 0.3499999940395355,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Stool",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.39999985694885254,
+     0.7200000286102295,
+     -1.149999976158142
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.41999998688697815,
+     0.07999999821186066,
+     0.41999998688697815
+    ]
+   },
+   "uuid": 18297040753409926564
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.699999988079071,
+     0.699999988079071,
+     0.7200000286102295,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Stool Post",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     1.6999998092651367,
+     0.3499999940395355,
+     -1.149999976158142
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.07999999821186066,
+     0.699999988079071,
+     0.07999999821186066
+    ]
+   },
+   "uuid": 17261879944073747220
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.6499999761581421,
+     0.10000000149011612,
+     0.07999999821186066,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cylinder",
+    "metallic": 0.0,
+    "roughness": 0.3499999940395355,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Stool",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     1.6999998092651367,
+     0.7200000286102295,
+     -1.149999976158142
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.41999998688697815,
+     0.07999999821186066,
+     0.41999998688697815
+    ]
+   },
+   "uuid": 9496653576606030060
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.550000011920929,
+     0.5600000023841858,
+     0.5799999833106995,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Stove",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.0,
+     0.44999998807907104,
+     -3.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     2.4000000953674316,
+     0.8999999761581421,
+     0.699999988079071
+    ]
+   },
+   "uuid": 17122884184057361654
+  },
+  {
+   "active": true,
+   "name": "Pots",
+   "scripts": [
+    {
+     "class": "Examine",
+     "fields": {
+      "Label": "Stock Pots",
+      "Message": "Pork bone broth.\nIt smells like it's been simmering since 1987.",
+      "Offset": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Range": 3.0
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.0,
+     0.8999999761581421,
+     -3.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 12177228892779913910
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.6499999761581421,
+     0.6600000262260437,
+     0.6800000071525574,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cylinder",
+    "metallic": 1.0,
+    "roughness": 0.3499999940395355,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Pot",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 12177228892779913910,
+    "position": [
+     -0.550000011920929,
+     0.25,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.6000000238418579,
+     0.5,
+     0.6000000238418579
+    ]
+   },
+   "uuid": 2659533025870992576
+  },
+  {
+   "active": true,
+   "name": "Steam",
+   "particles": {
+    "additive": false,
+    "burst": 0,
+    "drag": 0.30000001192092896,
+    "endColor": [
+     0.6000000238418579,
+     0.6000000238418579,
+     0.6200000047683716,
+     0.0
+    ],
+    "endSize": 2.200000047683716,
+    "gravity": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lifetime": 3.5,
+    "lifetimeVariance": 0.800000011920929,
+    "loop": true,
+    "maxParticles": 800,
+    "playOnStart": true,
+    "rate": 6.0,
+    "shape": "Sphere",
+    "shapeSize": [
+     0.20000000298023224,
+     0.20000000298023224,
+     0.20000000298023224
+    ],
+    "spread": 0.25,
+    "startColor": [
+     0.8999999761581421,
+     0.8999999761581421,
+     0.8999999761581421,
+     0.25
+    ],
+    "startSize": 0.5,
+    "velocity": [
+     0.30000001192092896,
+     1.2000000476837158,
+     0.0
+    ],
+    "worldSpace": true
+   },
+   "tag": "Untagged",
+   "transform": {
+    "parent": 12177228892779913910,
+    "position": [
+     -0.550000011920929,
+     0.6000000238418579,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 14949612935053041721
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.6499999761581421,
+     0.6600000262260437,
+     0.6800000071525574,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cylinder",
+    "metallic": 1.0,
+    "roughness": 0.3499999940395355,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Pot",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 12177228892779913910,
+    "position": [
+     0.550000011920929,
+     0.25,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.6000000238418579,
+     0.5,
+     0.6000000238418579
+    ]
+   },
+   "uuid": 14941678880748012186
+  },
+  {
+   "active": true,
+   "name": "Steam",
+   "particles": {
+    "additive": false,
+    "burst": 0,
+    "drag": 0.30000001192092896,
+    "endColor": [
+     0.6000000238418579,
+     0.6000000238418579,
+     0.6200000047683716,
+     0.0
+    ],
+    "endSize": 2.200000047683716,
+    "gravity": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "lifetime": 3.5,
+    "lifetimeVariance": 0.800000011920929,
+    "loop": true,
+    "maxParticles": 800,
+    "playOnStart": true,
+    "rate": 6.0,
+    "shape": "Sphere",
+    "shapeSize": [
+     0.20000000298023224,
+     0.20000000298023224,
+     0.20000000298023224
+    ],
+    "spread": 0.25,
+    "startColor": [
+     0.8999999761581421,
+     0.8999999761581421,
+     0.8999999761581421,
+     0.25
+    ],
+    "startSize": 0.5,
+    "velocity": [
+     0.30000001192092896,
+     1.2000000476837158,
+     0.0
+    ],
+    "worldSpace": true
+   },
+   "tag": "Untagged",
+   "transform": {
+    "parent": 12177228892779913910,
+    "position": [
+     0.550000011920929,
+     0.6000000238418579,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 15302275637650504635
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.75,
+     0.7599999904632568,
+     0.7799999713897705,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 1.0,
+    "roughness": 0.30000001192092896,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Fridge",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     4.900000095367432,
+     1.0,
+     -3.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.8999999761581421,
+     2.0,
+     0.800000011920929
+    ]
+   },
+   "uuid": 1695234060606798226
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.30000001192092896,
+     0.20000000298023224,
+     0.14000000059604645,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Shelf",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.5,
+     1.7999999523162842,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     4.0,
+     0.05999999865889549,
+     0.4000000059604645
+    ]
+   },
+   "uuid": 529139398495912120
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8999999761581421,
+     0.8799999952316284,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bowl",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -1.0,
+     1.899999976158142,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.1599999964237213,
+     0.36000001430511475
+    ]
+   },
+   "uuid": 17907094437621993289
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8999999761581421,
+     0.8799999952316284,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bowl",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -0.3999999761581421,
+     1.899999976158142,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.1599999964237213,
+     0.36000001430511475
+    ]
+   },
+   "uuid": 6808421657314205475
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8999999761581421,
+     0.8799999952316284,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bowl",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.20000004768371582,
+     1.899999976158142,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.1599999964237213,
+     0.36000001430511475
+    ]
+   },
+   "uuid": 5686196130825600893
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8999999761581421,
+     0.8799999952316284,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bowl",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.8000000715255737,
+     1.899999976158142,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.1599999964237213,
+     0.36000001430511475
+    ]
+   },
+   "uuid": 7418504689626715147
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8999999761581421,
+     0.8799999952316284,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bowl",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     1.4000000953674316,
+     1.899999976158142,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.1599999964237213,
+     0.36000001430511475
+    ]
+   },
+   "uuid": 9793849609937716251
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8999999761581421,
+     0.8799999952316284,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bowl",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     2.0,
+     1.899999976158142,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.1599999964237213,
+     0.36000001430511475
+    ]
+   },
+   "uuid": 2504138211287508890
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.30000001192092896,
+     0.20000000298023224,
+     0.14000000059604645,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Shelf",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.5,
+     2.4000000953674316,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     4.0,
+     0.05999999865889549,
+     0.4000000059604645
+    ]
+   },
+   "uuid": 5449381818297862432
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8999999761581421,
+     0.8799999952316284,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bowl",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -1.0,
+     2.5,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.1599999964237213,
+     0.36000001430511475
+    ]
+   },
+   "uuid": 15206496655010938699
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8999999761581421,
+     0.8799999952316284,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bowl",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -0.3999999761581421,
+     2.5,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.1599999964237213,
+     0.36000001430511475
+    ]
+   },
+   "uuid": 2701870073960388130
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8999999761581421,
+     0.8799999952316284,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bowl",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.20000004768371582,
+     2.5,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.1599999964237213,
+     0.36000001430511475
+    ]
+   },
+   "uuid": 10865211225749572542
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8999999761581421,
+     0.8799999952316284,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bowl",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.8000000715255737,
+     2.5,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.1599999964237213,
+     0.36000001430511475
+    ]
+   },
+   "uuid": 6123136497222156372
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8999999761581421,
+     0.8799999952316284,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bowl",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     1.4000000953674316,
+     2.5,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.1599999964237213,
+     0.36000001430511475
+    ]
+   },
+   "uuid": 369023308161725411
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8999999761581421,
+     0.8799999952316284,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bowl",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     2.0,
+     2.5,
+     -3.799999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.1599999964237213,
+     0.36000001430511475
+    ]
+   },
+   "uuid": 7318481778541861729
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": false,
+    "color": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "emissive": [
+     1.7999999523162842,
+     1.7999999523162842,
+     1.7999999523162842
+    ],
+    "emissiveMap": "Textures/sign_noodles.png",
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "Textures/sign_noodles.png",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Menu Board",
+   "scripts": [
+    {
+     "class": "Examine",
+     "fields": {
+      "Label": "Menu",
+      "Message": "TONIGHT: DIVINE RAMEN, 900 YEN.\nCash only. No exceptions.",
+      "Offset": [
+       0.0,
+       -2.0,
+       1.0
+      ],
+      "Range": 3.5
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.5,
+     3.0,
+     -3.950000047683716
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     2.5999999046325684,
+     0.8199999928474426,
+     0.05999999865889549
+    ]
+   },
+   "uuid": 11792456276443457013
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.699999988079071,
+     0.8500000238418579,
+     0.8999999761581421,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cylinder",
+    "metallic": 0.0,
+    "roughness": 0.05000000074505806,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Tip Jar",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     4.25,
+     1.1799999475479126,
+     -1.7999999523162842
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.18000000715255737,
+     0.25,
+     0.18000000715255737
+    ]
+   },
+   "uuid": 16764181379472510660
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.949999988079071,
+     0.75,
+     0.30000001192092896,
+     1.0
+    ],
+    "emissive": [
+     0.3499999940395355,
+     0.25,
+     0.05000000074505806
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 1.0,
+    "roughness": 0.25,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Apartment Key",
+   "scripts": [
+    {
+     "class": "Examine",
+     "fields": {
+      "Give Item": "Apartment Key",
+      "Hide When Taken": true,
+      "Label": "Key",
+      "Message": "Under the tip jar: a brass key on a tag. APT 9.",
+      "Offset": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Range": 1.7999999523162842
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     3.950000047683716,
+     1.0750000476837158,
+     -1.75
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.1599999964237213,
+     0.02500000037252903,
+     0.07000000029802322
+    ]
+   },
+   "uuid": 12650909108445126582
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.25,
+     0.1599999964237213,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Table",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -1.600000023841858,
+     0.75,
+     2.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.2999999523162842,
+     0.05999999865889549,
+     0.800000011920929
+    ]
+   },
+   "uuid": 16332937177554380353
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.10000000149011612,
+     0.10000000149011612,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Table Leg",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -1.600000023841858,
+     0.3700000047683716,
+     2.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.10000000149011612,
+     0.7400000095367432,
+     0.10000000149011612
+    ]
+   },
+   "uuid": 7342931538394600598
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.550000011920929,
+     0.10000000149011612,
+     0.07999999821186066,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Chair",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -2.549999952316284,
+     0.44999998807907104,
+     2.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.44999998807907104,
+     0.07999999821186066,
+     0.44999998807907104
+    ]
+   },
+   "uuid": 8122045246117503922
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.550000011920929,
+     0.10000000149011612,
+     0.07999999821186066,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Chair",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -0.6500000357627869,
+     0.44999998807907104,
+     2.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.44999998807907104,
+     0.07999999821186066,
+     0.44999998807907104
+    ]
+   },
+   "uuid": 2194387134435075581
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.25,
+     0.1599999964237213,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Table",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     2.5999999046325684,
+     0.75,
+     2.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.2999999523162842,
+     0.05999999865889549,
+     0.800000011920929
+    ]
+   },
+   "uuid": 2254036293191662416
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.10000000149011612,
+     0.10000000149011612,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Table Leg",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     2.5999999046325684,
+     0.3700000047683716,
+     2.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.10000000149011612,
+     0.7400000095367432,
+     0.10000000149011612
+    ]
+   },
+   "uuid": 8621439856670019584
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.550000011920929,
+     0.10000000149011612,
+     0.07999999821186066,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Chair",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     1.6499998569488525,
+     0.44999998807907104,
+     2.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.44999998807907104,
+     0.07999999821186066,
+     0.44999998807907104
+    ]
+   },
+   "uuid": 2838729693148148813
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.550000011920929,
+     0.10000000149011612,
+     0.07999999821186066,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Chair",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     3.549999952316284,
+     0.44999998807907104,
+     2.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.44999998807907104,
+     0.07999999821186066,
+     0.44999998807907104
+    ]
+   },
+   "uuid": 3783162930523326083
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": false,
+    "color": [
+     0.029999999329447746,
+     0.029999999329447746,
+     0.05000000074505806,
+     1.0
+    ],
+    "emissive": [
+     0.019999999552965164,
+     0.017999999225139618,
+     0.05000000074505806
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 1.0,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Window",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.6000000238418579,
+     1.75,
+     3.9800000190734863
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     4.0,
+     1.600000023841858,
+     0.03999999910593033
+    ]
+   },
+   "uuid": 12680295004420059862
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.7799999713897705,
+     0.7599999904632568,
+     0.7200000286102295,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Door Frame",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -4.199999809265137,
+     1.2699999809265137,
+     3.940000057220459
+    ],
+    "rotation": [
+     -4.371138828673793e-08,
+     -0.0,
+     1.0,
+     -0.0
+    ],
+    "scale": [
+     1.6200000047683716,
+     2.619999885559082,
+     0.11999999731779099
+    ]
+   },
+   "uuid": 2692550198154809695
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.3199999928474426,
+     0.09000000357627869,
+     0.07999999821186066,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.44999998807907104,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Door - Divine City",
+   "scripts": [
+    {
+     "class": "Door",
+     "fields": {
+      "Label": "Divine City",
+      "Offset": [
+       0.0,
+       -0.699999988079071,
+       0.6000000238418579
+      ],
+      "Spawn Point": "Spawn - Noodle Bar",
+      "Target Scene": "Scenes/City.scene"
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -4.199999809265137,
+     1.2000000476837158,
+     3.9000000953674316
+    ],
+    "rotation": [
+     -4.371138828673793e-08,
+     -0.0,
+     1.0,
+     -0.0
+    ],
+    "scale": [
+     1.2999999523162842,
+     2.4000000953674316,
+     0.10000000149011612
+    ]
+   },
+   "uuid": 5029091897798827124
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8500000238418579,
+     0.699999988079071,
+     0.4000000059604645,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 1.0,
+    "roughness": 0.30000001192092896,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Handle",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -4.649999618530273,
+     1.0499999523162842,
+     3.809999942779541
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.09000000357627869,
+     0.09000000357627869,
+     0.09000000357627869
+    ]
+   },
+   "uuid": 3468119347237182449
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": false,
+    "color": [
+     1.0,
+     0.8999999761581421,
+     0.699999988079071,
+     1.0
+    ],
+    "emissive": [
+     3.0,
+     2.200000047683716,
+     1.2000000476837158
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Door Lamp",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -4.199999809265137,
+     2.799999952316284,
+     3.890000104904175
+    ],
+    "rotation": [
+     -4.371138828673793e-08,
+     -0.0,
+     1.0,
+     -0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.14000000059604645,
+     0.2199999988079071
+    ]
+   },
+   "uuid": 9020251093958542780
+  },
+  {
+   "active": true,
+   "name": "Spawn - Entrance",
+   "tag": "SpawnPoint",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -4.199999809265137,
+     0.25,
+     2.700000047683716
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 470715633274983528
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": false,
+    "color": [
+     1.0,
+     0.3499999940395355,
+     0.20000000298023224,
+     1.0
+    ],
+    "emissive": [
+     1.600000023841858,
+     0.3199999928474426,
+     0.10000000149011612
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Lantern",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -2.5,
+     2.8499999046325684,
+     -1.600000023841858
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.5,
+     0.6200000047683716,
+     0.5
+    ]
+   },
+   "uuid": 12317994593084442492
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.10000000149011612,
+     0.10000000149011612,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Lantern Cord",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -2.5,
+     3.3499999046325684,
+     -1.600000023841858
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.019999999552965164,
+     0.5,
+     0.019999999552965164
+    ]
+   },
+   "uuid": 4142806507609101788
+  },
+  {
+   "active": true,
+   "light": {
+    "castShadows": true,
+    "color": [
+     1.0,
+     0.5,
+     0.3199999928474426
+    ],
+    "intensity": 2.0,
+    "range": 6.0,
+    "spotAngle": 35.0,
+    "type": "Point"
+   },
+   "name": "Lantern Light",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -2.5,
+     2.6499998569488525,
+     -1.600000023841858
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 5790452720507278686
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": false,
+    "color": [
+     1.0,
+     0.3499999940395355,
+     0.20000000298023224,
+     1.0
+    ],
+    "emissive": [
+     1.600000023841858,
+     0.3199999928474426,
+     0.10000000149011612
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Lantern",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.5,
+     2.8499999046325684,
+     -1.600000023841858
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.5,
+     0.6200000047683716,
+     0.5
+    ]
+   },
+   "uuid": 16138172717019323306
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.10000000149011612,
+     0.10000000149011612,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Lantern Cord",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.5,
+     3.3499999046325684,
+     -1.600000023841858
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.019999999552965164,
+     0.5,
+     0.019999999552965164
+    ]
+   },
+   "uuid": 1707763547202702429
+  },
+  {
+   "active": true,
+   "light": {
+    "castShadows": true,
+    "color": [
+     1.0,
+     0.5,
+     0.3199999928474426
+    ],
+    "intensity": 2.0,
+    "range": 6.0,
+    "spotAngle": 35.0,
+    "type": "Point"
+   },
+   "name": "Lantern Light",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.5,
+     2.6499998569488525,
+     -1.600000023841858
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 4856268870807907046
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": false,
+    "color": [
+     1.0,
+     0.3499999940395355,
+     0.20000000298023224,
+     1.0
+    ],
+    "emissive": [
+     1.600000023841858,
+     0.3199999928474426,
+     0.10000000149011612
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Lantern",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     3.5,
+     2.8499999046325684,
+     -1.600000023841858
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.5,
+     0.6200000047683716,
+     0.5
+    ]
+   },
+   "uuid": 9387343626918538254
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.10000000149011612,
+     0.10000000149011612,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Lantern Cord",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     3.5,
+     3.3499999046325684,
+     -1.600000023841858
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.019999999552965164,
+     0.5,
+     0.019999999552965164
+    ]
+   },
+   "uuid": 8974852041434870345
+  },
+  {
+   "active": true,
+   "light": {
+    "castShadows": true,
+    "color": [
+     1.0,
+     0.5,
+     0.3199999928474426
+    ],
+    "intensity": 2.0,
+    "range": 6.0,
+    "spotAngle": 35.0,
+    "type": "Point"
+   },
+   "name": "Lantern Light",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     3.5,
+     2.6499998569488525,
+     -1.600000023841858
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 825805256242451800
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": false,
+    "color": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "emissive": [
+     3.0,
+     3.200000047683716,
+     3.4000000953674316
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Kitchen Strip Light",
+   "scripts": [
+    {
+     "class": "Flicker",
+     "fields": {
+      "Amount": 0.15000000596046448,
+      "Cut Outs": true,
+      "Light": 12109200382183216626
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -1.0,
+     3.5,
+     -3.200000047683716
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     3.0,
+     0.05999999865889549,
+     0.20000000298023224
+    ]
+   },
+   "uuid": 8008633554745271039
+  },
+  {
+   "active": true,
+   "light": {
+    "castShadows": true,
+    "color": [
+     0.8500000238418579,
+     0.9200000166893005,
+     1.0
+    ],
+    "intensity": 1.600000023841858,
+    "range": 6.0,
+    "spotAngle": 35.0,
+    "type": "Point"
+   },
+   "name": "Kitchen Light",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -1.0,
+     3.200000047683716,
+     -3.200000047683716
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 12109200382183216626
+  },
+  {
+   "active": true,
+   "light": {
+    "castShadows": true,
+    "color": [
+     1.0,
+     0.800000011920929,
+     0.550000011920929
+    ],
+    "intensity": 1.2000000476837158,
+    "range": 5.0,
+    "spotAngle": 35.0,
+    "type": "Point"
+   },
+   "name": "Door Light",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -4.199999809265137,
+     2.5999999046325684,
+     3.299999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 17217027172173181278
+  },
+  {
+   "active": true,
+   "audioListener": {
+    "active": true
+   },
+   "name": "Player",
+   "network": {
+    "interpolate": true,
+    "owner": 0,
+    "syncTransform": true
+   },
+   "rigidBody": {
+    "drag": 0.0,
+    "friction": 0.0,
+    "gravityScale": 1.0,
+    "lockY": false,
+    "mass": 1.0,
+    "restitution": 0.0,
+    "type": "Dynamic"
+   },
+   "saveable": {
+    "active": true,
+    "scripts": true,
+    "transform": true
+   },
+   "scripts": [
+    {
+     "class": "PlayerController",
+     "fields": {
+      "Camera": 13389999136832397852,
+      "Model": 14256691789218551113,
+      "Move Speed": 3.5,
+      "Sprint Speed": 7.0
+     }
+    }
+   ],
+   "sphereCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.44999998807907104,
+     0.0
+    ],
+    "radius": 0.44999998807907104
+   },
+   "tag": "Player",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -4.199999809265137,
+     0.25,
+     2.700000047683716
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 15698946578704570139
+  },
+  {
+   "active": true,
+   "animator": {
+    "defaultState": "Locomotion",
+    "params": [
+     {
+      "name": "Speed",
+      "type": "Float",
+      "value": 0.0
+     },
+     {
+      "name": "Grounded",
+      "type": "Bool",
+      "value": 1.0
+     }
+    ],
+    "rootMotion": false,
+    "speed": 1.0,
+    "states": [
+     {
+      "blend": [
+       {
+        "clip": "Idle",
+        "threshold": 0.0
+       },
+       {
+        "clip": "Walk",
+        "threshold": 2.0
+       },
+       {
+        "clip": "Run",
+        "threshold": 6.0
+       }
+      ],
+      "blendParam": "Speed",
+      "clip": "",
+      "loop": true,
+      "name": "Locomotion",
+      "speed": 1.0
+     },
+     {
+      "blend": [],
+      "blendParam": "",
+      "clip": "Jump",
+      "loop": false,
+      "name": "Airborne",
+      "speed": 1.0
+     }
+    ],
+    "transitions": [
+     {
+      "conditions": [
+       {
+        "op": "IsFalse",
+        "param": "Grounded",
+        "threshold": 0.0
+       }
+      ],
+      "duration": 0.10000000149011612,
+      "exitTime": -1.0,
+      "from": "Locomotion",
+      "to": "Airborne"
+     },
+     {
+      "conditions": [
+       {
+        "op": "IsTrue",
+        "param": "Grounded",
+        "threshold": 0.0
+       }
+      ],
+      "duration": 0.15000000596046448,
+      "exitTime": -1.0,
+      "from": "Airborne",
+      "to": "Locomotion"
+     }
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "Models/Hero/Hero.glb",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "toon": {
+     "bands": 2,
+     "enabled": true,
+     "outline": true,
+     "outlineColor": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "outlineWidth": 1.5,
+     "rim": 0.0,
+     "shadowColor": [
+      0.11999999731779099,
+      0.07999999821186066,
+      0.11999999731779099
+     ],
+     "shadowFill": 0.6499999761581421,
+     "softness": 0.0
+    },
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "PlayerModel",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 15698946578704570139,
+    "position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation": [
+     -4.371138828673793e-08,
+     -0.0,
+     1.0,
+     -0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 14256691789218551113
+  },
+  {
+   "active": true,
+   "camera": {
+    "far": 800.0,
+    "fov": 60.0,
+    "near": 0.10000000149011612,
+    "orthoSize": 10.0,
+    "orthographic": false,
+    "primary": true
+   },
+   "name": "Main Camera",
+   "scripts": [
+    {
+     "class": "FixedCamera",
+     "fields": {
+      "Target": 15698946578704570139
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     5.5,
+     3.25,
+     3.5999999046325684
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 13389999136832397852
+  },
+  {
+   "active": true,
+   "name": "GameManager",
+   "saveable": {
+    "active": true,
+    "scripts": true,
+    "transform": false
+   },
+   "scripts": [
+    {
+     "class": "GameManager",
+     "fields": {
+      "Player": 15698946578704570139,
+      "Portal": 0,
+      "Title": "NOODLE BAR"
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 1078804892235451161
+  },
+  {
+   "active": true,
+   "name": "ControlsPanel",
+   "tag": "ControlsUI",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "ui": {
+    "anchor": "BottomLeft",
+    "color": [
+     0.0,
+     0.0,
+     0.0,
+     0.44999998807907104
+    ],
+    "fontSize": 28.0,
+    "image": "",
+    "layer": 0,
+    "position": [
+     28.0,
+     28.0
+    ],
+    "size": [
+     470.0,
+     300.0
+    ],
+    "text": "",
+    "textColor": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "type": "Panel",
+    "value": 1.0,
+    "visible": true
+   },
+   "uuid": 11011410696979374630
+  },
+  {
+   "active": true,
+   "name": "ControlsText",
+   "tag": "ControlsUI",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "ui": {
+    "anchor": "BottomLeft",
+    "color": [
+     0.0,
+     0.0,
+     0.0,
+     0.5
+    ],
+    "fontSize": 24.0,
+    "image": "",
+    "layer": 1,
+    "position": [
+     50.0,
+     110.0
+    ],
+    "size": [
+     430.0,
+     200.0
+    ],
+    "text": "WASD / Left stick - move\nMouse / Right stick - camera\nShift - sprint     Space - jump\nE / X - open doors, examine\nEsc - pause menu",
+    "textColor": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "type": "Text",
+    "value": 1.0,
+    "visible": true
+   },
+   "uuid": 3414047976282719260
+  },
+  {
+   "active": true,
+   "name": "ControlsCloseButton",
+   "tag": "ControlsUI",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "ui": {
+    "anchor": "BottomLeft",
+    "color": [
+     0.0,
+     0.0,
+     0.0,
+     0.5
+    ],
+    "fontSize": 22.0,
+    "image": "",
+    "layer": 1,
+    "position": [
+     50.0,
+     46.0
+    ],
+    "size": [
+     200.0,
+     46.0
+    ],
+    "text": "Hide (F1)",
+    "textColor": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "type": "Button",
+    "value": 1.0,
+    "visible": true
+   },
+   "uuid": 7226326610821639977
+  },
+  {
+   "active": true,
+   "audioSource": {
+    "clip": "Audio/room_tone.wav",
+    "loop": true,
+    "maxDistance": 25.0,
+    "minDistance": 1.0,
+    "music": false,
+    "pitch": 1.0,
+    "playOnStart": true,
+    "spatial": false,
+    "volume": 0.3499999940395355
+   },
+   "name": "Room Tone",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 2674179171341131655
+  }
+ ],
+ "environment": {
+  "ambient": 0.30000001192092896,
+  "exposure": 1.0,
+  "fog": false,
+  "fogColor": [
+   0.7400000095367432,
+   0.8199999928474426,
+   0.9200000166893005
+  ],
+  "fogDensity": 0.006000000052154064,
+  "gravity": [
+   0.0,
+   -20.0,
+   0.0
+  ],
+  "groundColor": [
+   0.10999999940395355,
+   0.06499999761581421,
+   0.04500000178813934
+  ],
+  "post": {
+   "bloom": 0.10000000149011612,
+   "bloomThreshold": 0.8999999761581421,
+   "contrast": 1.0499999523162842,
+   "reflections": 1.0,
+   "saturation": 1.100000023841858,
+   "ssao": 1.0,
+   "ssaoRadius": 0.44999998807907104,
+   "temperature": 0.0,
+   "tint": 0.0,
+   "vignette": 0.3199999928474426
+  },
+  "skyHorizon": [
+   0.2199999988079071,
+   0.12999999523162842,
+   0.09000000357627869
+  ],
+  "skyTop": [
+   0.08799999952316284,
+   0.05199999734759331,
+   0.036000002175569534
+  ]
+ },
+ "navigation": {
+  "agentHeight": 1.7999999523162842,
+  "agentRadius": 0.4000000059604645,
+  "cellSize": 0.5,
+  "maxSlope": 40.0,
+  "maxStep": 0.44999998807907104,
+  "minWalkableHeight": -1000000000.0
+ },
+ "scene": "Noodle Bar",
+ "version": 1
+}

@@ -25,11 +25,20 @@ public:
         v.Float("Pitch", pitch);
     }
 
+    void OnCreate() override {
+        // Doors move the player across the map while the screen is black: cut straight to
+        // the new spot, behind the player, instead of swooping there.
+        On("PlayerTeleported", [this](const Event& e) {
+            yaw = JGet(e.data, "yaw", yaw);
+            m_Snap = true;
+        });
+    }
+
     void OnLateUpdate(float dt) override {
         Entity t = FindByUUID(target);
         if (!t) return;
         GameManager* gm = GameManager::Instance();
-        bool look = Input::GetCursorMode() == CursorMode::Locked && !(gm && gm->IsPaused());
+        bool look = Input::GetCursorMode() == CursorMode::Locked && !(gm && gm->IsPaused()) && !ScreenFade::Busy();
         if (look) {
             yaw -= Input::GetAxis("LookX") * sensitivity * (Input::IsGamepadConnected() ? dt * 60.0f : 1.0f);
             pitch += Input::GetAxis("LookY") * sensitivity * (Input::IsGamepadConnected() ? dt * 60.0f : 1.0f);
@@ -46,11 +55,47 @@ public:
         float ground;
         if (GetScene().Physics().TerrainHeight(pos, ground) && pos.y < ground + 0.4f) pos.y = ground + 0.4f;
         auto& tr = Transform();
-        tr.position = glm::mix(tr.position, pos, 1.0f - std::exp(-25.0f * std::max(dt, 1.0f / 240.0f)));
+        tr.position = m_Snap ? pos : glm::mix(tr.position, pos, 1.0f - std::exp(-25.0f * std::max(dt, 1.0f / 240.0f)));
+        m_Snap = false;
         tr.LookAt(pivot);
     }
+
+private:
+    bool m_Snap = true;   // first frame: start in place
 };
 EU_SCRIPT(ThirdPersonCamera)
+
+// The classic survival-horror camera: bolted high in a corner of the room, it doesn't move,
+// it only turns to keep the target in view. Movement stays camera-relative, so "up" walks
+// away from the lens. Good for small interiors where an orbit camera would hit the walls.
+class FixedCamera : public ScriptableEntity {
+public:
+    uint64_t target = 0;
+    float lookHeight = 1.0f;     // aim this far above the target's feet
+    float smoothing = 6.0f;      // how quickly the aim catches up (higher = snappier)
+
+    void Reflect(FieldVisitor& v) override {
+        v.EntityRef("Target", target);
+        v.Float("Look Height", lookHeight);
+        v.Float("Smoothing", smoothing);
+    }
+    void OnCreate() override {
+        On("PlayerTeleported", [this](const Event&) { m_Snap = true; });
+    }
+    void OnLateUpdate(float dt) override {
+        Entity t = FindByUUID(target);
+        if (!t) return;
+        vec3 aim = GetScene().WorldPosition(t) + vec3(0, lookHeight, 0);
+        m_Aim = m_Snap ? aim : glm::mix(m_Aim, aim, 1.0f - std::exp(-smoothing * std::max(dt, 1.0f / 240.0f)));
+        m_Snap = false;
+        Transform().LookAt(m_Aim);
+    }
+
+private:
+    vec3 m_Aim{ 0.0f };
+    bool m_Snap = true;
+};
+EU_SCRIPT(FixedCamera)
 
 // Free-fly camera for spectating / debugging (WASD + mouse, Q/E up/down).
 class FlyCamera : public ScriptableEntity {

@@ -6,6 +6,7 @@
 //   euphoria-player --host [port]         start hosting a multiplayer session
 //   euphoria-player --join <ip> [port]    join a session
 //   euphoria-player --ray-traced          start in path-traced rendering
+//   euphoria-player --scene <path>        start in another scene of the project (e.g. Scenes/Arena.scene)
 //   F3 = stats overlay, F4 = toggle ray tracing, F11 = fullscreen, F12 = screenshot
 #include <euphoria/Euphoria.h>
 #include <euphoria/core/FileSystem.h>
@@ -32,9 +33,10 @@ protected:
         spec.height = size.y;
         m_Framebuffer = MakeScope<Framebuffer>(spec);
 
-        auto scene = SceneManager::LoadNow(Project::Info().startScene);
+        std::string start = startScene.empty() ? Project::Info().startScene : startScene;
+        auto scene = SceneManager::LoadNow(start);
         if (!scene) {
-            EU_ERROR("Start scene '{}' could not be loaded", Project::Info().startScene);
+            EU_ERROR("Start scene '{}' could not be loaded", start);
             scene = MakeRef<Scene>();
         }
         SceneManager::SetActive(scene);
@@ -104,6 +106,7 @@ protected:
     }
 
 public:
+    std::string startScene;   // --scene
     int hostPort = 0;
     std::string joinAddress;
     int joinPort = 7777;
@@ -133,7 +136,7 @@ int main(int argc, char** argv) {
     auto isNum = [](const char* s) { return s && *s && std::strspn(s, "0123456789") == std::strlen(s); };
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
-        if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--fixed-dt" || a == "--benchmark-report" || a == "--width" || a == "--height") { i++; continue; }
+        if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--fixed-dt" || a == "--benchmark-report" || a == "--width" || a == "--height" || a == "--scene") { i++; continue; }
         if (a == "--host" || a == "--benchmark") { if (i + 1 < argc && isNum(argv[i + 1])) i++; continue; }
         if (a == "--join") { i++; if (i + 1 < argc && isNum(argv[i + 1])) i++; continue; }
         if (a.rfind("--", 0) == 0) continue;
@@ -161,6 +164,7 @@ int main(int argc, char** argv) {
         std::string a = argv[i];
         if (a == "--host") app.hostPort = (i + 1 < argc && isNum(argv[i + 1])) ? std::atoi(argv[++i]) : 7777;
         if (a == "--ray-traced") Renderer::Settings().rayTraced = true;
+        if (a == "--scene" && i + 1 < argc) app.startScene = argv[++i];
         if (a == "--join" && i + 1 < argc) {
             app.joinAddress = argv[++i];
             if (i + 1 < argc && isNum(argv[i + 1])) app.joinPort = std::atoi(argv[++i]);

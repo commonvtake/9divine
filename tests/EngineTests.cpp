@@ -1,9 +1,10 @@
-// Headless unit tests for engine systems (no window or GPU needed).
+// Headless unit tests for engine systems and the game's gameplay scripts (no window or GPU needed).
 // Run:  ctest --output-on-failure    or    ./euphoria-tests
 #include <euphoria/Euphoria.h>
 #include <euphoria/scene/SceneSerializer.h>
 #include <euphoria/core/Json.h>
 #include <euphoria/renderer/RayTracer.h>
+#include "Interaction.h"   // game/src: doors and other interactables
 #include <cstdio>
 #include <cmath>
 
@@ -721,6 +722,180 @@ TEST(Events_TriggerOpensGate) {
     for (auto& e : play.Events().Log()) logged |= e.name == "OpenGate" && e.listeners == 1;
     CHECK(logged);
     play.OnRuntimeStop();
+}
+
+// ---------------------------------------------------------------------- Screen fades & doors
+static void StepFade(float seconds) {
+    for (float t = 0.0f; t < seconds - 1e-4f; t += 1.0f / 60.0f) ScreenFade::Update(1.0f / 60.0f);
+}
+
+TEST(ScreenFade_TransitionRunsCallbackWhileBlack) {
+    ScreenFade::Reset();
+    int calls = 0;
+    float alphaAtCall = -1.0f;
+    ScreenFade::Transition(0.5f, 1.0f, 0.5f, [&] { calls++; alphaAtCall = ScreenFade::Alpha(); });
+    CHECK(ScreenFade::Busy());
+    StepFade(0.4f);
+    CHECK(calls == 0);
+    CHECK(ScreenFade::Alpha() > 0.7f && ScreenFade::Alpha() < 0.9f);
+    StepFade(0.15f);
+    CHECK(calls == 1);                       // exactly once, the moment the screen is black
+    CHECK_NEAR(alphaAtCall, 1.0f, 1e-5f);
+    StepFade(0.8f);
+    CHECK_NEAR(ScreenFade::Alpha(), 1.0f, 1e-5f);   // holding on black
+    StepFade(0.8f);
+    CHECK(ScreenFade::Alpha() == 0.0f);
+    CHECK(!ScreenFade::Busy());
+    CHECK(calls == 1);
+
+    // A long loading frame must not jump through the fade
+    ScreenFade::Transition(0.3f, 0.5f, 0.3f, nullptr);
+    ScreenFade::Update(5.0f);
+    CHECK(ScreenFade::Alpha() < 0.2f);
+
+    // FadeOut alone stays black until FadeIn
+    ScreenFade::Reset();
+    ScreenFade::FadeOut(0.2f);
+    StepFade(1.0f);
+    CHECK_NEAR(ScreenFade::Alpha(), 1.0f, 1e-5f);
+    CHECK(ScreenFade::Busy());
+    ScreenFade::FadeIn(0.2f);
+    StepFade(0.5f);
+    CHECK(!ScreenFade::Busy());
+}
+
+// A small level: floor, player, a spawn point and some scripted entities.
+struct DoorWorld {
+    Ref<Scene> scene = MakeRef<Scene>();
+    Entity player;
+    DoorWorld() {
+        Scene& s = *scene;
+        Entity floor = s.CreateEntity("Floor");
+        floor.Transform().position = { 0, -0.5f, 0 };
+        floor.Transform().scale = { 80, 1, 80 };
+        floor.Add<BoxColliderComponent>();
+        player = s.CreateEntity("Player");
+        player.Get<TagComponent>().tag = "Player";
+        auto& rb = player.Add<RigidBodyComponent>();
+        rb.friction = 0.0f;
+        auto& col = player.Add<SphereColliderComponent>();
+        col.radius = 0.45f;
+        col.offset = { 0, 0.45f, 0 };
+    }
+    Entity Scripted(const std::string& name, const vec3& pos, const std::string& cls, json fields) {
+        Entity e = scene->CreateEntity(name);
+        e.Transform().position = pos;
+        ScriptInstance si;
+        si.className = cls;
+        si.fields = std::move(fields);
+        e.Add<ScriptComponent>().scripts.push_back(si);
+        return e;
+    }
+    void Start() {
+        SaveGame::Clear();
+        ScreenFade::Reset();
+        SceneManager::SetActive(scene);
+        scene->OnRuntimeStart();
+    }
+    void Run(float seconds) {
+        for (float t = 0.0f; t < seconds - 1e-4f; t += 1.0f / 60.0f) {
+            scene->OnUpdateRuntime(1.0f / 60.0f);
+            ScreenFade::Update(1.0f / 60.0f);
+        }
+    }
+    void Stop() {
+        scene->OnRuntimeStop();
+        SceneManager::SetActive(nullptr);
+        Scene::EndPlaySession();
+    }
+};
+
+TEST(Doors_SameSceneDoorFadesThenMovesPlayer) {
+    DoorWorld w;
+    Entity spawn = w.scene->CreateEntity("Spawn - Roof");
+    spawn.Transform().position = { 20, 0.2f, 5 };
+    spawn.Transform().SetEulerDegrees({ 0, 90, 0 });   // facing -X
+    Entity door = w.Scripted("Door", { 0, 1.2f, -1 }, "Door", { { "Spawn Point", "Spawn - Roof" }, { "Open Sound", "" } });
+    w.Start();
+    w.Run(0.2f);
+    auto* d = ScriptableEntity::GetScriptOn<Door>(door);
+    CHECK(d != nullptr);
+    if (!d) { w.Stop(); return; }
+    d->Interact(w.player);
+    CHECK(ScreenFade::Busy());
+    w.Run(0.25f);
+    CHECK(glm::length(vec2(w.player.Transform().position.x, w.player.Transform().position.z)) < 0.5f);   // not yet: still fading out
+    w.Run(0.5f);
+    vec3 p = w.player.Transform().position;
+    CHECK_NEAR(p.x, 20.0f, 0.05f);           // moved while the screen was black
+    CHECK_NEAR(p.z, 5.0f, 0.05f);
+    vec3 fwd = w.player.Transform().Forward();
+    CHECK(fwd.x < -0.99f);                   // facing the way the spawn point faces
+    CHECK(ScreenFade::Busy());
+    w.Run(2.5f);
+    CHECK(!ScreenFade::Busy());
+    w.Stop();
+}
+
+TEST(Doors_LockedDoorOpensWithKeyItem) {
+    DoorWorld w;
+    Entity spawn = w.scene->CreateEntity("Spawn - Inside");
+    spawn.Transform().position = { -10, 0.2f, 0 };
+    Entity door = w.Scripted("Door", { 0, 1.2f, -1 }, "Door",
+                             { { "Spawn Point", "Spawn - Inside" }, { "Locked", true }, { "Key Item", "Brass Key" }, { "Open Sound", "" } });
+    Entity key = w.Scripted("Key", { 2, 1, 0 }, "Examine", { { "Give Item", "Brass Key" }, { "Hide When Taken", true } });
+    w.Start();
+    w.Run(0.1f);
+    door.Get<ScriptComponent>().scripts[0].instance->OnMessage("Interact");   // same path Event Triggers use
+    w.Run(0.1f);
+    CHECK(!ScreenFade::Busy());             // locked: nothing happens
+    CHECK(ScriptableEntity::GetScriptOn<Door>(door)->locked);
+    CHECK(!Inventory::Has("Brass Key"));
+    key.Get<ScriptComponent>().scripts[0].instance->OnMessage("Interact");
+    CHECK(Inventory::Has("Brass Key"));
+    CHECK(!key.IsActive());                 // picked up
+    door.Get<ScriptComponent>().scripts[0].instance->OnMessage("Interact");
+    CHECK(!ScriptableEntity::GetScriptOn<Door>(door)->locked);   // first use unlocks...
+    CHECK(!ScreenFade::Busy());
+    door.Get<ScriptComponent>().scripts[0].instance->OnMessage("Interact");
+    CHECK(ScreenFade::Busy());              // ...the next one goes through
+    w.Run(1.0f);
+    CHECK_NEAR(w.player.Transform().position.x, -10.0f, 0.05f);
+    w.Stop();
+    CHECK(!Inventory::Has("Brass Key"));    // the play session's items end with it
+}
+
+TEST(Interaction_PicksWhatThePlayerFaces) {
+    DoorWorld w;
+    w.Scripted("Front", { 0, 1, -1.2f }, "Examine", { { "Label", "Front" } });
+    w.Scripted("Back", { 0, 1, 1.0f }, "Examine", { { "Label", "Back" } });
+    w.Scripted("Far", { 6, 1, 0 }, "Examine", { { "Label", "Far" } });
+    w.Start();
+    w.Run(0.05f);
+    Interactable* a = Interactable::FindBest(*w.scene, { 0, 0, 0 }, { 0, 0, -1 });
+    Interactable* b = Interactable::FindBest(*w.scene, { 0, 0, 0 }, { 0, 0, 1 });
+    Interactable* c = Interactable::FindBest(*w.scene, { 0, 0, 0 }, { 1, 0, 0 });
+    CHECK(a && a->label == "Front");
+    CHECK(b && b->label == "Back");
+    CHECK(c == nullptr);                    // "Far" is out of reach, the others are beside us
+    w.Stop();
+}
+
+TEST(Physics_PlayerSphereStepsOntoCurb) {
+    // The city's sidewalks are 10 cm slabs: a walking player must ride up onto them.
+    DoorWorld w;
+    Entity curb = w.scene->CreateEntity("Sidewalk");
+    curb.Transform().position = { 12, 0.05f, 0 };   // starts at x = 2
+    curb.Transform().scale = { 20, 0.1f, 6 };
+    curb.Add<BoxColliderComponent>();
+    w.Start();
+    for (int i = 0; i < 180; i++) {
+        w.player.Get<RigidBodyComponent>().velocity.x = 3.5f;
+        w.scene->OnUpdateRuntime(1.0f / 60.0f);
+    }
+    CHECK(w.player.Transform().position.x > 4.0f);
+    CHECK(w.player.Transform().position.y > 0.08f);
+    w.Stop();
 }
 
 int main() {

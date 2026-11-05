@@ -2,6 +2,12 @@
 
 Good next features, roughly from smallest to largest. Each one is a self-contained project that's worth its own branch and pull request.
 
+## Next for the demo game
+- [x] **City with doors** – Divine City, interiors, locked doors and keys, survival-horror screen fades.
+- [ ] **Hack-and-slash combat** (Devil May Cry style) – combo strings, launchers and air combos, lock-on, dodge with i-frames, hit-stop and enemy stagger, style ranking.
+- [ ] **Camera zones** – several fixed cameras per room, switched by trigger volumes, with optional tank controls.
+- [ ] **Inventory screen** for collected items and keys.
+
 ## Small
 - [ ] **Prefab assets** – save an entity subtree as a `.prefab` file and instantiate it from scripts (the duplicate/remap code in `Scene::DuplicateEntity` already does most of the work).
 - [ ] **Audio fade in/out** and a music cross-fade helper.

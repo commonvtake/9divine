@@ -16,6 +16,7 @@
 #include "euphoria/audio/Audio.h"
 #include "euphoria/ai/Navigation.h"
 #include "euphoria/ui/GameUI.h"
+#include "euphoria/ui/ScreenFade.h"
 #include "euphoria/particles/Particles.h"
 #include "euphoria/save/SaveGame.h"
 #include "euphoria/net/Network.h"

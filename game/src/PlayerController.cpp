@@ -1,5 +1,6 @@
 #include "PlayerController.h"
 #include "GameManager.h"
+#include "Interaction.h"
 
 using namespace eu;
 
@@ -40,7 +41,8 @@ void PlayerController::OnUpdate(float dt) {
 
     auto& rb = Get<RigidBodyComponent>();
     GameManager* gm = GameManager::Instance();
-    bool blocked = gm && gm->IsPaused();
+    // No control while paused or while the screen is fading (a door transition is playing).
+    bool blocked = (gm && gm->IsPaused()) || ScreenFade::Busy();
 
     vec2 input(Input::GetAxis("MoveX"), Input::GetAxis("MoveY"));
     if (Profiler::BenchmarkActive()) {
@@ -98,7 +100,29 @@ void PlayerController::OnUpdate(float dt) {
             anim->SetBool("Grounded", !airborne);
         }
 
+    // Doors, notes, items: the closest usable thing in front of us
+    Interactable* focus = blocked ? nullptr : Interactable::FindBest(GetScene(), t.position, t.Forward());
+    m_Focus = focus ? (uint64_t)focus->GetEntity().GetUUID() : 0;
+    if (focus && Input::GetActionPressed("Interact")) focus->Interact(GetEntity());
+
     if (t.position.y < -15.0f) Die();
+}
+
+void PlayerController::OnGUI() {
+    if (!m_Focus || m_Dead || ScreenFade::Busy()) return;
+    Interactable* it = GetScriptOn<Interactable>(FindByUUID(m_Focus));
+    if (!it) return;
+    // "[E]  Open  Noodle Bar" just below the centre of the screen
+    vec2 c = UI::CanvasSize();
+    std::string key = Input::IsGamepadConnected() ? "X" : "E";
+    std::string text = it->Verb() + (it->label.empty() ? "" : "   " + it->label);
+    float tw = UI::MeasureText(text, 30);
+    float w = 52 + 16 + tw + 28;
+    vec2 at(c.x * 0.5f - w * 0.5f, c.y * 0.5f + 90);
+    UI::Panel({ at, { w, 52 } }, { 0, 0, 0, 0.6f });
+    UI::PanelBordered({ at + vec2(8, 8), { 36, 36 } }, { 1, 1, 1, 0.92f }, { 1, 1, 1, 1 });
+    UI::Text(at + vec2(26, 11), key, 26, { 0.05f, 0.05f, 0.06f, 1 }, UI::Align::Center);
+    UI::Text(at + vec2(60, 10), text, 30, { 1, 1, 1, 0.95f });
 }
 
 void PlayerController::TakeDamage(float amount, const vec3& from) {

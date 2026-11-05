@@ -1,0 +1,2424 @@
+{
+ "entities": [
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "normalMap": "Textures/wood_floor_normal.png",
+    "normalStrength": 1.0,
+    "roughness": 0.4000000059604645,
+    "texture": "Textures/wood_floor.png",
+    "tiling": 0.5,
+    "useModelMaterials": true,
+    "visible": true,
+    "worldUV": true
+   },
+   "name": "Floor",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     -0.10000000149011612,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     10.600000381469727,
+     0.20000000298023224,
+     8.600000381469727
+    ]
+   },
+   "uuid": 13836628164473493083
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.5,
+     0.550000011920929,
+     0.5,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 0.5,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Wall",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     1.5,
+     -4.150000095367432
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     10.600000381469727,
+     3.0,
+     0.30000001192092896
+    ]
+   },
+   "uuid": 2206343293855530919
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.5,
+     0.550000011920929,
+     0.5,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 0.5,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Wall",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -5.150000095367432,
+     1.5,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.30000001192092896,
+     3.0,
+     8.0
+    ]
+   },
+   "uuid": 1439737853315217904
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.20000000298023224,
+     0.14000000059604645,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Baseboard",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.05999999865889549,
+     -3.990000009536743
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     10.0,
+     0.11999999731779099,
+     0.029999999329447746
+    ]
+   },
+   "uuid": 5557521969644303562
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.20000000298023224,
+     0.14000000059604645,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Baseboard",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -4.989999771118164,
+     0.05999999865889549,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.029999999329447746,
+     0.11999999731779099,
+     8.0
+    ]
+   },
+   "uuid": 6939879317345596176
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.5,
+     0.550000011920929,
+     0.5,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 0.5,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Wall",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     1.5,
+     4.150000095367432
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     10.600000381469727,
+     3.0,
+     0.30000001192092896
+    ]
+   },
+   "uuid": 7320562484552188289
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.5,
+     0.550000011920929,
+     0.5,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 0.5,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Wall",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     5.150000095367432,
+     1.5,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.30000001192092896,
+     3.0,
+     8.0
+    ]
+   },
+   "uuid": 14547053958080275462
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.20000000298023224,
+     0.14000000059604645,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Baseboard",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.05999999865889549,
+     3.990000009536743
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     10.0,
+     0.11999999731779099,
+     0.029999999329447746
+    ]
+   },
+   "uuid": 12213044072493250519
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.20000000298023224,
+     0.14000000059604645,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Baseboard",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     4.989999771118164,
+     0.05999999865889549,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.029999999329447746,
+     0.11999999731779099,
+     8.0
+    ]
+   },
+   "uuid": 11137202868261339690
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.699999988079071,
+     0.699999988079071,
+     0.6800000071525574,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Ceiling",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     3.1500000953674316,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     10.600000381469727,
+     0.30000001192092896,
+     8.600000381469727
+    ]
+   },
+   "uuid": 5007230168041929461
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.30000001192092896,
+     0.20000000298023224,
+     0.14000000059604645,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Bed",
+   "scripts": [
+    {
+     "class": "Examine",
+     "fields": {
+      "Label": "Bed",
+      "Message": "You're not tired.\nNot yet.",
+      "Offset": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Range": 2.200000047683716
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.5999999046325684,
+     0.20000000298023224,
+     -3.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     2.200000047683716,
+     0.4000000059604645,
+     1.600000023841858
+    ]
+   },
+   "uuid": 9776234486617611933
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8500000238418579,
+     0.8500000238418579,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Mattress",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.5999999046325684,
+     0.5,
+     -3.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     2.0999999046325684,
+     0.2199999988079071,
+     1.5
+    ]
+   },
+   "uuid": 6685042010733902188
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.11999999731779099,
+     0.1599999964237213,
+     0.3199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Blanket",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.200000047683716,
+     0.6299999952316284,
+     -3.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.350000023841858,
+     0.05000000074505806,
+     1.5399999618530273
+    ]
+   },
+   "uuid": 1299183269600403947
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.949999988079071,
+     0.949999988079071,
+     0.9200000166893005,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Pillow",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -4.400000095367432,
+     0.6700000166893005,
+     -3.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.44999998807907104,
+     0.14000000059604645,
+     1.100000023841858
+    ]
+   },
+   "uuid": 17267380628083420628
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.30000001192092896,
+     0.20000000298023224,
+     0.14000000059604645,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Night Stand",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -2.0,
+     0.2800000011920929,
+     -3.5999999046325684
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.5,
+     0.5600000023841858,
+     0.44999998807907104
+    ]
+   },
+   "uuid": 5101888246407635712
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": false,
+    "color": [
+     1.0,
+     0.8500000238418579,
+     0.6000000238418579,
+     1.0
+    ],
+    "emissive": [
+     1.7999999523162842,
+     1.2999999523162842,
+     0.699999988079071
+    ],
+    "mesh": "builtin:cylinder",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Lamp Shade",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -2.0,
+     0.8199999928474426,
+     -3.5999999046325684
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.30000001192092896,
+     0.30000001192092896,
+     0.30000001192092896
+    ]
+   },
+   "uuid": 9739941489402455489
+  },
+  {
+   "active": true,
+   "light": {
+    "castShadows": true,
+    "color": [
+     1.0,
+     0.75,
+     0.5
+    ],
+    "intensity": 1.600000023841858,
+    "range": 5.0,
+    "spotAngle": 35.0,
+    "type": "Point"
+   },
+   "name": "Bedside Light",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -2.0,
+     1.100000023841858,
+     -3.4000000953674316
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 6370113092510596549
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.11999999731779099,
+     0.10000000149011612,
+     0.09000000357627869,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "TV Cabinet",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     3.299999952316284,
+     0.25,
+     -3.549999952316284
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.600000023841858,
+     0.5,
+     0.5
+    ]
+   },
+   "uuid": 7522477097745103007
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.07999999821186066,
+     0.07999999821186066,
+     0.09000000357627869,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "TV",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     3.299999952316284,
+     0.9200000166893005,
+     -3.5999999046325684
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.2000000476837158,
+     0.7799999713897705,
+     0.3499999940395355
+    ]
+   },
+   "uuid": 13766820679872506905
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": false,
+    "color": [
+     0.6000000238418579,
+     0.699999988079071,
+     0.8999999761581421,
+     1.0
+    ],
+    "emissive": [
+     1.2000000476837158,
+     1.399999976158142,
+     1.899999976158142
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "TV Screen",
+   "scripts": [
+    {
+     "class": "Flicker",
+     "fields": {
+      "Amount": 0.44999998807907104,
+      "Light": 9623594541713353289,
+      "Speed": 2.0
+     }
+    },
+    {
+     "class": "Examine",
+     "fields": {
+      "Label": "TV",
+      "Message": "Static.\nFor a second you see a face you almost recognise.",
+      "Offset": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Range": 2.4000000953674316
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     3.299999952316284,
+     0.9200000166893005,
+     -3.4200000762939453
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0499999523162842,
+     0.6399999856948853,
+     0.019999999552965164
+    ]
+   },
+   "uuid": 15705283182169048857
+  },
+  {
+   "active": true,
+   "light": {
+    "castShadows": true,
+    "color": [
+     0.550000011920929,
+     0.6499999761581421,
+     1.0
+    ],
+    "intensity": 1.399999976158142,
+    "range": 5.5,
+    "spotAngle": 35.0,
+    "type": "Point"
+   },
+   "name": "TV Light",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     3.299999952316284,
+     1.0,
+     -2.9000000953674316
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 9623594541713353289
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.3499999940395355,
+     0.23999999463558197,
+     0.1599999964237213,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Desk",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     4.550000190734863,
+     0.3799999952316284,
+     0.6000000238418579
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.75,
+     0.7599999904632568,
+     1.5
+    ]
+   },
+   "uuid": 6600538017932455757
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.20000000298023224,
+     0.20000000298023224,
+     0.2199999988079071,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Chair",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     3.799999952316284,
+     0.44999998807907104,
+     0.6000000238418579
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.44999998807907104,
+     0.07999999821186066,
+     0.44999998807907104
+    ]
+   },
+   "uuid": 14614553434931591201
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.949999988079071,
+     0.9300000071525574,
+     0.8500000238418579,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Note",
+   "scripts": [
+    {
+     "class": "Examine",
+     "fields": {
+      "Label": "Note",
+      "Message": "In your own handwriting:\n\"The subway still runs to Ember Isle.\"",
+      "Offset": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Range": 1.899999976158142
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     4.5,
+     0.7699999809265137,
+     0.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.2199999988079071,
+     0.006000000052154064,
+     0.30000001192092896
+    ]
+   },
+   "uuid": 8488283021904959287
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.44999998807907104,
+     0.10000000149011612,
+     0.10000000149011612,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Rug",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.5,
+     0.009999999776482582,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     3.0,
+     0.019999999552965164,
+     2.0
+    ]
+   },
+   "uuid": 12950025196080606265
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.6000000238418579,
+     0.3499999940395355,
+     0.25,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Plant Pot",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -4.400000095367432,
+     0.30000001192092896,
+     3.4000000953674316
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.5,
+     0.6000000238418579,
+     0.5
+    ]
+   },
+   "uuid": 8572965985246447370
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.20000000298023224,
+     0.44999998807907104,
+     0.20000000298023224,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Plant",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -4.400000095367432,
+     0.949999988079071,
+     3.4000000953674316
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.800000011920929,
+     0.8999999761581421,
+     0.800000011920929
+    ]
+   },
+   "uuid": 6329087355398348736
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": false,
+    "color": [
+     0.05000000074505806,
+     0.05000000074505806,
+     0.07999999821186066,
+     1.0
+    ],
+    "emissive": [
+     0.03500000014901161,
+     0.02500000037252903,
+     0.07500000298023224
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 1.0,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Window",
+   "scripts": [
+    {
+     "class": "Examine",
+     "fields": {
+      "Label": "Window",
+      "Message": "Neon, and rain that never quite falls.",
+      "Offset": [
+       0.0,
+       -1.600000023841858,
+       0.6000000238418579
+      ],
+      "Range": 2.5
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.5,
+     1.7000000476837158,
+     -3.9800000190734863
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     2.200000047683716,
+     1.2999999523162842,
+     0.03999999910593033
+    ]
+   },
+   "uuid": 8337997434060857018
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8500000238418579,
+     0.8500000238418579,
+     0.8199999928474426,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Window Frame",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.5,
+     1.7000000476837158,
+     -3.990000009536743
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     2.4000000953674316,
+     1.5,
+     0.029999999329447746
+    ]
+   },
+   "uuid": 10783880936889106167
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": false,
+    "color": [
+     1.0,
+     0.949999988079071,
+     0.8500000238418579,
+     1.0
+    ],
+    "emissive": [
+     2.5,
+     2.299999952316284,
+     2.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Ceiling Lamp",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     2.8499999046325684,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.5,
+     0.25,
+     0.5
+    ]
+   },
+   "uuid": 4549247035555535872
+  },
+  {
+   "active": true,
+   "light": {
+    "castShadows": true,
+    "color": [
+     1.0,
+     0.8999999761581421,
+     0.75
+    ],
+    "intensity": 1.7999999523162842,
+    "range": 8.0,
+    "spotAngle": 35.0,
+    "type": "Point"
+   },
+   "name": "Ceiling Light",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     2.5,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 18389002710198581528
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.7799999713897705,
+     0.7599999904632568,
+     0.7200000286102295,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Door Frame",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.0,
+     1.2699999809265137,
+     3.940000057220459
+    ],
+    "rotation": [
+     -4.371138828673793e-08,
+     -0.0,
+     1.0,
+     -0.0
+    ],
+    "scale": [
+     1.6200000047683716,
+     2.619999885559082,
+     0.11999999731779099
+    ]
+   },
+   "uuid": 15746809337182149599
+  },
+  {
+   "active": true,
+   "boxCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.10000000149011612,
+     0.14000000059604645,
+     0.25999999046325684,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.44999998807907104,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Door - Divine City",
+   "scripts": [
+    {
+     "class": "Door",
+     "fields": {
+      "Label": "Divine City",
+      "Offset": [
+       0.0,
+       -0.699999988079071,
+       0.6000000238418579
+      ],
+      "Spawn Point": "Spawn - Apartment 9",
+      "Target Scene": "Scenes/City.scene"
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.0,
+     1.2000000476837158,
+     3.9000000953674316
+    ],
+    "rotation": [
+     -4.371138828673793e-08,
+     -0.0,
+     1.0,
+     -0.0
+    ],
+    "scale": [
+     1.2999999523162842,
+     2.4000000953674316,
+     0.10000000149011612
+    ]
+   },
+   "uuid": 16533204723215912727
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     0.8500000238418579,
+     0.699999988079071,
+     0.4000000059604645,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "builtin:sphere",
+    "metallic": 1.0,
+    "roughness": 0.30000001192092896,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Handle",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.450000047683716,
+     1.0499999523162842,
+     3.809999942779541
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     0.09000000357627869,
+     0.09000000357627869,
+     0.09000000357627869
+    ]
+   },
+   "uuid": 16484748820466988464
+  },
+  {
+   "active": true,
+   "meshRenderer": {
+    "castShadows": false,
+    "color": [
+     1.0,
+     0.8999999761581421,
+     0.699999988079071,
+     1.0
+    ],
+    "emissive": [
+     3.0,
+     2.200000047683716,
+     1.2000000476837158
+    ],
+    "mesh": "builtin:cube",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "Door Lamp",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.0,
+     2.799999952316284,
+     3.890000104904175
+    ],
+    "rotation": [
+     -4.371138828673793e-08,
+     -0.0,
+     1.0,
+     -0.0
+    ],
+    "scale": [
+     0.36000001430511475,
+     0.14000000059604645,
+     0.2199999988079071
+    ]
+   },
+   "uuid": 16891174446149963005
+  },
+  {
+   "active": true,
+   "name": "Spawn - Entrance",
+   "tag": "SpawnPoint",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.0,
+     0.25,
+     2.700000047683716
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 15816792150095903880
+  },
+  {
+   "active": true,
+   "audioListener": {
+    "active": true
+   },
+   "name": "Player",
+   "network": {
+    "interpolate": true,
+    "owner": 0,
+    "syncTransform": true
+   },
+   "rigidBody": {
+    "drag": 0.0,
+    "friction": 0.0,
+    "gravityScale": 1.0,
+    "lockY": false,
+    "mass": 1.0,
+    "restitution": 0.0,
+    "type": "Dynamic"
+   },
+   "saveable": {
+    "active": true,
+    "scripts": true,
+    "transform": true
+   },
+   "scripts": [
+    {
+     "class": "PlayerController",
+     "fields": {
+      "Camera": 3459941388680513057,
+      "Model": 8115185922640126605,
+      "Move Speed": 3.5,
+      "Sprint Speed": 7.0
+     }
+    }
+   ],
+   "sphereCollider": {
+    "isTrigger": false,
+    "offset": [
+     0.0,
+     0.44999998807907104,
+     0.0
+    ],
+    "radius": 0.44999998807907104
+   },
+   "tag": "Player",
+   "transform": {
+    "parent": 0,
+    "position": [
+     -3.0,
+     0.25,
+     2.700000047683716
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 6431223448087419790
+  },
+  {
+   "active": true,
+   "animator": {
+    "defaultState": "Locomotion",
+    "params": [
+     {
+      "name": "Speed",
+      "type": "Float",
+      "value": 0.0
+     },
+     {
+      "name": "Grounded",
+      "type": "Bool",
+      "value": 1.0
+     }
+    ],
+    "rootMotion": false,
+    "speed": 1.0,
+    "states": [
+     {
+      "blend": [
+       {
+        "clip": "Idle",
+        "threshold": 0.0
+       },
+       {
+        "clip": "Walk",
+        "threshold": 2.0
+       },
+       {
+        "clip": "Run",
+        "threshold": 6.0
+       }
+      ],
+      "blendParam": "Speed",
+      "clip": "",
+      "loop": true,
+      "name": "Locomotion",
+      "speed": 1.0
+     },
+     {
+      "blend": [],
+      "blendParam": "",
+      "clip": "Jump",
+      "loop": false,
+      "name": "Airborne",
+      "speed": 1.0
+     }
+    ],
+    "transitions": [
+     {
+      "conditions": [
+       {
+        "op": "IsFalse",
+        "param": "Grounded",
+        "threshold": 0.0
+       }
+      ],
+      "duration": 0.10000000149011612,
+      "exitTime": -1.0,
+      "from": "Locomotion",
+      "to": "Airborne"
+     },
+     {
+      "conditions": [
+       {
+        "op": "IsTrue",
+        "param": "Grounded",
+        "threshold": 0.0
+       }
+      ],
+      "duration": 0.15000000596046448,
+      "exitTime": -1.0,
+      "from": "Airborne",
+      "to": "Locomotion"
+     }
+    ]
+   },
+   "meshRenderer": {
+    "castShadows": true,
+    "color": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "emissive": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "mesh": "Models/Hero/Hero.glb",
+    "metallic": 0.0,
+    "roughness": 0.5,
+    "texture": "",
+    "tiling": 1.0,
+    "toon": {
+     "bands": 2,
+     "enabled": true,
+     "outline": true,
+     "outlineColor": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ],
+     "outlineWidth": 1.5,
+     "rim": 0.0,
+     "shadowColor": [
+      0.11999999731779099,
+      0.07999999821186066,
+      0.11999999731779099
+     ],
+     "shadowFill": 0.6499999761581421,
+     "softness": 0.0
+    },
+    "useModelMaterials": true,
+    "visible": true
+   },
+   "name": "PlayerModel",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 6431223448087419790,
+    "position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation": [
+     -4.371138828673793e-08,
+     -0.0,
+     1.0,
+     -0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 8115185922640126605
+  },
+  {
+   "active": true,
+   "camera": {
+    "far": 800.0,
+    "fov": 60.0,
+    "near": 0.10000000149011612,
+    "orthoSize": 10.0,
+    "orthographic": false,
+    "primary": true
+   },
+   "name": "Main Camera",
+   "scripts": [
+    {
+     "class": "FixedCamera",
+     "fields": {
+      "Target": 6431223448087419790
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     4.5,
+     2.700000047683716,
+     3.5
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 3459941388680513057
+  },
+  {
+   "active": true,
+   "name": "GameManager",
+   "saveable": {
+    "active": true,
+    "scripts": true,
+    "transform": false
+   },
+   "scripts": [
+    {
+     "class": "GameManager",
+     "fields": {
+      "Player": 6431223448087419790,
+      "Portal": 0,
+      "Title": "APARTMENT 9"
+     }
+    }
+   ],
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 16068779723262075655
+  },
+  {
+   "active": true,
+   "name": "ControlsPanel",
+   "tag": "ControlsUI",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "ui": {
+    "anchor": "BottomLeft",
+    "color": [
+     0.0,
+     0.0,
+     0.0,
+     0.44999998807907104
+    ],
+    "fontSize": 28.0,
+    "image": "",
+    "layer": 0,
+    "position": [
+     28.0,
+     28.0
+    ],
+    "size": [
+     470.0,
+     300.0
+    ],
+    "text": "",
+    "textColor": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "type": "Panel",
+    "value": 1.0,
+    "visible": true
+   },
+   "uuid": 12221615287565210401
+  },
+  {
+   "active": true,
+   "name": "ControlsText",
+   "tag": "ControlsUI",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "ui": {
+    "anchor": "BottomLeft",
+    "color": [
+     0.0,
+     0.0,
+     0.0,
+     0.5
+    ],
+    "fontSize": 24.0,
+    "image": "",
+    "layer": 1,
+    "position": [
+     50.0,
+     110.0
+    ],
+    "size": [
+     430.0,
+     200.0
+    ],
+    "text": "WASD / Left stick - move\nMouse / Right stick - camera\nShift - sprint     Space - jump\nE / X - open doors, examine\nEsc - pause menu",
+    "textColor": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "type": "Text",
+    "value": 1.0,
+    "visible": true
+   },
+   "uuid": 1400668779701170917
+  },
+  {
+   "active": true,
+   "name": "ControlsCloseButton",
+   "tag": "ControlsUI",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "ui": {
+    "anchor": "BottomLeft",
+    "color": [
+     0.0,
+     0.0,
+     0.0,
+     0.5
+    ],
+    "fontSize": 22.0,
+    "image": "",
+    "layer": 1,
+    "position": [
+     50.0,
+     46.0
+    ],
+    "size": [
+     200.0,
+     46.0
+    ],
+    "text": "Hide (F1)",
+    "textColor": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "type": "Button",
+    "value": 1.0,
+    "visible": true
+   },
+   "uuid": 13049863460992878329
+  },
+  {
+   "active": true,
+   "audioSource": {
+    "clip": "Audio/room_tone.wav",
+    "loop": true,
+    "maxDistance": 25.0,
+    "minDistance": 1.0,
+    "music": false,
+    "pitch": 1.0,
+    "playOnStart": true,
+    "spatial": false,
+    "volume": 0.3499999940395355
+   },
+   "name": "Room Tone",
+   "tag": "Untagged",
+   "transform": {
+    "parent": 0,
+    "position": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rotation": [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "scale": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "uuid": 14083327456164368402
+  }
+ ],
+ "environment": {
+  "ambient": 0.30000001192092896,
+  "exposure": 1.0,
+  "fog": false,
+  "fogColor": [
+   0.7400000095367432,
+   0.8199999928474426,
+   0.9200000166893005
+  ],
+  "fogDensity": 0.006000000052154064,
+  "gravity": [
+   0.0,
+   -20.0,
+   0.0
+  ],
+  "groundColor": [
+   0.05000000074505806,
+   0.05999999865889549,
+   0.09000000357627869
+  ],
+  "post": {
+   "bloom": 0.10000000149011612,
+   "bloomThreshold": 0.8999999761581421,
+   "contrast": 1.0499999523162842,
+   "reflections": 1.0,
+   "saturation": 1.100000023841858,
+   "ssao": 1.0,
+   "ssaoRadius": 0.44999998807907104,
+   "temperature": 0.0,
+   "tint": 0.0,
+   "vignette": 0.3199999928474426
+  },
+  "skyHorizon": [
+   0.10000000149011612,
+   0.11999999731779099,
+   0.18000000715255737
+  ],
+  "skyTop": [
+   0.04000000283122063,
+   0.04800000041723251,
+   0.07200000435113907
+  ]
+ },
+ "navigation": {
+  "agentHeight": 1.7999999523162842,
+  "agentRadius": 0.4000000059604645,
+  "cellSize": 0.5,
+  "maxSlope": 40.0,
+  "maxStep": 0.44999998807907104,
+  "minWalkableHeight": -1000000000.0
+ },
+ "scene": "Apartment 9",
+ "version": 1
+}

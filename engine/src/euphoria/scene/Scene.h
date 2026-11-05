@@ -76,6 +76,7 @@ public:
     // --- Lifecycle --------------------------------------------------------
     void OnRuntimeStart();
     void OnRuntimeStop();
+    static void EndPlaySession();           // play mode / the game is ending: clear screen fades
     void OnUpdateRuntime(float dt);         // gameplay: scripts, physics, animation, audio, AI...
     void OnUpdateEditor(float dt);          // editor preview: animation + particles only
     bool IsRunning() const { return m_Running; }

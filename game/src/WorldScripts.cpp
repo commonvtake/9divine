@@ -73,10 +73,50 @@ public:
         Transform().rotation = glm::normalize(glm::angleAxis(dt * 1.5f, vec3(0, 1, 0)) * Transform().rotation);
     }
     void OnTriggerEnter(Entity other) override {
-        if (other.Get<TagComponent>().tag == "Player" && !targetScene.empty()) SceneManager::LoadScene(targetScene);
+        if (other.Get<TagComponent>().tag != "Player" || targetScene.empty() || ScreenFade::Busy()) return;
+        std::string target = targetScene;
+        ScreenFade::Transition(0.6f, 0.4f, 0.8f, [target] { SceneManager::LoadScene(target); });
     }
 };
 EU_SCRIPT(Portal)
+
+// Buzzing neon, a dying strip light, a TV: wobbles this entity's emissive glow and, if set, a
+// light's intensity. Cut Outs adds the occasional moment where it drops out completely.
+class Flicker : public ScriptableEntity {
+public:
+    uint64_t light = 0;
+    float amount = 0.3f;
+    float speed = 1.0f;
+    bool cutOuts = false;
+    void Reflect(FieldVisitor& v) override {
+        v.EntityRef("Light", light);
+        v.Float("Amount", amount);
+        v.Float("Speed", speed);
+        v.Bool("Cut Outs", cutOuts);
+    }
+    void OnCreate() override {
+        if (auto* mr = TryGet<MeshRendererComponent>()) m_Emissive = mr->emissive;
+        if (Entity l = FindByUUID(light)) m_Intensity = l.Get<LightComponent>().intensity;
+        m_Time = (float)(GetEntity().GetUUID() % 1000);   // out of step with other flickers
+    }
+    void OnUpdate(float dt) override {
+        m_Time += dt * speed;
+        float t = m_Time;
+        float f = 1.0f + amount * (std::sin(t * 13.0f) * 0.4f + std::sin(t * 31.0f + 1.7f) * 0.35f + std::sin(t * 4.3f) * 0.25f);
+        // Cut-outs: a short burst of off/on stutter every few seconds
+        if (cutOuts) {
+            float cycle = std::fmod(t, 5.3f);
+            if (cycle < 0.35f && std::sin(cycle * 90.0f) > 0.0f) f = 0.08f;
+        }
+        if (auto* mr = TryGet<MeshRendererComponent>()) mr->emissive = m_Emissive * f;
+        if (Entity l = FindByUUID(light)) l.Get<LightComponent>().intensity = m_Intensity * f;
+    }
+private:
+    vec3 m_Emissive{ 0.0f };
+    float m_Intensity = 1.0f;
+    float m_Time = 0.0f;
+};
+EU_SCRIPT(Flicker)
 
 // Rotates an object continuously.
 class Spinner : public ScriptableEntity {
