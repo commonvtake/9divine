@@ -31,6 +31,7 @@ struct MaterialData {
     // Where each map came from (for the editor's model info): a file path, "embedded", or a
     // "missing: <name>" note when the file referred to a texture that couldn't be found.
     std::vector<std::string> textureNotes;
+    std::vector<std::string> sourceFiles;   // absolute paths of the image files used (for importing)
 };
 
 struct SubMesh {

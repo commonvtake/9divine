@@ -6,6 +6,7 @@
 //   euphoria-editor --create-project <dir> [--template empty|starter|sample] [--name "My Game"]
 //   euphoria-editor <projectDir> --export <outDir>    build a standalone game without opening a window
 //   euphoria-editor <projectDir> --play               open and enter play mode
+//   euphoria-editor <projectDir> --import <path>      import a file or folder (repeatable), as if dropped on the editor
 #include "EditorApp.h"
 #include "ProjectTemplates.h"
 
@@ -32,6 +33,7 @@ int main(int argc, char** argv) {
     std::vector<std::string> positional;
     std::string exportDir, createDir, templateKey = "starter", projectName;
     bool play = false, newProject = false;
+    std::vector<std::string> imports;
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
         auto next = [&]() -> std::string { return i + 1 < argc ? argv[++i] : ""; };
@@ -40,6 +42,7 @@ int main(int argc, char** argv) {
         else if (a == "--template") templateKey = next();
         else if (a == "--name") projectName = next();
         else if (a == "--play") play = true;
+        else if (a == "--import") imports.push_back(fs::absolute(next()).string());
         else if (a == "--new-project") newProject = true;
         else if (a == "--screenshot" || a == "--screenshot-frame" || a == "--frames" || a == "--fixed-dt" || a == "--benchmark-report" || a == "--width" || a == "--height") next();
         else if (a == "--benchmark") { if (i + 1 < argc && argv[i + 1][0] >= '0' && argv[i + 1][0] <= '9') i++; }
@@ -85,6 +88,7 @@ int main(int argc, char** argv) {
     editor::EditorApp app(cfg, project);
     app.playOnStart = play;
     app.newProjectOnStart = newProject;
+    app.importOnStart = imports;
     app.Run();
     return 0;
 }

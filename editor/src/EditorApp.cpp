@@ -20,7 +20,10 @@ Entity EditorApp::Selected() {
     return scene ? scene->FindByUUID(m_SelectedID) : Entity();
 }
 
-void EditorApp::Select(Entity e) { m_SelectedID = e ? e.GetUUID() : UUID(0); }
+void EditorApp::Select(Entity e) {
+    m_SelectedID = e ? e.GetUUID() : UUID(0);
+    if (e) m_InspectedAsset.clear();   // the inspector follows the latest selection
+}
 
 void EditorApp::OnInit() {
     FramebufferSpec spec;
@@ -233,14 +236,19 @@ Entity EditorApp::CreateFromAsset(const std::string& path, const vec3& position)
     auto scene = ActiveScene();
     if (AssetManager::IsSceneFile(path)) { if (m_State == PlayState::Edit) OpenScene(path); return {}; }
     if (!AssetManager::IsModelFile(path)) return {};
-    Entity e = scene->CreateEntity(fs::path(path).stem().string());
+    size_t hash = path.find('#');
+    Entity e = scene->CreateEntity(hash != std::string::npos ? path.substr(hash + 1) : fs::path(path).stem().string());
     e.Transform().position = position;
     e.Add<MeshRendererComponent>().mesh = path;
     if (auto model = AssetManager::GetModel(path)) {
         // Auto-scale huge models (centimetre exports) to ~2 m
         float size = glm::length(model->bounds.max - model->bounds.min);
         if (size > 20.0f) e.Transform().scale = vec3(2.0f / size * 1.7f);
-        if (model->IsSkinned() && !model->clips.empty()) {
+        if (model->IsSkinned() && model->clips.empty()) {
+            // A rigged character without animations: give it an animator ready for a library
+            e.Add<AnimatorComponent>();
+            EU_INFO("{} is rigged but has no animations: drop an animation file onto its Animator > Animations from", path);
+        } else if (model->IsSkinned() && !model->clips.empty()) {
             auto& anim = e.Add<AnimatorComponent>();
             for (auto& c : model->clips) {
                 AnimState st;
@@ -315,6 +323,7 @@ void EditorApp::OnImGui() {
     }
     ImGuizmo::BeginFrame();
     ImGuiIO& io = ImGui::GetIO();
+    ProcessDroppedFiles();
 
     // Global shortcuts
     bool ctrl = io.KeyCtrl;
@@ -343,6 +352,7 @@ void EditorApp::OnImGui() {
     if (m_FirstFrame) {
         SetupDefaultLayout(dock);
         m_FirstFrame = false;
+        if (!importOnStart.empty()) { OnFilesDropped(importOnStart); importOnStart.clear(); ProcessDroppedFiles(); }
         if (playOnStart) StartPlay();
     }
     DrawMenuBar();

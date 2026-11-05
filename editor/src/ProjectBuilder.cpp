@@ -59,7 +59,9 @@ bool EditorApp::BuildGame(const fs::path& out, std::string& log) {
         fs::path p = it->path();
         fs::path rel = fs::relative(p, root, ec);
         std::string first = rel.begin() != rel.end() ? rel.begin()->string() : "";
-        if (first == "Builds" || first == ".git" || (!first.empty() && first[0] == '.')) { if (it->is_directory()) it.disable_recursion_pending(); continue; }
+        // Hidden folders are skipped, except the models Blender converted (games run without Blender)
+        bool converted = first == ".euphoria" && (rel.string().find("converted") != std::string::npos || rel == fs::path(".euphoria"));
+        if (first == "Builds" || first == ".git" || (!first.empty() && first[0] == '.' && !converted)) { if (it->is_directory()) it.disable_recursion_pending(); continue; }
         if (fs::absolute(p).lexically_normal() == outAbs) { it.disable_recursion_pending(); continue; }
         fs::path dst = out / "Game" / rel;
         if (it->is_directory()) { fs::create_directories(dst, ec); continue; }

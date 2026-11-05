@@ -58,6 +58,7 @@ Ref<Texture2D> Resolve(const std::string& reference, const fs::path& modelDir, M
     }
     auto tex = TextureFromFile(found);
     if (tex) {
+        md.sourceFiles.push_back(found);
         md.textureNotes.push_back(std::string(slot) + ": " + Pretty(found));
         if (usedPath) *usedPath = found;
     }
@@ -67,7 +68,10 @@ Ref<Texture2D> Resolve(const std::string& reference, const fs::path& modelDir, M
 void AddCompanionMaps(MaterialData& md, const std::string& colorPath) {
     if (colorPath.empty()) return;
     auto c = TextureFinder::FindCompanions(colorPath);
-    auto note = [&](const char* slot, const std::string& p) { md.textureNotes.push_back(std::string(slot) + ": " + Pretty(p) + " (by name)"); };
+    auto note = [&](const char* slot, const std::string& p) {
+        md.sourceFiles.push_back(p);
+        md.textureNotes.push_back(std::string(slot) + ": " + Pretty(p) + " (by name)");
+    };
     if (!md.normalMap && !c.normal.empty())
         if ((md.normalMap = TextureFromFile(c.normal))) note("normal", c.normal);
     if (!md.emissiveMap && !c.emissive.empty())
