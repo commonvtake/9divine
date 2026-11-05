@@ -73,6 +73,18 @@ Drag a model, a texture or a whole asset pack from Explorer onto the editor and 
 
 Textures are found even when the files point at the artist's computer. A character can play animations from another file, such as Mixamo clips or an animation library, retargeted onto its own skeleton. The guide is in **[docs/ASSETS.md](docs/ASSETS.md)**.
 
+### 2D pixel-art games
+
+![2D templates](docs/images/2d.png)
+
+Euphoria makes flat 2D games too:
+- **Sprites** and **sprite-sheet animation**, with the frame size detected from the sheet
+- **Tiled maps** (`.tmx`/`.tmj`) with collisions, animated tiles and parallax backgrounds
+- **Pixel-perfect** scaling, so pixels stay crisp at any window size
+- **2D physics**, a **2D editor mode**, and characters walking behind trees and in front of them (y-sorting)
+
+The **2D Platformer** and **2D Top-Down** templates are small playable games to start from. The guide is in **[docs/2D.md](docs/2D.md)**.
+
 ### The demo: Divine City
 
 The repository includes a small game built entirely with the engine. It starts in **Divine City**, a city block at dusk: wet streets that reflect the neon, lit windows, street lamps, parked cars, and a door on every shop front.
@@ -125,16 +137,17 @@ Everything in the demo, from the buildings to the textures and the door sounds, 
 | **Physics** | Impulse solver with friction & restitution, sphere and oriented-box colliders, heightfield terrain collision, triggers, raycasts, overlap queries, kinematic bodies, sort-and-sweep broad phase, fixed 60 Hz timestep |
 | **Animation** | Skeletal animation with slerp sampling, cross-fades, 1D blend spaces with phase sync, parameter-driven state machines, root motion, one-click locomotion setup from clip names (Blender/Mixamo) |
 | **Audio** | miniaudio backend, 2D and 3D spatial sound, streamed music, master/music/SFX buses, listener component |
+| **2D** | Sprite renderer (regions, pivots, flips, tint, order, y-sorting) and sprite-sheet animator with automatic frame detection; Tiled `.tmx`/`.tmj` maps (external tilesets, image collections, flips, animated tiles, groups, image layers with repeat and parallax, objects, properties, zlib/gzip data); tile collision shapes merged into static boxes; batched, sorted 2D renderer with **pixel-perfect** low-resolution scaling; physics in the XY plane; platformer/top-down controller, follow camera; editor 2D mode |
 | **Terrain** | Procedural fBm heightmaps, in-editor sculpting (raise/lower/smooth/flatten), height/slope-based texturing, wind-animated instanced grass, scattered trees, animated water |
 | **Game UI** | Immediate-mode HUD API (panels, text, buttons, progress bars, images, world-space labels) plus retained UI components editable in the editor |
 | **Navigation & AI** | Grid nav-mesh baking from terrain and colliders, A* with path smoothing, nav agents, finite state machines, behaviour trees |
 | **Particles** | CPU simulation, instanced billboards, additive/alpha blending with sorting, presets (fire, smoke, sparks, magic, rain, dust) |
 | **Debugging** | CPU profiler with per-system timings, frame-time graph, draw/triangle/memory stats, debug line drawing, collider and nav-grid overlays |
-| **Projects** | Project Hub with templates (Empty, 3D Starter, sample copy), recent projects, in-editor folder browser, switching projects with save prompts |
+| **Projects** | Project Hub with templates (Empty, 3D Starter, 2D Platformer, 2D Top-Down, sample copy), recent projects, in-editor folder browser, switching projects with save prompts |
 | **Build / Export** | Packages the runtime, engine data and project into a standalone folder from the editor or the command line |
 | **Save system** | Key/value save slots, checkpoints that snapshot every `Saveable` entity, restore across scene reloads |
 | **Networking** | Client/server over UDP with handshake, timeouts, ping, transform replication with interpolation, remote player spawning, custom JSON messages |
-| **Tests & CI** | 47 headless unit tests (CTest) covering ECS, serialization, transform cache, physics, terrain, navigation, AI, animation, locomotion setup, input, saves, toon outline normals, the ray-tracing BVH, events/triggers, screen fades, doors, the combat moveset, style meter, enemies, battle zones, the texture finder and animation retargeting; GitHub Actions builds on Windows and Linux |
+| **Tests & CI** | 54 headless unit tests (CTest) covering ECS, serialization, transform cache, physics, terrain, navigation, AI, animation, locomotion setup, input, saves, toon outline normals, the ray-tracing BVH, events/triggers, screen fades, doors, the combat moveset, style meter, enemies, battle zones, the texture finder, animation retargeting, the XML/Tiled loaders, sprite-sheet detection and 2D physics; GitHub Actions builds on Windows and Linux |
 
 ## Getting started
 
@@ -173,6 +186,7 @@ Launching `euphoria-editor` opens the **Project Hub**:
 - **New Project** – pick a template, a name and a folder (defaults to `Documents/Euphoria Projects`):
   - **Empty** – camera, sun and a ground plane.
   - **3D Starter** – a playable third-person character with camera, physics props, HUD and pause menu.
+  - **2D Platformer** / **2D Top-Down** – small pixel-art games with Tiled maps (see [docs/2D.md](docs/2D.md)).
   - **Divine City (Sample)** – your own editable copy of the full demo game.
 - **Open Project...** – browse to any folder that contains a `project.json`.
 - **Recent Projects** – click to reopen; right-click to show in the file browser or remove from the list.
@@ -378,7 +392,7 @@ docs/               architecture notes, asset and Blender guides, roadmap, scree
 | `euphoria-editor` | Open the Project Hub |
 | `euphoria-editor [projectDir]` | Open a project (an empty or new folder becomes an Empty project) |
 | `euphoria-editor --new-project` | Open the hub straight to the New Project dialog |
-| `euphoria-editor --create-project <dir> [--template empty\|starter\|sample] [--name "My Game"]` | Create a project from a template and open it |
+| `euphoria-editor --create-project <dir> [--template empty\|starter\|platformer2d\|topdown2d\|sample] [--name "My Game"]` | Create a project from a template and open it |
 | `euphoria-editor --play` | Open and immediately enter play mode |
 | `euphoria-editor [projectDir] --export <dir>` | Build a standalone game without opening the editor |
 | `euphoria-player [projectDir]` | Run a project |
@@ -391,6 +405,7 @@ docs/               architecture notes, asset and Blender guides, roadmap, scree
 | `--width W --height H --fullscreen --no-vsync` | Window options |
 | `--screenshot file.png --screenshot-frame N` | Save frame N and exit (automated testing) |
 | `--fixed-dt 0.0166` | Advance exactly this many seconds per frame, so screenshots are deterministic |
+| `--simulate-input "D@0.5-3,Space@1-1.3"` | Hold keys at set times (seconds of game time), for automated playthroughs |
 
 ## Roadmap
 

@@ -2,6 +2,7 @@
 // import settings) shown when a model is clicked in the Assets panel.
 #include "EditorApp.h"
 #include <euphoria/assets/AssetManager.h>
+#include <euphoria/renderer/Texture.h>
 #include <euphoria/assets/BlenderBridge.h>
 #include <euphoria/assets/TextureFinder.h>
 #include <euphoria/animation/Retarget.h>
@@ -90,19 +91,26 @@ void EditorApp::ProcessDroppedFiles() {
     fs::path root = Project::Root();
     fs::path target = m_AssetDir.empty() ? root : m_AssetDir;
     std::error_code ec;
-    std::vector<std::string> models, report;
+    std::vector<std::string> models, report;   // models: things to place (2D scenes: images and maps too)
     int files = 0;
+    const bool flat = ActiveScene() && ActiveScene()->Environment().mode2D;
 
     for (auto& d : drops) {
         fs::path src = fs::path(d).lexically_normal();
         if (!fs::exists(src, ec)) continue;
         if (InsideProject(src)) {                      // already part of the project: just use it
-            if (AssetManager::IsModelFile(src.string())) models.push_back(Project::MakeRelative(src));
+            if (AssetManager::IsModelFile(src.string()) || AssetManager::IsTilemapFile(src.string()) ||
+                (flat && AssetManager::IsTextureFile(src.string())))
+                models.push_back(Project::MakeRelative(src));
             continue;
         }
         if (fs::is_directory(src, ec)) {
-            // A whole pack: keep its layout (models find their Textures folder the same way)
-            fs::path dst = Unique((target == root ? root / "Models" : target) / src.filename());
+            // A whole pack: keep its layout (models find their Textures folder the same way).
+            // Packs without 3D models (sprites, tilesets, Tiled maps) go to Art/.
+            bool hasModels = false;
+            for (auto& f : fs::recursive_directory_iterator(src, ec))
+                if (f.is_regular_file(ec) && AssetManager::IsModelFile(f.path().string())) { hasModels = true; break; }
+            fs::path dst = Unique((target == root ? root / (hasModels ? "Models" : "Art") : target) / src.filename());
             fs::create_directories(dst.parent_path(), ec);
             fs::copy(src, dst, fs::copy_options::recursive, ec);
             if (ec) { EU_ERROR("Import of {} failed: {}", src.string(), ec.message()); continue; }
@@ -115,6 +123,39 @@ void EditorApp::ProcessDroppedFiles() {
             continue;
         }
         std::string name = src.filename().string();
+        if (AssetManager::IsTilemapFile(name)) {
+            // A Tiled map: copy it with its tilesets and images, keeping their relative layout
+            std::string err;
+            auto map = Tiled::Load(src.u8string(), &err);
+            std::vector<fs::path> mapFiles = { src };
+            if (map) {
+                for (auto& d : map->dependencies) mapFiles.push_back(fs::u8path(d));
+                auto addImage = [&](const std::string& img) { if (!img.empty()) mapFiles.push_back(Project::Resolve(img)); };
+                for (auto& ts : map->tilesets) {
+                    addImage(ts.image);
+                    for (auto& [id, t] : ts.tiles) addImage(t.image);
+                }
+                for (auto& l : map->layers) addImage(l.image);
+            }
+            fs::path common = src.parent_path();
+            for (auto& f : mapFiles) {
+                while (!common.empty() && f.lexically_relative(common).string().rfind("..", 0) == 0) common = common.parent_path();
+            }
+            fs::path folder = Unique((target == root ? root / "Maps" : target) / (common == src.parent_path() ? src.stem() : common.filename()));
+            int copied = 0;
+            std::set<std::string> done;
+            for (auto& f : mapFiles) {
+                if (!done.insert(f.lexically_normal().string()).second || !fs::exists(f, ec)) continue;
+                fs::path out = folder / f.lexically_relative(common);
+                fs::create_directories(out.parent_path(), ec);
+                fs::copy_file(f, out, fs::copy_options::skip_existing, ec);
+                copied++;
+            }
+            files += copied;
+            report.push_back(name + " + " + std::to_string(copied - 1) + " tileset/image file(s) -> " + Project::MakeRelative(folder));
+            models.push_back(Project::MakeRelative(folder / src.lexically_relative(common)));
+            continue;
+        }
         if (AssetManager::IsModelFile(name)) {
             // A model: its own folder, with everything it refers to
             fs::path folder = Unique((target == root ? root / "Models" : target) / src.stem());
@@ -150,6 +191,7 @@ void EditorApp::ProcessDroppedFiles() {
             fs::copy_file(src, dst, ec);
             files++;
             report.push_back(name + " -> " + Project::MakeRelative(folder));
+            if (flat && AssetManager::IsTextureFile(name)) models.push_back(Project::MakeRelative(dst));   // becomes a sprite
         }
     }
     TextureFinder::ClearCache();   // new files on disk
@@ -163,7 +205,13 @@ void EditorApp::ProcessDroppedFiles() {
         vec2 ndc(m.x / m_ViewportSize.x * 2.0f - 1.0f, 1.0f - m.y / m_ViewportSize.y * 2.0f);
         Ray ray = m_Camera.ScreenRay(ndc, m_ViewportSize.x / m_ViewportSize.y);
         RaycastHit hit;
-        vec3 at = ActiveScene()->Physics().Raycast(ray, 200.0f, hit) ? hit.point : ray.origin + ray.direction * 10.0f;
+        vec3 at;
+        if (flat) {
+            float ppu = std::max(1.0f, ActiveScene()->Environment().pixelsPerUnit);
+            at = vec3(glm::round(vec2(ray.origin) * ppu) / ppu, 0.0f);
+        } else {
+            at = ActiveScene()->Physics().Raycast(ray, 200.0f, hit) ? hit.point : ray.origin + ray.direction * 10.0f;
+        }
         CreateFromAsset(models[0], at);
     }
     if (!models.empty()) {
@@ -182,11 +230,33 @@ void EditorApp::DrawAssetInspector() {
     ImGui::Separator();
     if (!AssetManager::IsModelFile(path)) {
         if (AssetManager::IsTextureFile(path))
-            if (auto tex = AssetManager::GetTexture(path)) {
+            if (auto tex = AssetManager::GetTexture(path, true)) {
                 ImGui::Text("%d x %d", tex->Width(), tex->Height());
                 float w = std::min(ImGui::GetContentRegionAvail().x, 256.0f);
-                ImGui::Image((ImTextureID)(uintptr_t)tex->Id(), ImVec2(w, w * tex->Height() / std::max(1, tex->Width())), ImVec2(0, 1), ImVec2(1, 0));
+                ImVec2 p = ImGui::GetCursorScreenPos();
+                ImVec2 size(w, w * tex->Height() / std::max(1, tex->Width()));
+                ImGui::Image((ImTextureID)(uintptr_t)tex->Id(), size, ImVec2(0, 1), ImVec2(1, 0));
+                // Sprite sheets: the detected frame grid
+                ivec2 frame = SpriteSheet::DetectFrameSize(path);
+                if (frame.x > 0 && frame.y > 0 && (frame.x < tex->Width() || frame.y < tex->Height())) {
+                    ImDrawList* dl = ImGui::GetWindowDrawList();
+                    float sx = size.x / tex->Width(), sy = size.y / tex->Height();
+                    for (int x = frame.x; x < tex->Width(); x += frame.x) dl->AddLine(ImVec2(p.x + x * sx, p.y), ImVec2(p.x + x * sx, p.y + size.y), IM_COL32(255, 200, 80, 140));
+                    for (int y = frame.y; y < tex->Height(); y += frame.y) dl->AddLine(ImVec2(p.x, p.y + y * sy), ImVec2(p.x + size.x, p.y + y * sy), IM_COL32(255, 200, 80, 140));
+                    ImGui::Text("Sprite sheet: %d x %d frames of %d x %d px", tex->Width() / frame.x, tex->Height() / frame.y, frame.x, frame.y);
+                    ImGui::TextDisabled("In a 2D scene, drag it into the viewport for an animated sprite.");
+                }
             }
+        if (AssetManager::IsTilemapFile(path)) {
+            if (auto map = AssetManager::GetTilemap(path)) {
+                ImGui::Text("Tiled map: %d x %d tiles of %d x %d px", map->width, map->height, map->tileWidth, map->tileHeight);
+                ImGui::Text("%zu layers, %zu tilesets, %zu collision boxes", map->layers.size(), map->tilesets.size(), map->colliders.size());
+                for (auto& w2 : map->warnings) ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.3f, 1.0f), "%s", w2.c_str());
+                ImGui::TextDisabled("Drag it into a 2D scene to place it.");
+            } else {
+                ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.4f, 1.0f), "Couldn't load this map (see the console).");
+            }
+        }
         return;
     }
 

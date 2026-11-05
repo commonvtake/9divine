@@ -85,6 +85,7 @@ struct TilemapLayer {
     // Image layer
     std::string image;
     int imageWidth = 0, imageHeight = 0;
+    bool repeatX = false, repeatY = false;  // tile the image across the view
     // Drawing (decided on load, see TilemapData::AssignDrawOrder)
     int order = 0;
     bool ySort = false;

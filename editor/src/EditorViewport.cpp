@@ -2,6 +2,7 @@
 #include <euphoria/assets/AssetManager.h>
 #include <euphoria/renderer/RayTracer.h>
 #include <euphoria/renderer/GL.h>
+#include <euphoria/renderer/Texture.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <ImGuizmo.h>
@@ -12,10 +13,36 @@ void EditorApp::DrawEditorOverlays(Scene& scene) {
     Registry& reg = scene.Reg();
     bool editing = m_State == PlayState::Edit || !m_GameView;
     if (!editing) return;
-    if (m_ShowGrid) DebugDraw::Grid(vec3(std::round(m_Camera.pivot.x), 0.0f, std::round(m_Camera.pivot.z)), 60.0f, 1.0f, { 1, 1, 1, 0.06f });
+    const bool flat = scene.Environment().mode2D;
+    if (m_ShowGrid && !flat) DebugDraw::Grid(vec3(std::round(m_Camera.pivot.x), 0.0f, std::round(m_Camera.pivot.z)), 60.0f, 1.0f, { 1, 1, 1, 0.06f });
+    if (flat) {
+        // 2D: a grid of world units (one tile at the scene's pixels-per-unit), thinner when zoomed out
+        float aspect = m_ViewportSize.x / std::max(1.0f, m_ViewportSize.y);
+        vec2 half = vec2(aspect, 1.0f) * m_Camera.zoom2D * 0.5f, c = vec2(m_Camera.pivot);
+        float step = 1.0f;
+        while (m_Camera.zoom2D / step > 90.0f) step *= 4.0f;
+        if (m_ShowGrid) {
+            for (float x = std::floor((c.x - half.x) / step) * step; x <= c.x + half.x; x += step)
+                DebugDraw::Line({ x, c.y - half.y, 0 }, { x, c.y + half.y, 0 }, { 1, 1, 1, std::abs(x) < 1e-4f ? 0.25f : 0.07f });
+            for (float y = std::floor((c.y - half.y) / step) * step; y <= c.y + half.y; y += step)
+                DebugDraw::Line({ c.x - half.x, y, 0 }, { c.x + half.x, y, 0 }, { 1, 1, 1, std::abs(y) < 1e-4f ? 0.25f : 0.07f });
+        }
+        // What each camera sees in the game
+        const auto& env = scene.Environment();
+        reg.View<TransformComponent, CameraComponent>([&](EntityId id, TransformComponent&, CameraComponent& cc) {
+            vec3 p = scene.WorldPosition(Entity(id, &scene));
+            vec2 h = env.pixelPerfect ? vec2(env.referenceResolution) / std::max(1.0f, env.pixelsPerUnit) * 0.5f
+                                      : vec2(cc.orthoSize * 0.5f * 16.0f / 9.0f, cc.orthoSize * 0.5f);
+            vec4 col = cc.primary ? vec4(1.0f, 1.0f, 1.0f, 0.55f) : vec4(0.7f, 0.7f, 0.7f, 0.3f);
+            DebugDraw::Line({ p.x - h.x, p.y - h.y, 0 }, { p.x + h.x, p.y - h.y, 0 }, col);
+            DebugDraw::Line({ p.x + h.x, p.y - h.y, 0 }, { p.x + h.x, p.y + h.y, 0 }, col);
+            DebugDraw::Line({ p.x + h.x, p.y + h.y, 0 }, { p.x - h.x, p.y + h.y, 0 }, col);
+            DebugDraw::Line({ p.x - h.x, p.y + h.y, 0 }, { p.x - h.x, p.y - h.y, 0 }, col);
+        });
+    }
 
     // Camera frustums
-    reg.View<TransformComponent, CameraComponent>([&](EntityId id, TransformComponent&, CameraComponent& c) {
+    if (!flat) reg.View<TransformComponent, CameraComponent>([&](EntityId id, TransformComponent&, CameraComponent& c) {
         Entity e(id, &scene);
         mat4 w = scene.WorldMatrix(e);
         RenderCamera rc = Renderer::MakeCamera(w, c.fov, 16.0f / 9.0f, c.nearClip, c.farClip, c.orthographic, c.orthoSize);
@@ -41,6 +68,28 @@ void EditorApp::DrawEditorOverlays(Scene& scene) {
             vec3 t, s; quat r;
             DecomposeTRS(w, t, r, s);
             DebugDraw::Box(c, b.Extents() * s * 1.02f, r, { 1.0f, 0.65f, 0.15f, 1.0f });
+        }
+        auto outline2D = [&](const vec3 c[4], const vec4& col) {
+            for (int i = 0; i < 4; i++) DebugDraw::Line(c[i], c[(i + 1) % 4], col);
+        };
+        if (auto* sr = sel.TryGet<SpriteRendererComponent>(); sr && !sr->texture.empty()) {
+            if (auto tex = AssetManager::GetTexture(sr->texture, true)) {
+                vec2 size = sr->region.z > 0.0f ? vec2(sr->region.z, sr->region.w) : vec2(tex->Width(), tex->Height());
+                float ppu = sr->pixelsPerUnit > 0.0f ? sr->pixelsPerUnit : std::max(1.0f, scene.Environment().pixelsPerUnit);
+                size /= ppu;
+                vec2 o = -sr->pivot * size;
+                vec3 c[4] = { vec3(w * vec4(o, 0, 1)), vec3(w * vec4(o.x + size.x, o.y, 0, 1)), vec3(w * vec4(o + size, 0, 1)), vec3(w * vec4(o.x, o.y + size.y, 0, 1)) };
+                outline2D(c, { 1.0f, 0.65f, 0.15f, 1.0f });
+            }
+        }
+        if (auto* tm = sel.TryGet<TilemapComponent>()) {
+            if (TilemapData* map = EnsureTilemapLoaded(*tm)) {
+                float ppu = std::max(1.0f, scene.Environment().pixelsPerUnit);
+                vec2 a = map->MapToLocal({ map->bounds.x * (float)map->tileWidth, map->PixelHeight() }, ppu);
+                vec2 b = map->MapToLocal({ (map->bounds.x + map->bounds.z) * (float)map->tileWidth, map->bounds.y * (float)map->tileHeight }, ppu);
+                vec3 c[4] = { vec3(w * vec4(a, 0, 1)), vec3(w * vec4(b.x, a.y, 0, 1)), vec3(w * vec4(b, 0, 1)), vec3(w * vec4(a.x, b.y, 0, 1)) };
+                outline2D(c, { 1.0f, 0.65f, 0.15f, 1.0f });
+            }
         }
         if (auto* l = sel.TryGet<LightComponent>(); l && l->type != LightType::Directional)
             DebugDraw::Sphere(vec3(w[3]), l->range, { l->color, 0.35f }, 32);
@@ -213,13 +262,30 @@ void EditorApp::DrawViewportWindow() {
             vec2 ndc(local.x / avail.x * 2.0f - 1.0f, 1.0f - local.y / avail.y * 2.0f);
             Ray ray = m_Camera.ScreenRay(ndc, avail.x / avail.y);
             RaycastHit hit;
-            vec3 at = ActiveScene()->Physics().Raycast(ray, 200.0f, hit) ? hit.point : ray.origin + ray.direction * 10.0f;
+            vec3 at;
+            if (ActiveScene()->Environment().mode2D) {
+                // On the XY plane, snapped to the art's pixel grid
+                float ppu = std::max(1.0f, ActiveScene()->Environment().pixelsPerUnit);
+                at = vec3(glm::round(vec2(ray.origin) * ppu) / ppu, 0.0f);
+            } else {
+                at = ActiveScene()->Physics().Raycast(ray, 200.0f, hit) ? hit.point : ray.origin + ray.direction * 10.0f;
+            }
             CreateFromAsset(path, at);
         }
         ImGui::EndDragDropTarget();
     }
 
     bool gameCam = m_State == PlayState::Play && m_GameView;
+    if (auto sc = ActiveScene()) {
+        bool flat = sc->Environment().mode2D;
+        if (flat && !m_Camera.mode2D) { m_Camera.pivot.z = 0.0f; m_Camera.zoom2D = std::max(4.0f, m_Camera.distance); }
+        m_Camera.mode2D = flat;
+    }
+    m_Camera.viewportPixels = m_ViewportSize;
+    {
+        ImVec2 mp = ImGui::GetMousePos();
+        m_Camera.mouseNdc = { (mp.x - pos.x) / avail.x * 2.0f - 1.0f, 1.0f - (mp.y - pos.y) / avail.y * 2.0f };
+    }
     if (!gameCam) m_Camera.Update(Time::UnscaledDelta(), m_ViewportHovered, m_ViewportFocused);
 
     // Gizmo
@@ -229,7 +295,7 @@ void EditorApp::DrawViewportWindow() {
         auto scene = ActiveScene();
         float aspect = avail.x / avail.y;
         RenderCamera cam = m_Camera.GetRenderCamera(aspect);
-        ImGuizmo::SetOrthographic(false);
+        ImGuizmo::SetOrthographic(m_Camera.mode2D);
         ImGuizmo::SetDrawlist();
         ImGuizmo::SetRect(pos.x, pos.y, avail.x, avail.y);
         mat4 world = scene->WorldMatrix(sel);

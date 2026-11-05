@@ -39,6 +39,7 @@ struct Data {
     std::vector<Quad> quads;
     std::vector<SpriteVertex> verts;
     Renderer2D::Stats stats;
+    Renderer2D::View lastGame;
 };
 Data* s = nullptr;
 
@@ -117,6 +118,7 @@ void Renderer2D::Shutdown() {
 }
 
 Renderer2D::Stats Renderer2D::LastStats() { return s ? s->stats : Stats{}; }
+Renderer2D::View Renderer2D::LastGameView() { return s ? s->lastGame : View{}; }
 
 Renderer2D::View Renderer2D::ComputeView(const SceneEnvironment& env, const RenderCamera& cam, int W, int H, bool editor) {
     View v;
@@ -162,6 +164,7 @@ RenderCamera Renderer2D::Render(Scene& scene, const RenderCamera& cameraIn, Fram
     const SceneEnvironment& env = scene.Environment();
     const int W = target.Width(), H = target.Height();
     View view = ComputeView(env, cameraIn, W, H, opt.editorMode);
+    if (!opt.editorMode) s->lastGame = view;
     const RenderCamera& cam = view.camera;
     const mat4 viewProj = cam.projection * cam.view;
     const float ppu = std::max(1.0f, env.pixelsPerUnit);
@@ -279,17 +282,27 @@ RenderCamera Renderer2D::Render(Scene& scene, const RenderCamera& cameraIn, Fram
                 Texture2D* tex = rt.Texture(l.image).get();
                 if (!tex || tex->Width() == 0) continue;
                 float w = (float)tex->Width(), h = (float)tex->Height();
-                Quad q;
-                vec2 c[4] = { { 0, h }, { w, h }, { w, 0 }, { 0, 0 } };
-                for (int i = 0; i < 4; i++) q.p[i] = toWorld(shift + c[i]);
-                RegionUVs(*tex, ivec4(0, 0, tex->Width(), tex->Height()), q.uv);
-                q.color = color;
-                q.tex = tex;
-                q.order = order;
-                q.key = kUnsortedKey;
-                q.seq = seq++;
-                q.entity = (int32_t)id;
-                quads.push_back(q);
+                // Repeating images cover the view: copies from the first one left/above it.
+                int kx0 = 0, kx1 = 0, ky0 = 0, ky1 = 0;
+                if (l.repeatX) { kx0 = (int)std::floor((pmin.x - shift.x) / w); kx1 = (int)std::floor((pmax.x - shift.x) / w); }
+                if (l.repeatY) { ky0 = (int)std::floor((pmin.y - shift.y) / h); ky1 = (int)std::floor((pmax.y - shift.y) / h); }
+                if ((long long)(kx1 - kx0 + 1) * (ky1 - ky0 + 1) > 4096) continue;
+                for (int ky = ky0; ky <= ky1; ky++)
+                    for (int kx = kx0; kx <= kx1; kx++) {
+                        Quad q;
+                        vec2 o = shift + vec2(kx * w, ky * h);
+                        vec2 c[4] = { { 0, h }, { w, h }, { w, 0 }, { 0, 0 } };
+                        for (int i = 0; i < 4; i++) q.p[i] = toWorld(o + c[i]);
+                        if (!onScreen(q.p)) continue;
+                        RegionUVs(*tex, ivec4(0, 0, tex->Width(), tex->Height()), q.uv);
+                        q.color = color;
+                        q.tex = tex;
+                        q.order = order;
+                        q.key = kUnsortedKey;
+                        q.seq = seq++;
+                        q.entity = (int32_t)id;
+                        quads.push_back(q);
+                    }
             }
         }
     });

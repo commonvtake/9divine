@@ -8,6 +8,7 @@
 #include <euphoria/animation/Retarget.h>
 #include <euphoria/assets/TextureFinder.h>
 #include <euphoria/assets/ModelImport.h>
+#include <euphoria/core/Xml.h>
 #include <fstream>
 #include "PlayerCombat.h"  // game/src: hack-and-slash combat
 #include "Characters.h"
@@ -1286,6 +1287,236 @@ TEST(Assets_WeldAndClipNames) {
     CHECK(ModelImport::CleanClipName("Armature|Run", "Hero.fbx", 4) == "Run");
     CHECK(ModelImport::CleanClipName("mixamo.com", "Models/Sword Slash.fbx", 1) == "Sword Slash");
     CHECK(ModelImport::CleanClipName("Take 001", "Wave.fbx", 1) == "Wave");
+}
+
+
+// ---------------------------------------------------------------------- 2D
+TEST(Xml_Parse) {
+    XmlNode root;
+    std::string err;
+    CHECK(ParseXml("<?xml version=\"1.0\"?>\n<!-- c --><map a=\"1\" b='x &amp; y'><tile id=\"3\"/><data>1,2&#44;3<![CDATA[<raw>]]></data></map>", root, &err));
+    CHECK(root.name == "map");
+    CHECK(root.Int("a") == 1);
+    CHECK(root.Str("b") == "x & y");
+    CHECK(root.Child("tile") && root.Child("tile")->Int("id") == 3);
+    CHECK(root.Child("data") && root.Child("data")->text == "1,2,3<raw>");
+    CHECK(!ParseXml("<a>\n<b></a>", root, &err));
+    CHECK(err.find("line 2") != std::string::npos);
+}
+
+static const char* kTestTmx = R"(<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" orientation="orthogonal" width="4" height="3" tilewidth="16" tileheight="16" infinite="0">
+ <tileset firstgid="1" name="t" tilewidth="16" tileheight="16" tilecount="8" columns="4">
+  <image source="tiles.png" width="64" height="32"/>
+  <tile id="0"><objectgroup><object id="1" x="0" y="0" width="16" height="16"/></objectgroup></tile>
+  <tile id="5"><animation><frame tileid="5" duration="100"/><frame tileid="6" duration="300"/></animation></tile>
+ </tileset>
+ <layer id="1" name="Ground" width="4" height="3">
+  <data encoding="csv">
+0,0,0,0,
+0,6,0,2147483650,
+1,1,1,0
+</data>
+ </layer>
+ <group id="5" name="G" opacity="0.5" offsetx="2">
+  <layer id="2" name="Walls" width="4" height="3" opacity="0.5">
+   <properties><property name="collision" type="bool" value="true"/></properties>
+   <data encoding="csv">0,0,0,3,0,0,0,3,0,0,0,0</data>
+  </layer>
+ </group>
+ <objectgroup id="3" name="Things">
+  <object id="1" name="Start" type="Spawn" x="8" y="32"><point/></object>
+  <object id="2" gid="2" x="16" y="48" width="16" height="16"/>
+ </objectgroup>
+</map>)";
+
+TEST(Tiled_LoadTmx) {
+    std::string err;
+    auto map = Tiled::LoadFromText(kTestTmx, false, ".", &err);
+    CHECK(map != nullptr);
+    if (!map) return;
+    CHECK(map->width == 4 && map->height == 3 && map->tileWidth == 16);
+    CHECK(map->layers.size() == 3);
+    auto& ground = map->layers[0];
+    CHECK(ground.At(1, 1) == 6);
+    CHECK((ground.At(3, 1) & kTileFlipH) && (ground.At(3, 1) & kTileGidMask) == 2);
+    int local = -1;
+    const Tileset* ts = map->FindTileset(ground.At(3, 1), local);
+    CHECK(ts && local == 1);
+    std::string img;
+    ivec4 rect;
+    CHECK(ts && ts->Source(5, img, rect) && rect == ivec4(16, 16, 16, 16));
+    CHECK(ts && ts->Animated(5, 0.05f) == 5 && ts->Animated(5, 0.2f) == 6 && ts->Animated(5, 0.45f) == 5);
+    // Group opacity and offsets inherit
+    CHECK_NEAR(map->layers[1].opacity, 0.25f, 1e-5f);
+    CHECK_NEAR(map->layers[1].offset.x, 2.0f, 1e-5f);
+    CHECK(map->layers[1].collision);
+    // Draw order: the object layer with a tile object is where characters walk
+    CHECK(map->layers[2].ySort && map->layers[2].order == 0 && map->layers[0].order < 0);
+    auto* start = map->FindObject("Start");
+    CHECK(start && start->shape == TiledShape::Point && start->type == "Spawn");
+    // Map pixels -> local units: (8, 32) in a 48px-tall map is 1 unit up, 0.5 right
+    vec2 l = map->MapToLocal({ 8, 32 }, 16.0f);
+    CHECK_NEAR(l.x, 0.5f, 1e-5f);
+    CHECK_NEAR(l.y, 1.0f, 1e-5f);
+    // Colliders: the bottom row of tile 1 merges into one box; the wall column (offset 2px) into another
+    bool floorFound = false, wallFound = false;
+    for (auto& r : map->colliders) {
+        if (r.x == 0 && r.y == 32 && r.w == 48 && r.h == 16) floorFound = true;
+        if (r.x == 50 && r.y == 0 && r.w == 16 && r.h == 32) wallFound = true;
+    }
+    CHECK(floorFound);
+    CHECK(wallFound);
+}
+
+TEST(Tiled_EncodingsAndJson) {
+    // The same 8 gids as CSV, base64, base64+zlib and base64+gzip
+    const char* tmpl = R"(<map width="4" height="2" tilewidth="16" tileheight="16"><tileset firstgid="1" tilewidth="16" tileheight="16" tilecount="8" columns="4"><image source="t.png" width="64" height="32"/></tileset><layer name="L" width="4" height="2"><data encoding="base64"%s>%s</data></layer></map>)";
+    const char* variants[][2] = {
+        { "", "AQAAAAIAAAADAAAABAAAgAAAAAAFAAAABgAAAAEAAEA=" },
+        { " compression=\"zlib\"", "eJwFwQEBADAEALA5nks00W2Bh0Sx0PgI5gAKQADX" },
+        { " compression=\"gzip\"", "H4sIAAAAAAAC/2NkYGBgAmJmIGZhYGgAUgysQMwGxIwMDA4Axnto1yAAAAA=" },
+    };
+    for (auto& v : variants) {
+        char buf[2048];
+        std::snprintf(buf, sizeof(buf), tmpl, v[0], v[1]);
+        auto map = Tiled::LoadFromText(buf, false, ".");
+        CHECK(map && map->layers.size() == 1);
+        if (!map || map->layers.empty()) continue;
+        auto& g = map->layers[0].gids;
+        CHECK(g.size() == 8 && g[0] == 1 && g[2] == 3 && g[3] == (0x80000004u) && g[7] == 0x40000001u);
+    }
+    // Tiled JSON (.tmj)
+    const char* tmj = R"({"width":2,"height":2,"tilewidth":16,"tileheight":16,"infinite":false,
+        "tilesets":[{"firstgid":1,"tilewidth":16,"tileheight":16,"tilecount":4,"columns":2,"image":"t.png","imagewidth":32,"imageheight":32,
+                     "tiles":[{"id":0,"objectgroup":{"objects":[{"x":0,"y":8,"width":16,"height":8}]}}]}],
+        "layers":[{"type":"tilelayer","name":"Ground","width":2,"height":2,"data":[1,1,0,4]},
+                  {"type":"objectgroup","name":"Obj","objects":[{"name":"Spawn","x":4,"y":20,"point":true}]}]})";
+    auto map = Tiled::LoadFromText(tmj, true, ".");
+    CHECK(map && map->layers.size() == 2);
+    if (!map) return;
+    CHECK(map->layers[0].At(1, 1) == 4);
+    CHECK(map->FindObject("Spawn") && map->FindObject("Spawn")->shape == TiledShape::Point);
+    CHECK(map->colliders.size() == 1 && map->colliders[0].w == 32 && map->colliders[0].h == 8 && map->colliders[0].y == 8);
+}
+
+TEST(Tiled_MergeRects) {
+    // A 3x2 block of full tiles becomes one rectangle; a separate tile stays apart
+    std::vector<TileRect> r;
+    for (int y = 0; y < 2; y++)
+        for (int x = 0; x < 3; x++) r.push_back({ x * 16.0f, y * 16.0f, 16, 16 });
+    r.push_back({ 80, 0, 16, 16 });
+    auto m = Tiled::MergeRects(r);
+    CHECK(m.size() == 2);
+    bool big = false;
+    for (auto& x : m) big |= x.x == 0 && x.y == 0 && x.w == 48 && x.h == 32;
+    CHECK(big);
+}
+
+TEST(SpriteSheet_DetectFrames) {
+    auto sheet = [](int w, int h, auto opaque) {
+        std::vector<uint8_t> px((size_t)w * h * 4, 0);
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+                if (opaque(x, y)) px[((size_t)y * w + x) * 4 + 3] = 255;
+        return px;
+    };
+    // 6 frames of 24x20 with gaps (a small figure in each)
+    auto a = sheet(144, 20, [](int x, int y) { int fx = x % 24; return fx >= 8 && fx < 16 && y >= 4 && y < 18; });
+    CHECK(SpriteSheet::DetectFrameSize(a.data(), 144, 20) == ivec2(24, 20));
+    // A grid: 4 columns x 3 rows of 32x32
+    auto b = sheet(128, 96, [](int x, int y) { return x % 32 >= 10 && x % 32 < 22 && y % 32 >= 6 && y % 32 < 30; });
+    CHECK(SpriteSheet::DetectFrameSize(b.data(), 128, 96) == ivec2(32, 32));
+    // Touching 16x32 frames: wide in the middle, thin where they meet
+    auto c = sheet(96, 32, [](int x, int y) { int fx = x % 16; return y > 4 && (fx >= 2 && fx < 14 ? true : y > 26); });
+    CHECK(SpriteSheet::DetectFrameSize(c.data(), 96, 32) == ivec2(16, 32));
+    // A fully opaque strip: square frames
+    auto d = sheet(64, 16, [](int, int) { return true; });
+    CHECK(SpriteSheet::DetectFrameSize(d.data(), 64, 16) == ivec2(16, 16));
+    // Frame rectangles for an animation (row-major from the top-left)
+    Sprite2D::FrameGrid g;
+    g.frameSize = { 16, 16 };
+    g.columns = 4;
+    g.first = 2;
+    g.count = 4;
+    CHECK(Sprite2D::FrameRect(g, 3) == vec4(16, 16, 16, 16));   // frame index 5: second row
+}
+
+TEST(Physics2D_TilemapFloor) {
+    fs::path dir = fs::temp_directory_path() / "euphoria_tilemap_test";
+    fs::create_directories(dir);
+    { std::ofstream(dir / "floor.tmx") << kTestTmx; }
+    Scene scene;
+    auto& env = scene.Environment();
+    env.mode2D = true;
+    env.pixelsPerUnit = 16.0f;
+    env.gravity = { 0, -40, 0 };
+    Entity map = scene.CreateEntity("Map");
+    map.Add<TilemapComponent>().map = (dir / "floor.tmx").string();
+    Entity box = scene.CreateEntity("Box");
+    box.Transform().position = { 1.0f, 2.5f, 0.3f };
+    box.Add<RigidBodyComponent>();
+    box.Add<BoxColliderComponent>().size = { 0.5f, 0.5f, 1.0f };
+    scene.OnRuntimeStart();
+    for (int i = 0; i < 120; i++) scene.OnUpdateRuntime(1.0f / 60.0f);
+    auto& t = box.Transform();
+    // The floor row (tiles at the bottom of the 3-row map) has its top at y = 1
+    CHECK_NEAR(t.position.y, 1.25f, 0.03f);
+    CHECK_NEAR(t.position.z, 0.3f, 1e-4f);   // 2D: stays in its plane
+    CHECK(box.Get<RigidBodyComponent>().grounded);
+    scene.OnRuntimeStop();
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST(Scene2D_SerializeAndView) {
+    Scene a;
+    a.Environment().mode2D = true;
+    a.Environment().pixelsPerUnit = 32.0f;
+    a.Environment().referenceResolution = { 480, 270 };
+    Entity e = a.CreateEntity("Hero");
+    auto& sr = e.Add<SpriteRendererComponent>();
+    sr.texture = "Art/hero.png";
+    sr.region = { 16, 0, 16, 24 };
+    sr.pivot = { 0.5f, 0.0f };
+    sr.flipX = true;
+    sr.order = 3;
+    auto& an = e.Add<SpriteAnimatorComponent>();
+    an.animations.push_back(Sprite2D::FromSheet("missing.png", "walk_down", 8.0f));
+    an.animations[0].firstFrame = 4;
+    an.animations[0].loop = false;
+    e.Add<TilemapComponent>().map = "Maps/Level.tmx";
+    json j = SceneSerializer(a).ToJson();
+    Scene b;
+    SceneSerializer(b).FromJson(j);
+    CHECK(b.Environment().mode2D && b.Environment().pixelsPerUnit == 32.0f && b.Environment().referenceResolution == ivec2(480, 270));
+    Entity h = b.FindByName("Hero");
+    CHECK(h && h.Has<SpriteRendererComponent>() && h.Has<SpriteAnimatorComponent>() && h.Has<TilemapComponent>());
+    if (h) {
+        auto& s2 = h.Get<SpriteRendererComponent>();
+        CHECK(s2.texture == "Art/hero.png" && s2.region == vec4(16, 0, 16, 24) && s2.pivot == vec2(0.5f, 0.0f) && s2.flipX && s2.order == 3);
+        auto& a2 = h.Get<SpriteAnimatorComponent>();
+        CHECK(a2.animations.size() == 1 && a2.animations[0].name == "walk_down" && a2.animations[0].firstFrame == 4 && !a2.animations[0].loop);
+        CHECK(h.Get<TilemapComponent>().map == "Maps/Level.tmx");
+    }
+    // Pixel-perfect view: whole-number scale, low resolution covering the window
+    SceneEnvironment env;
+    env.pixelsPerUnit = 16.0f;
+    env.referenceResolution = { 320, 180 };
+    RenderCamera cam;
+    cam.view = glm::translate(mat4(1.0f), -vec3(10.37f, 4.12f, 10.0f));
+    cam.projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
+    auto v = Renderer2D::ComputeView(env, cam, 1280, 720, false);
+    CHECK(v.lowRes && v.scale == 4 && v.lowWidth == 320 && v.lowHeight == 180);
+    auto v2 = Renderer2D::ComputeView(env, cam, 1366, 768, false);
+    CHECK(v2.scale == 4 && v2.lowWidth == 342 && v2.lowHeight == 192);
+    // The view's left edge sits on the art's pixel grid
+    mat4 inv = glm::inverse(v.camera.projection * v.camera.view);
+    vec4 left = inv * vec4(-1, 0, 0, 1);
+    float px = left.x / left.w * 16.0f;
+    CHECK_NEAR(px, std::round(px), 1e-3f);
+    // Editor view: unchanged
+    CHECK(!Renderer2D::ComputeView(env, cam, 1280, 720, true).lowRes);
 }
 
 int main() {

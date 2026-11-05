@@ -11,6 +11,7 @@
 #include "euphoria/twod/Sprite2D.h"
 #include "euphoria/particles/Particles.h"
 #include "euphoria/renderer/Renderer.h"
+#include "euphoria/renderer/Renderer2D.h"
 #include "euphoria/ui/GameUI.h"
 #include "euphoria/ui/ScreenFade.h"
 #include "euphoria/scene/CameraShake.h"
@@ -525,7 +526,18 @@ void Scene::RenderGameUI(int w, int h, const vec2& mouse, bool mouseDown, bool m
     UI::BeginFrame(w, h, mouse, mouseDown, mousePressed);
     mat4 view, proj;
     vec3 pos;
-    if (GetRuntimeCamera((float)w / std::max(1, h), view, proj, pos)) UI::SetCamera(proj * view);
+    if (GetRuntimeCamera((float)w / std::max(1, h), view, proj, pos)) {
+        if (m_Environment.mode2D) {   // the camera the 2D renderer really draws with (snapped, low-res)
+            RenderCamera rc;
+            rc.view = view;
+            rc.projection = proj;
+            rc.position = pos;
+            rc = Renderer2D::ComputeView(m_Environment, rc, w, h, false).camera;
+            view = rc.view;
+            proj = rc.projection;
+        }
+        UI::SetCamera(proj * view);
+    }
 
     // Retained UI elements (sorted by layer)
     std::vector<std::pair<int, EntityId>> elements;

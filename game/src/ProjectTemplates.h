@@ -7,7 +7,7 @@
 // `euphoria-editor --create-project <dir> --template <name>`.
 namespace templates {
 
-enum class Template { Empty, Starter3D, Sample };
+enum class Template { Empty, Starter3D, Sample, Platformer2D, TopDown2D };
 
 struct TemplateInfo {
     Template id;
@@ -19,6 +19,7 @@ struct TemplateInfo {
 const std::vector<TemplateInfo>& All();
 bool FromKey(const std::string& key, Template& out);
 bool SampleAvailable();      // the sample project ships with the source tree
+bool Starter2DAvailable();   // the 2D templates' art and maps (projects/Starter2D)
 
 // Letters, digits, spaces, '-' and '_' (it becomes a folder name).
 bool IsValidProjectName(const std::string& name, std::string* why = nullptr);

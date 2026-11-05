@@ -1,5 +1,6 @@
 #include "EditorApp.h"
 #include <euphoria/assets/AssetManager.h>
+#include <euphoria/renderer/Texture.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
@@ -158,6 +159,7 @@ void Section(Entity e, const char* name, Fn&& draw, bool removable = true) {
 bool IsModel(const std::string& p) { return AssetManager::IsModelFile(p); }
 bool IsTexture(const std::string& p) { return AssetManager::IsTextureFile(p); }
 bool IsAudio(const std::string& p) { return AssetManager::IsAudioFile(p); }
+bool IsTilemap(const std::string& p) { return AssetManager::IsTilemapFile(p); }
 
 } // namespace
 
@@ -528,6 +530,160 @@ void EditorApp::DrawComponents(Entity e) {
         BeginProps();
     });
 
+    // ---------------------------------------------------------------- 2D
+    auto spritePreview = [](const std::string& texture, const vec4& region, float maxSize) {
+        auto tex = AssetManager::GetTexture(texture, true);
+        if (!tex || tex->Width() <= 0) return;
+        vec4 r = region.z > 0.0f && region.w > 0.0f ? region : vec4(0, 0, tex->Width(), tex->Height());
+        float scale = std::max(1.0f, std::floor(maxSize / std::max(r.z, r.w)));
+        if (r.z * scale > maxSize) scale = maxSize / std::max(r.z, r.w);
+        float W = (float)tex->Width(), H = (float)tex->Height();
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        ImGui::GetWindowDrawList()->AddRectFilled(p, ImVec2(p.x + r.z * scale, p.y + r.w * scale), IM_COL32(40, 40, 48, 255));
+        ImGui::Image((ImTextureID)(uintptr_t)tex->Id(), ImVec2(r.z * scale, r.w * scale), ImVec2(r.x / W, 1.0f - r.y / H),
+                     ImVec2((r.x + r.z) / W, 1.0f - (r.y + r.w) / H));
+    };
+
+    Section<SpriteRendererComponent>(e, "Sprite Renderer", [&](SpriteRendererComponent& sr) {
+        PAsset("Image", sr.texture, IsTexture);
+        if (!sr.texture.empty()) {
+            Label("");
+            spritePreview(sr.texture, sr.region, 96.0f);
+            Next();
+        }
+        Label("Region");
+        {
+            ImGui::PushID("region");
+            int r[4] = { (int)sr.region.x, (int)sr.region.y, (int)sr.region.z, (int)sr.region.w };
+            if (ImGui::DragInt4("##v", r, 0.25f, 0, 16384)) { sr.region = vec4(r[0], r[1], r[2], r[3]); g_Changed = true; }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("x, y, width, height in pixels from the image's top-left.\nWidth 0 = the whole image.");
+            ImGui::PopID();
+        }
+        Next();
+        Label("Pivot");
+        {
+            ImGui::PushID("pivot");
+            const char* presets[] = { "Center", "Feet (bottom center)", "Bottom-left", "Top-left", "Custom" };
+            int cur = sr.pivot == vec2(0.5f) ? 0 : sr.pivot == vec2(0.5f, 0.0f) ? 1 : sr.pivot == vec2(0.0f) ? 2 : sr.pivot == vec2(0.0f, 1.0f) ? 3 : 4;
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::Combo("##preset", &cur, presets, 5)) {
+                const vec2 values[] = { vec2(0.5f), vec2(0.5f, 0.0f), vec2(0.0f), vec2(0.0f, 1.0f) };
+                if (cur < 4) { sr.pivot = values[cur]; g_Changed = true; }
+            }
+            if (cur == 4) { ImGui::SetNextItemWidth(-1); Mark(ImGui::DragFloat2("##v", glm::value_ptr(sr.pivot), 0.01f)); }
+            ImGui::PopID();
+        }
+        Next();
+        PColor4("Color", sr.color);
+        PBool("Flip X", sr.flipX);
+        PBool("Flip Y", sr.flipY);
+        PInt("Order", sr.order);
+        PBool("Y-sort", sr.ySort);
+        PFloat("Pixels per unit", sr.pixelsPerUnit, 0.25f, 0.0f, 1024.0f, sr.pixelsPerUnit > 0.0f ? "%.0f" : "scene");
+        PBool("Visible", sr.visible);
+    });
+
+    Section<SpriteAnimatorComponent>(e, "Sprite Animator", [&](SpriteAnimatorComponent& an) {
+        PText("Default", an.defaultAnimation);
+        PFloat("Speed", an.speed, 0.01f, 0.0f, 10.0f);
+        if (playing) { Label("Playing"); ImGui::Text("%s  (frame %d)", an.current.c_str(), an.frame); Next(); }
+        EndProps();
+        const std::string fallback = e.Has<SpriteRendererComponent>() ? e.Get<SpriteRendererComponent>().texture : "";
+        int remove = -1;
+        for (size_t i = 0; i < an.animations.size(); i++) {
+            auto& a = an.animations[i];
+            ImGui::PushID((int)i);
+            bool open = ImGui::TreeNodeEx("##anim", ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowOverlap, "%s", a.name.c_str());
+            ImGui::SameLine(ImGui::GetContentRegionAvail().x - 70);
+            if (ImGui::SmallButton("Play")) { an.Play(a.name, true); }
+            ImGui::SameLine();
+            if (ImGui::SmallButton("x")) remove = (int)i;
+            if (open) {
+                BeginProps();
+                PText("Name", a.name);
+                PAsset("Sheet", a.texture, IsTexture);
+                Sprite2D::FrameGrid grid;
+                bool ok = Sprite2D::Grid(a, fallback, grid);
+                Label("Frame size");
+                {
+                    ImGui::PushID("fs");
+                    int fs2[2] = { a.frameWidth, a.frameHeight };
+                    if (ImGui::DragInt2("##v", fs2, 0.25f, 0, 4096)) { a.frameWidth = fs2[0]; a.frameHeight = fs2[1]; g_Changed = true; }
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("0 = detect from the sheet%s", ok ? (" (" + std::to_string(grid.frameSize.x) + " x " + std::to_string(grid.frameSize.y) + ")").c_str() : "");
+                    ImGui::PopID();
+                }
+                Next();
+                PInt("First frame", a.firstFrame, 0.1f, 0, 100000);
+                PInt("Frames", a.frameCount, 0.1f, 0, 100000);
+                PFloat("FPS", a.fps, 0.1f, 0.1f, 120.0f, "%.1f");
+                PBool("Loop", a.loop);
+                if (ok) {
+                    Label("");
+                    // Animated preview
+                    int f = (int)(ImGui::GetTime() * a.fps) % std::max(1, grid.count);
+                    spritePreview(a.texture.empty() ? fallback : a.texture, Sprite2D::FrameRect(grid, f), 80.0f);
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("%d frames\n%d x %d px\n%d per row", grid.count, grid.frameSize.x, grid.frameSize.y, grid.columns);
+                    Next();
+                }
+                EndProps();
+                ImGui::TreePop();
+            }
+            ImGui::PopID();
+        }
+        if (remove >= 0) { an.animations.erase(an.animations.begin() + remove); g_Changed = true; }
+        if (ImGui::Button("Add animation", ImVec2(-1, 0))) {
+            SpriteAnimation a;
+            a.name = "Animation " + std::to_string(an.animations.size() + 1);
+            if (!an.animations.empty()) a.texture = an.animations.back().texture;
+            an.animations.push_back(a);
+            g_Changed = true;
+        }
+        // One animation per row of a sheet (characters with a row per direction or action)
+        std::string sheet = !an.animations.empty() && !an.animations.back().texture.empty() ? an.animations.back().texture : fallback;
+        if (!sheet.empty()) {
+            if (ImGui::Button("Split sheet rows into animations", ImVec2(-1, 0))) {
+                auto t = AssetManager::GetTexture(sheet, true);
+                ivec2 frame = SpriteSheet::DetectFrameSize(sheet);
+                int rows = t && frame.y > 0 ? t->Height() / frame.y : 0;
+                std::vector<std::string> names;
+                for (int r = 0; r < rows; r++) names.push_back(fs::u8path(sheet).stem().u8string() + "_row" + std::to_string(r));
+                auto made = Sprite2D::FromSheetRows(sheet, names);
+                an.animations.insert(an.animations.end(), made.begin(), made.end());
+                g_Changed = true;
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Adds one animation per row of %s.\nRename them (e.g. walk_down, walk_up, walk_right) for PlayerController2D.", sheet.c_str());
+        }
+        BeginProps();
+    });
+
+    Section<TilemapComponent>(e, "Tilemap", [&](TilemapComponent& tm) {
+        PAsset("Map", tm.map, IsTilemap);
+        PInt("Order", tm.order);
+        PColor4("Color", tm.color);
+        PBool("Collisions", tm.collisions);
+        EndProps();
+        if (TilemapData* map = EnsureTilemapLoaded(tm)) {
+            ImGui::TextDisabled("%d x %d tiles of %d x %d px, %zu tilesets, %zu colliders", map->width, map->height, map->tileWidth, map->tileHeight,
+                                map->tilesets.size(), map->colliders.size());
+            if (ImGui::TreeNode("Layers")) {
+                for (auto& l : map->layers) {
+                    const char* kind = l.type == TiledLayerType::Tiles ? "tiles" : l.type == TiledLayerType::Objects ? "objects" : "image";
+                    ImGui::Text("%-18s %-7s order %d%s%s%s", l.name.c_str(), kind, tm.order + l.order, l.ySort ? "  y-sorted (characters walk here)" : "",
+                                l.collision ? "  solid" : "", l.visible ? "" : "  hidden");
+                }
+                ImGui::TextDisabled("Sprites draw at order 0. Set a Tiled layer property \"order\" (int),\n\"ysort\" (bool) or \"collision\" (bool) to change a layer.");
+                ImGui::TreePop();
+            }
+            for (auto& w : map->warnings) ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.3f, 1.0f), "%s", w.c_str());
+        } else if (!tm.map.empty()) {
+            ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.4f, 1.0f), "Couldn't load the map (see the console)");
+        }
+        ImGui::TextDisabled("Edit maps in Tiled (mapeditor.org); changes reload here.");
+        BeginProps();
+    });
+
     Section<TerrainComponent>(e, "Terrain", [&](TerrainComponent& t) {
         bool regen = false;
         regen |= PInt("Resolution", t.resolution, 1.0f, 9, 513);
@@ -765,6 +921,11 @@ void EditorApp::DrawAddComponentMenu(Entity e) {
     struct Net_ { using type = NetworkIdentityComponent; };
     struct Sav_ { using type = SaveableComponent; };
     struct Evt_ { using type = EventTriggerComponent; };
+    struct Spr_ { using type = SpriteRendererComponent; };
+    struct SprA_ { using type = SpriteAnimatorComponent; };
+    struct Tm_ { using type = TilemapComponent; };
+    ImGui::TextDisabled("2D");
+    item("Sprite Renderer", Spr_{}); item("Sprite Animator", SprA_{}); item("Tilemap", Tm_{});
     ImGui::TextDisabled("Rendering");
     item("Mesh Renderer", Mesh_{}); item("Camera", Cam_{}); item("Light", Light_{}); item("Particle Emitter", Par_{});
     ImGui::TextDisabled("Physics");

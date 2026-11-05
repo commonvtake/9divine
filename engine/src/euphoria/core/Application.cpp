@@ -153,6 +153,17 @@ void Application::ApplyEditorStyle() {
 }
 
 void Application::Run() {
+    // "D@0.5-3, Space@1.2-1.5": key name @ start - end (seconds of game time)
+    for (size_t pos = 0; pos < m_Config.simulateInput.size();) {
+        size_t comma = m_Config.simulateInput.find(',', pos);
+        std::string item = m_Config.simulateInput.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos);
+        pos = comma == std::string::npos ? m_Config.simulateInput.size() : comma + 1;
+        size_t at = item.find('@'), dash = item.find('-', at == std::string::npos ? 0 : at);
+        if (at == std::string::npos || dash == std::string::npos) continue;
+        int key = Input::KeyFromName(item.substr(0, at));
+        if (key < 0) { EU_WARN("--simulate-input: unknown key '{}'", item.substr(0, at)); continue; }
+        m_SimulatedKeys.push_back({ key, (float)std::atof(item.c_str() + at + 1), (float)std::atof(item.c_str() + dash + 1) });
+    }
 #ifndef NDEBUG
     EU_WARN("This is a Debug build: frame rates will be low and uneven. Build the Release (RelWithDebInfo) configuration to play or measure performance.");
 #endif
@@ -183,6 +194,11 @@ void Application::Run() {
         Profiler::BeginFrame();
         Input::BeginFrame();
         glfwPollEvents();
+        if (!m_SimulatedKeys.empty()) {
+            float t = (float)Time::Elapsed();
+            for (auto& k : m_SimulatedKeys) Input::SimulateKey(k.key, false);
+            for (auto& k : m_SimulatedKeys) if (t >= k.from && t < k.to) Input::SimulateKey(k.key, true);
+        }
         Input::EndFrame();
 
         {
@@ -286,6 +302,7 @@ AppConfig ParseCommandLine(int argc, char** argv, AppConfig base, std::vector<st
             base.benchmarkFrames = num ? std::max(60, std::atoi(argv[++i])) : 1200;
         }
         else if (a == "--benchmark-report") base.benchmarkReport = next();
+        else if (a == "--simulate-input") base.simulateInput = next();
         else if (a == "--width") base.width = std::atoi(next().c_str());
         else if (a == "--height") base.height = std::atoi(next().c_str());
         else if (a == "--fullscreen") base.fullscreen = true;

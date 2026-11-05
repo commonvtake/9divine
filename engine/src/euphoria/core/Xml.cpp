@@ -1,6 +1,7 @@
 #include "euphoria/core/Xml.h"
 #include <cstdlib>
 #include <cstring>
+#include <cctype>
 
 namespace eu {
 

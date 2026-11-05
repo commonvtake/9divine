@@ -9,7 +9,7 @@ namespace eu {
 
 GLFWwindow* Input::s_Window = nullptr;
 bool Input::s_GameEnabled = true;
-bool Input::s_Keys[Key::Last + 1] = {}, Input::s_PrevKeys[Key::Last + 1] = {};
+bool Input::s_Keys[Key::Last + 1] = {}, Input::s_PrevKeys[Key::Last + 1] = {}, Input::s_SimKeys[Key::Last + 1] = {};
 bool Input::s_Mouse[Mouse::Last + 1] = {}, Input::s_PrevMouse[Mouse::Last + 1] = {};
 bool Input::s_Pad[4][Gamepad::ButtonCount] = {}, Input::s_PrevPad[4][Gamepad::ButtonCount] = {};
 float Input::s_PadAxes[4][Gamepad::AxisCount] = {};
@@ -48,7 +48,7 @@ void Input::BeginFrame() {
 
 void Input::EndFrame() {
     if (!s_Window) return;
-    for (int k : ValidKeys()) s_Keys[k] = glfwGetKey(s_Window, k) == GLFW_PRESS;
+    for (int k : ValidKeys()) s_Keys[k] = glfwGetKey(s_Window, k) == GLFW_PRESS || s_SimKeys[k];
     for (int b = 0; b <= Mouse::Last; b++) s_Mouse[b] = glfwGetMouseButton(s_Window, b) == GLFW_PRESS;
 
     double x, y;
@@ -245,6 +245,27 @@ bool Input::LoadMap(const std::string& path) {
 
 bool Input::SaveMap(const std::string& path) {
     return FileSystem::WriteText(Project::Resolve(path), s_Map.ToJson().dump(2));
+}
+
+void Input::SimulateKey(int key, bool down) {
+    if (key >= 0 && key <= Key::Last) s_SimKeys[key] = down;
+}
+
+int Input::KeyFromName(const std::string& nameIn) {
+    std::string name;
+    for (char c : nameIn) if (c != ' ') name += (char)std::tolower((unsigned char)c);
+    if (name.size() == 1 && std::isalnum((unsigned char)name[0])) return std::toupper((unsigned char)name[0]);
+    for (int k : ValidKeys()) {
+        std::string n;
+        for (char c : KeyName(k)) if (c != ' ') n += (char)std::tolower((unsigned char)c);
+        if (n == name) return k;
+    }
+    if (name == "shift") return Key::LeftShift;
+    if (name == "ctrl" || name == "control") return Key::LeftControl;
+    if (name == "alt") return Key::LeftAlt;
+    if (name == "esc") return Key::Escape;
+    if (name == "return") return Key::Enter;
+    return -1;
 }
 
 std::string Input::KeyName(int key) {

@@ -138,6 +138,34 @@ void EditorApp::DrawCreateMenu(Entity parent) {
         ImGui::EndMenu();
     }
     if (ImGui::MenuItem("Camera")) { Entity e = CreateEntity("Camera"); e.Add<CameraComponent>().primary = false; e.Transform().position.y += 2.0f; made(e); }
+    if (ImGui::BeginMenu("2D")) {
+        if (ImGui::MenuItem("Sprite")) {
+            Entity e = CreateEntity("Sprite");
+            e.Transform().position.z = 0.0f;
+            e.Add<SpriteRendererComponent>();
+            made(e);
+        }
+        if (ImGui::MenuItem("Animated Sprite")) {
+            Entity e = CreateEntity("Animated Sprite");
+            e.Transform().position.z = 0.0f;
+            e.Add<SpriteRendererComponent>();
+            e.Add<SpriteAnimatorComponent>().animations.push_back(SpriteAnimation{});
+            made(e);
+        }
+        if (ImGui::MenuItem("Tilemap")) { Entity e = CreateEntity("Tilemap"); e.Transform().position = vec3(0.0f); e.Add<TilemapComponent>(); made(e); }
+        if (ImGui::MenuItem("2D Camera")) {
+            Entity e = CreateEntity("2D Camera");
+            auto& c = e.Add<CameraComponent>();
+            c.orthographic = true;
+            c.orthoSize = 11.25f;
+            c.nearClip = 0.1f;
+            c.farClip = 100.0f;
+            e.Transform().position.z = 10.0f;
+            e.Transform().rotation = quat(1, 0, 0, 0);
+            made(e);
+        }
+        ImGui::EndMenu();
+    }
     if (ImGui::BeginMenu("Environment")) {
         if (ImGui::MenuItem("Terrain")) { Entity e = CreateEntity("Terrain"); e.Transform().position = vec3(0.0f); e.Add<TerrainComponent>(); made(e); }
         if (ImGui::MenuItem("Water")) { Entity e = CreateEntity("Water"); e.Transform().position = vec3(0, 0.5f, 0); e.Add<WaterComponent>(); made(e); }
@@ -182,7 +210,7 @@ void EditorApp::DrawEntityNode(Entity e) {
     bool open = ImGui::TreeNodeEx((void*)(uintptr_t)(uint64_t)e.GetUUID(), flags, "%s", tag.name.c_str());
     if (!tag.active) ImGui::PopStyleColor();
     if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) Select(e);
-    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) m_Camera.Focus(scene->WorldPosition(e), 6.0f);
+    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) m_Camera.Focus(scene->WorldPosition(e), m_Camera.mode2D ? m_Camera.zoom2D / 1.5f : 6.0f);
 
     // Drag to re-parent
     if (ImGui::BeginDragDropSource()) {
@@ -315,22 +343,26 @@ void EditorApp::DrawAssetBrowser() {
             std::string rel = Project::MakeRelative(entry.path());
             bool dir = entry.is_directory();
             const char* kind = dir ? "DIR" : AssetManager::IsModelFile(rel) ? "MODEL" : AssetManager::IsTextureFile(rel) ? "IMAGE"
-                             : AssetManager::IsAudioFile(rel) ? "AUDIO" : AssetManager::IsSceneFile(rel) ? "SCENE" : "FILE";
+                             : AssetManager::IsAudioFile(rel) ? "AUDIO" : AssetManager::IsSceneFile(rel) ? "SCENE" : AssetManager::IsTilemapFile(rel) ? "MAP" : "FILE";
             ImVec4 col = dir ? ImVec4(0.85f, 0.7f, 0.3f, 1) : AssetManager::IsSceneFile(rel) ? ImVec4(0.4f, 0.8f, 0.6f, 1)
                        : AssetManager::IsModelFile(rel) ? ImVec4(0.5f, 0.7f, 1.0f, 1) : AssetManager::IsAudioFile(rel) ? ImVec4(0.9f, 0.55f, 0.8f, 1)
+                       : AssetManager::IsTilemapFile(rel) ? ImVec4(0.55f, 0.85f, 0.45f, 1)
                        : ImVec4(0.75f, 0.75f, 0.75f, 1);
             ImGui::PushID(rel.c_str());
             ImGui::PushStyleColor(ImGuiCol_Text, col);
             bool thumb = false;
             if (AssetManager::IsTextureFile(rel)) {
-                if (auto tex = AssetManager::GetTexture(rel)) {
-                    ImGui::ImageButton("##thumb", (ImTextureID)(uintptr_t)tex->Id(), ImVec2(cell - 22, 64), ImVec2(0, 1), ImVec2(1, 0));
+                if (auto tex = AssetManager::GetTexture(rel, true)) {
+                    // Keep the image's proportions (sprite sheets are often long strips)
+                    float bw = cell - 22, bh = 64.0f, aspect = (float)tex->Width() / std::max(1, tex->Height());
+                    ImVec2 size = aspect > bw / bh ? ImVec2(bw, bw / aspect) : ImVec2(bh * aspect, bh);
+                    ImGui::ImageButton("##thumb", (ImTextureID)(uintptr_t)tex->Id(), size, ImVec2(0, 1), ImVec2(1, 0));
                     thumb = true;
                 }
             }
             if (!thumb) ImGui::Button(kind, ImVec2(cell - 14, 70));
             ImGui::PopStyleColor();
-            if (!dir && ImGui::IsItemClicked(ImGuiMouseButton_Left) && (AssetManager::IsModelFile(rel) || AssetManager::IsTextureFile(rel)))
+            if (!dir && ImGui::IsItemClicked(ImGuiMouseButton_Left) && (AssetManager::IsModelFile(rel) || AssetManager::IsTextureFile(rel) || AssetManager::IsTilemapFile(rel)))
                 m_InspectedAsset = rel;
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                 if (dir) m_AssetDir = entry.path();
@@ -344,6 +376,8 @@ void EditorApp::DrawAssetBrowser() {
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s\n%s", rel.c_str(), dir ? "Double-click to open" :
                 AssetManager::IsModelFile(rel) ? "Drag into the viewport to place, click for details" : AssetManager::IsSceneFile(rel) ? "Double-click to open" :
+                AssetManager::IsTilemapFile(rel) ? "Tiled map: drag into a 2D scene to place it" :
+                AssetManager::IsTextureFile(rel) ? "Drag into a 2D scene for a sprite, or onto a component field" :
                 AssetManager::IsAudioFile(rel) ? "Double-click to preview, drag onto an Audio Source" : "Drag onto a component field");
             ImGui::TextWrapped("%s", name.c_str());
             ImGui::PopID();
@@ -423,6 +457,26 @@ void EditorApp::DrawSceneSettings() {
     auto& env = scene->Environment();
     auto mark = [&](bool changed) { if (changed) m_EditedThisInteraction = true; };
     mark(ImGui::InputText("Scene name", &scene->name));
+    if (ImGui::CollapsingHeader("2D", env.mode2D ? ImGuiTreeNodeFlags_DefaultOpen : 0)) {
+        mark(ImGui::Checkbox("2D scene", &env.mode2D));
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Draw sprites and tilemaps flat (no lighting or post effects),\nwith physics in the XY plane. The editor camera looks straight at it.");
+        if (env.mode2D) {
+            mark(ImGui::ColorEdit3("Background", glm::value_ptr(env.background2D)));
+            mark(ImGui::DragFloat("Pixels per unit", &env.pixelsPerUnit, 0.25f, 1.0f, 512.0f, "%.0f"));
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Image pixels in one world unit. Use your tile size (16 for 16x16 tiles).");
+            mark(ImGui::Checkbox("Pixel perfect", &env.pixelPerfect));
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("The game renders at a low resolution and is scaled up by whole pixels:\ncrisp pixels at any window size, no shimmering when the camera moves.");
+            if (env.pixelPerfect) {
+                mark(ImGui::DragInt2("Resolution", glm::value_ptr(env.referenceResolution), 1.0f, 16, 4096));
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("How many art pixels fit on screen (e.g. 320 x 180, 480 x 270, 640 x 360).");
+            }
+            mark(ImGui::DragFloat3("Gravity##2d", glm::value_ptr(env.gravity), 0.1f));
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Platformers: about (0, -40, 0). Top-down games: (0, 0, 0).");
+        }
+    }
+    if (env.mode2D) { ImGui::End(); return; }   // the 3D settings below don't apply
     if (ImGui::CollapsingHeader("Sky & Lighting", ImGuiTreeNodeFlags_DefaultOpen)) {
         mark(ImGui::ColorEdit3("Sky top", glm::value_ptr(env.skyTop)));
         mark(ImGui::ColorEdit3("Horizon", glm::value_ptr(env.skyHorizon)));

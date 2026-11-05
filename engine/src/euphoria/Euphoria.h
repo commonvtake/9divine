@@ -23,3 +23,6 @@
 #include "euphoria/net/Network.h"
 #include "euphoria/renderer/DebugDraw.h"
 #include "euphoria/terrain/Terrain.h"
+#include "euphoria/twod/Sprite2D.h"
+#include "euphoria/twod/Tilemap.h"
+#include "euphoria/renderer/Renderer2D.h"
