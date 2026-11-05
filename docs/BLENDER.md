@@ -39,7 +39,9 @@ Make one action per motion and name them so the engine can find them:
 - Note how fast each cycle moves, in metres per second (stride length × cycles per second). The blend space uses those speeds to keep feet from sliding. The Hero's walk is tuned for 2 m/s and its run for 6 m/s.
 
 ### Export
-*File → Export → glTF 2.0*:
+The quickest way is no export at all: save the `.blend` into your project's `Models/` folder. The engine runs your Blender in the background to convert it, and re-converts every time you save (see [ASSETS.md](ASSETS.md#blender-files)).
+
+To export by hand, use *File → Export → glTF 2.0* (FBX works too):
 
 - **Format:** glTF Binary (`.glb`)
 - **Include:** Selected Objects (select the armature and the mesh)
@@ -79,4 +81,4 @@ SetupLocomotion(model.Add<AnimatorComponent>(), { "Idle", "Walk", "Run", "Jump" 
 | Tiny or huge | Apply scale in Blender (*Ctrl+A*). Engine units are metres. |
 | Mesh explodes when animated | Apply transforms *before* parenting to the armature, then re-parent. |
 | Feet slide | Change the Walk/Run thresholds in the Locomotion state to the speed your cycles actually move at. |
-| "No idle/walk/run clips found" | Rename the actions using the table above. |
+| "No idle/walk/run clips found" | Rename the actions using the table above, or play clips from an animation library (Animator → *Animations from*, see [ASSETS.md](ASSETS.md#characters-and-animation-libraries)). |

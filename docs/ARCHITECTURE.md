@@ -224,7 +224,40 @@ Raw state for keys, mouse buttons and gamepads (via GLFW's gamepad mappings) is 
 ## 14. Assets
 `assets/AssetManager.cpp`
 
-Assets are referenced by project-relative paths and cached. `PollChanges()` checks file timestamps once a second and evicts changed files; components notice the asset version bump and reload, giving **hot reload** of models and textures while the editor is open. Loaders: glTF/GLB via cgltf (embedded, external and data-URI images), OBJ via tinyobjloader, FBX via ufbx (axis/unit normalisation), images via stb_image.
+Assets are referenced by project-relative paths and cached. `PollChanges()` checks file timestamps once a second and evicts changed files; components notice the asset version bump and reload, giving **hot reload** of models and textures while the editor is open.
+
+**Loaders.**
+- **glTF / GLB** via cgltf: every skin, emissive maps, and embedded, external and data-URI images.
+- **OBJ** via tinyobjloader.
+- **FBX** via ufbx (`assets/FBXLoader.cpp`).
+- Images via stb_image.
+
+All three model loaders tag each sub-mesh with the object (node) it came from and that node's transform. That is what lets `"Kit.fbx#Barrel"` cut one object out of a kit (`ModelLoader::ExtractObject`) and move it to its pivot.
+
+**FBX characters.**
+- The unit and axis conversion stays on ufbx's root node, which becomes the skeleton's top joint, so bind poses, inverse binds and baked animation keys share one space.
+- Skinned meshes are placed with `bind_to_world * geometry_to_bone` of their first cluster, the same product skinning uses. A file's stored mesh transform can disagree with it.
+- Every take is baked to 30 fps keys.
+
+**Textures** (`TextureFinder`, `ModelImport`).
+- A model's texture references go through a search by file name: beside the model, in nearby `Textures` folders, then a bounded scan.
+- Companion maps (`_n`, `_Emissor`, `_ORM`, ...) are added by name.
+- Decoded images are shared through a weak cache, so a kit of 180 pieces loads its brick texture once.
+- Vertices are welded after triangulation.
+
+**Import settings.** `<file>.meta` holds scale, rotation and face-forward. They are applied after loading, to vertices, inverse binds and the top-level joints' keys.
+
+**Blender** (`BlenderBridge`). `.blend`, `.dae` and friends run the installed Blender with a small export script in a background thread. While it runs, `GetModel` returns nothing *without caching the miss*, and the finished conversion bumps the asset version so renderers reload.
+
+**Retargeting** (`animation/Retarget.cpp`).
+- Joints are classified into humanoid bones from their normalized names.
+- Two skeletons map by name when 60% of the names match, else through the humanoid bones. When every matched joint also rests the same way, the keys are copied with only translations rescaled.
+- Otherwise the clip is resampled at 30 fps. For each frame and mapped bone, the source's model-space rotation relative to its bind pose is applied to the target's bind pose. Three corrections go in first:
+  - a per-bone rotation that lines up the rest directions of the two rigs (T-pose vs A-pose)
+  - a turn that makes each bind pose face like the rig's scene pose
+  - hip motion scaled by hip height
+- The output keys every joint whose bind-pose local differs from its scene-pose local, so playback starts from the bind pose.
+- `AnimatorRuntime` resolves clip names against the model's own clips, then its retargeted libraries. Those are cached in `AssetManager::RetargetedClips` per target, source and asset version.
 
 ## 15. Save system
 `save/SaveGame.cpp`

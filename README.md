@@ -4,7 +4,7 @@
 
 **A 3D game engine and editor written from scratch in C++17 and OpenGL 3.3.**
 
-ECS architecture · PBR + HDR renderer · Cascaded soft shadows · Reflections · Bloom & SSAO · Path tracing mode · Toon shading & ink outlines · Event scripting · Hack-and-slash combat · Doors & screen fades · Physics · Skeletal animation · 3D audio · Terrain & foliage · Navigation & AI · Game UI · Save system · UDP multiplayer · One-click game export
+ECS architecture · PBR + HDR renderer · Cascaded soft shadows · Reflections · Bloom & SSAO · Path tracing mode · Toon shading & ink outlines · Event scripting · Hack-and-slash combat · FBX / glTF / Blender import with animation retargeting · Doors & screen fades · Physics · Skeletal animation · 3D audio · Terrain & foliage · Navigation & AI · Game UI · Save system · UDP multiplayer · One-click game export
 
 ![Divine City](docs/images/city.png)
 
@@ -62,6 +62,17 @@ The player in the demo and the 3D Starter is the **Hero**, a low-poly human buil
 
 Any Blender character works the same way. Name your actions *Idle, Walk, Run, Jump*, export a `.glb`, drop it on the player's model and click **Animator → Auto-setup locomotion**. The player controller then drives a speed-based idle→walk→run blend and a jump state. The full workflow, with export settings, is in **[docs/BLENDER.md](docs/BLENDER.md)**.
 
+### Your own models and asset packs
+
+![Assets](docs/images/assets.png)
+
+Drag a model, a texture or a whole asset pack from Explorer onto the editor and it's in your project. The engine imports:
+- **glTF and FBX** characters with all their animations
+- **OBJ** files and multi-object **kits**: place one prop at a time
+- **.blend files** directly, through the Blender you have installed
+
+Textures are found even when the files point at the artist's computer. A character can play animations from another file, such as Mixamo clips or an animation library, retargeted onto its own skeleton. The guide is in **[docs/ASSETS.md](docs/ASSETS.md)**.
+
 ### The demo: Divine City
 
 The repository includes a small game built entirely with the engine. It starts in **Divine City**, a city block at dusk: wet streets that reflect the neon, lit windows, street lamps, parked cars, and a door on every shop front.
@@ -107,7 +118,7 @@ Everything in the demo, from the buildings to the textures and the door sounds, 
 | **Entity Component System** | Custom sparse-set ECS with versioned handles, stable component storage, multi-component views, parent/child hierarchy |
 | **Input** | Keyboard, mouse, up to 4 gamepads, named actions & axes, runtime rebinding with JSON persistence |
 | **Scenes** | Human-readable JSON scenes, scene switching at safe points, deep entity duplication with UUID remapping |
-| **Assets** | glTF/GLB (meshes, materials, skins, animations), OBJ, FBX, PNG/JPG/TGA, WAV/MP3/FLAC; caching and hot reload on file change |
+| **Assets** | glTF/GLB and FBX (meshes, PBR materials, skinned characters, all animations), OBJ, and .blend / .dae / .3ds / .stl / .ply / .usd through an installed Blender (background conversion, re-exported on save); textures found even when files point at the wrong place, companion maps by name; drag-and-drop import from Explorer; kits split into placeable objects; **animation libraries retargeted** between Mixamo, Unreal, Blender and other humanoid rigs; PNG/JPG/TGA/PSD, WAV/MP3/FLAC; caching and hot reload |
 | **Scripting** | C++ gameplay scripts with lifecycle callbacks (`OnCreate`, `OnUpdate`, `OnFixedUpdate`, `OnLateUpdate`, collision/trigger events, `OnGUI`) and reflected fields editable in the inspector; **events and timers** (`On`, `Emit`, `Invoke`); no-code **Event Trigger** rules ("when this happens → do that") and a live **Event Log** |
 | **Combat** | Melee moveset with input buffering and cancel windows, lock-on, launchers, air juggling, i-frame dodges; **hit-stop** (`Time::HitStop`), trauma-based **camera shake**, hit sparks and blade trails; style ranking; enemies with attack tokens, telegraphs, stagger, launch, knockdown and super armour; battle zones with seals and waves; bone attachments for weapons |
 | **Interaction** | **Screen fades** that carry across scene loads; **doors** (to another scene or a spawn point in the same one, locked, or opened by a key item), things to **examine** and **pick up**, an on-screen prompt for whatever the player faces; fixed corner and orbit cameras |
@@ -123,7 +134,7 @@ Everything in the demo, from the buildings to the textures and the door sounds, 
 | **Build / Export** | Packages the runtime, engine data and project into a standalone folder from the editor or the command line |
 | **Save system** | Key/value save slots, checkpoints that snapshot every `Saveable` entity, restore across scene reloads |
 | **Networking** | Client/server over UDP with handshake, timeouts, ping, transform replication with interpolation, remote player spawning, custom JSON messages |
-| **Tests & CI** | 42 headless unit tests (CTest) covering ECS, serialization, transform cache, physics, terrain, navigation, AI, animation, locomotion setup, input, saves, toon outline normals, the ray-tracing BVH, events/triggers, screen fades, doors, the combat moveset, style meter, enemies and battle zones; GitHub Actions builds on Windows and Linux |
+| **Tests & CI** | 47 headless unit tests (CTest) covering ECS, serialization, transform cache, physics, terrain, navigation, AI, animation, locomotion setup, input, saves, toon outline normals, the ray-tracing BVH, events/triggers, screen fades, doors, the combat moveset, style meter, enemies, battle zones, the texture finder and animation retargeting; GitHub Actions builds on Windows and Linux |
 
 ## Getting started
 
@@ -357,7 +368,7 @@ tools/blender/      the Hero character generator (Blender script / standalone)
 tools/textures/     generators for the city textures and the demo's normal maps
 tools/audio/        generators for the city's and the combat's sounds and the battle music
 third_party/        vendored libraries
-docs/               architecture notes, roadmap, screenshots
+docs/               architecture notes, asset and Blender guides, roadmap, screenshots
 ```
 
 ## Command line
@@ -375,6 +386,8 @@ docs/               architecture notes, roadmap, screenshots
 | `euphoria-player --build-demo <dir>` | Regenerate the sample project |
 | `euphoria-player --ray-traced` | Start in path-traced rendering (F4 toggles) |
 | `euphoria-player --scene Scenes/Island.scene` | Start in another scene of the project |
+| `euphoria-player --model-info <file> [--retarget <file>]` | Print what the engine finds in a model (materials, textures, skeleton, clips) and how another file's animations map onto it |
+| `euphoria-editor <projectDir> --import <path>` | Import a file or folder into the project, like dropping it on the editor |
 | `--width W --height H --fullscreen --no-vsync` | Window options |
 | `--screenshot file.png --screenshot-frame N` | Save frame N and exit (automated testing) |
 | `--fixed-dt 0.0166` | Advance exactly this many seconds per frame, so screenshots are deterministic |

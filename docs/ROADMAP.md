@@ -10,6 +10,12 @@ Good next features, roughly from smallest to largest. Each one is a self-contain
 - [ ] **Camera zones** – several fixed cameras per room, switched by trigger volumes, with optional tank controls.
 - [ ] **Inventory screen** for collected items and keys.
 
+## Assets
+- [x] FBX characters and animations, Blender files through Blender, texture finder, drag-and-drop import, kits, animation libraries with humanoid retargeting.
+- [ ] Model thumbnails in the Assets panel.
+- [ ] Finger and face retargeting; IK foot planting on retargeted clips.
+- [ ] Sprite sheets and 2D sprite rendering for pixel-art packs.
+
 ## Small
 - [ ] **Prefab assets** – save an entity subtree as a `.prefab` file and instantiate it from scripts (the duplicate/remap code in `Scene::DuplicateEntity` already does most of the work).
 - [ ] **Audio fade in/out** and a music cross-fade helper.
