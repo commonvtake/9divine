@@ -60,6 +60,7 @@ public:
     static RenderCamera MakeCamera(const mat4& world, float fovDeg, float aspect, float nearClip, float farClip, bool ortho = false, float orthoSize = 10.0f);
 
 private:
+    static void DrawDebugOverlay(Scene& scene, const RenderCamera& camera, const RenderOptions& options);
     static RenderSettings s_Settings;
 };
 

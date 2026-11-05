@@ -388,6 +388,66 @@ struct NetworkIdentityComponent {
     bool hasTarget = false;
 };
 
+// ---------------------------------------------------------------- 2D
+// Sprites, sprite-sheet animation and tilemaps for flat 2D games (see docs/2D.md). They are
+// drawn when the scene's environment has mode2D on: in the XY plane, +Y up, with
+// SceneEnvironment::pixelsPerUnit texture pixels per world unit (16 = one 16px tile per unit).
+struct SpriteRendererComponent {
+    std::string texture;                    // project-relative image
+    vec4 region{ 0.0f };                    // x, y, width, height in pixels from the image's top-left; width 0 = whole image
+    vec2 pivot{ 0.5f, 0.5f };               // the point on the sprite at the entity's position: (0,0) bottom-left, (0.5,0) feet
+    vec4 color{ 1.0f };                     // tint (multiplied), alpha fades
+    bool flipX = false, flipY = false;
+    int order = 0;                          // drawing layer: higher is drawn on top
+    bool ySort = true;                      // in the same order, sprites lower on screen are drawn in front (top-down games)
+    float pixelsPerUnit = 0.0f;             // 0 = the scene's setting
+    bool visible = true;
+};
+
+// One animation: a run of equally sized frames in a sprite sheet, read left to right, top to bottom.
+struct SpriteAnimation {
+    std::string name = "Idle";
+    std::string texture;                    // the sheet (empty = the SpriteRenderer's current image)
+    int frameWidth = 0, frameHeight = 0;    // 0 = detect from the sheet (gaps between frames, or square frames)
+    int firstFrame = 0;                     // index of the first frame in the sheet
+    int frameCount = 0;                     // 0 = every frame from firstFrame to the end of the sheet
+    float fps = 10.0f;
+    bool loop = true;
+};
+struct SpriteAnimatorComponent {
+    std::vector<SpriteAnimation> animations;
+    std::string defaultAnimation;           // played on start (empty = the first)
+    float speed = 1.0f;
+    // runtime
+    std::string current;
+    float time = 0.0f;                      // seconds into the current animation
+    int frame = 0;                          // frame within the current animation
+    bool finished = false;                  // a non-looping animation reached its last frame
+
+    SpriteAnimation* Find(const std::string& n) { for (auto& a : animations) if (a.name == n) return &a; return nullptr; }
+    bool Has(const std::string& n) const { for (auto& a : animations) if (a.name == n) return true; return false; }
+    // Switches animation (keeps going if it's already playing, unless restart).
+    void Play(const std::string& n, bool restart = false) {
+        if (n == current && !restart) return;
+        current = n; time = 0.0f; frame = 0; finished = false;
+    }
+};
+
+struct TilemapRuntime;
+// A Tiled map (.tmx or .tmj, with its .tsx/.tsj tilesets and images). The map's bottom-left
+// corner is at the entity's position. Tiles with collision shapes (made in Tiled's tile
+// collision editor) and layers with a boolean property "collision" become static colliders.
+struct TilemapComponent {
+    std::string map;                        // project-relative .tmx / .tmj
+    int order = 0;                          // added to every layer's drawing order
+    vec4 color{ 1.0f };                     // tint for the whole map
+    bool collisions = true;
+    // runtime
+    Ref<TilemapRuntime> runtime;
+    std::string loadedMap;
+    uint32_t loadedVersion = 0;
+};
+
 // Marks an entity whose state goes into checkpoints / save slots.
 struct SaveableComponent {
     bool saveTransform = true;

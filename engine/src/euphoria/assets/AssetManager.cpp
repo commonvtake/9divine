@@ -9,6 +9,7 @@
 #include "euphoria/assets/TextureFinder.h"
 #include "euphoria/assets/BlenderBridge.h"
 #include "euphoria/animation/Retarget.h"
+#include "euphoria/twod/Tilemap.h"
 #include <chrono>
 #include <set>
 #include <cstring>
@@ -17,6 +18,7 @@ namespace eu {
 
 std::map<std::string, AssetManager::ModelEntry> AssetManager::s_Models;
 std::map<std::string, AssetManager::TextureEntry> AssetManager::s_Textures;
+std::map<std::string, AssetManager::TilemapEntry> AssetManager::s_Tilemaps;
 std::map<std::string, std::vector<Ref<AnimationClip>>> AssetManager::s_Retargeted;
 uint32_t AssetManager::s_Version = 1;
 
@@ -31,6 +33,7 @@ bool AssetManager::IsModelFile(const std::string& p) {
 bool AssetManager::IsTextureFile(const std::string& p) { auto e = Ext(p); return e == ".png" || e == ".jpg" || e == ".jpeg" || e == ".tga" || e == ".bmp" || e == ".psd" || e == ".gif"; }
 bool AssetManager::IsAudioFile(const std::string& p) { auto e = Ext(p); return e == ".wav" || e == ".mp3" || e == ".flac"; }
 bool AssetManager::IsSceneFile(const std::string& p) { return Ext(p) == ".scene"; }
+bool AssetManager::IsTilemapFile(const std::string& p) { return Ext(p) == ".tmx" || Ext(p) == ".tmj"; }
 
 Ref<Model> AssetManager::GetModel(const std::string& path) {
     if (path.empty()) return nullptr;
@@ -84,14 +87,37 @@ Ref<Model> AssetManager::GetModel(const std::string& path) {
 
 Ref<Texture2D> AssetManager::GetTexture(const std::string& path, bool pixelArt) {
     if (path.empty()) return nullptr;
-    auto it = s_Textures.find(path);
+    std::string key = pixelArt ? path + "\npx" : path;
+    auto it = s_Textures.find(key);
     if (it != s_Textures.end()) return it->second.texture;
     fs::path full = Project::Resolve(path);
     TextureSpec spec;
-    if (pixelArt) { spec.linear = false; spec.mipmaps = false; }
+    if (pixelArt) { spec.linear = false; spec.mipmaps = false; spec.repeat = false; }
     auto tex = Texture2D::FromFile(full.string(), spec);
-    s_Textures[path] = { tex, FileSystem::LastWriteTime(full), pixelArt };
+    s_Textures[key] = { tex, FileSystem::LastWriteTime(full), pixelArt };
     return tex;
+}
+
+Ref<TilemapData> AssetManager::GetTilemap(const std::string& path) {
+    if (path.empty()) return nullptr;
+    auto it = s_Tilemaps.find(path);
+    if (it != s_Tilemaps.end()) return it->second.map;
+    fs::path full = Project::Resolve(path);
+    std::string error;
+    auto map = Tiled::Load(full.u8string(), &error);
+    TilemapEntry entry;
+    entry.map = map;
+    entry.stamps.push_back({ full.u8string(), FileSystem::LastWriteTime(full) });
+    if (map) {
+        for (auto& d : map->dependencies) entry.stamps.push_back({ d, FileSystem::LastWriteTime(fs::u8path(d)) });
+        for (auto& w : map->warnings) EU_WARN("{}: {}", path, w);
+        EU_INFO("Loaded tilemap {} ({}x{} tiles, {} layers, {} tilesets, {} colliders)", path, map->width, map->height,
+                map->layers.size(), map->tilesets.size(), map->colliders.size());
+    } else {
+        EU_ERROR("Could not load tilemap {}: {}", path, error);
+    }
+    s_Tilemaps[path] = entry;   // failures are cached too (retried when the file changes)
+    return map;
 }
 
 void AssetManager::PollChanges() {
@@ -108,8 +134,18 @@ void AssetManager::PollChanges() {
             changed = true;
         } else ++it;
     }
+    for (auto it = s_Tilemaps.begin(); it != s_Tilemaps.end();) {
+        bool stale = false;
+        for (auto& [file, stamp] : it->second.stamps) stale |= FileSystem::LastWriteTime(fs::u8path(file)) != stamp;
+        if (stale) {
+            EU_INFO("Reloading tilemap {}", it->first);
+            it = s_Tilemaps.erase(it);
+            changed = true;
+        } else ++it;
+    }
     for (auto it = s_Textures.begin(); it != s_Textures.end();) {
-        if (FileSystem::LastWriteTime(Project::Resolve(it->first)) != it->second.stamp) {
+        std::string file = it->first.substr(0, it->first.find('\n'));
+        if (FileSystem::LastWriteTime(Project::Resolve(file)) != it->second.stamp) {
             EU_INFO("Reloading texture {}", it->first);
             it = s_Textures.erase(it);
             changed = true;
@@ -146,6 +182,7 @@ void AssetManager::ClearCache() {
     s_Retargeted.clear();
     s_Models.clear();
     s_Textures.clear();
+    s_Tilemaps.clear();
     ModelImport::ClearTextureCache();
     s_Version++;
 }

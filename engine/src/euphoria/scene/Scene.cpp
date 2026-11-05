@@ -8,6 +8,7 @@
 #include "euphoria/audio/Audio.h"
 #include "euphoria/assets/AssetManager.h"
 #include "euphoria/terrain/Terrain.h"
+#include "euphoria/twod/Sprite2D.h"
 #include "euphoria/particles/Particles.h"
 #include "euphoria/renderer/Renderer.h"
 #include "euphoria/ui/GameUI.h"
@@ -314,6 +315,9 @@ void Scene::UpdateScripts(float dt) {
 
 void Scene::UpdateAnimators(float dt) {
     EU_PROFILE_SCOPE("Animation");
+    m_Registry.View<SpriteAnimatorComponent, SpriteRendererComponent>([&](EntityId id, SpriteAnimatorComponent& an, SpriteRendererComponent& sr) {
+        if (IsActiveInHierarchy(Entity(id, this))) Sprite2D::Update(an, sr, dt);
+    });
     m_Registry.View<TransformComponent, MeshRendererComponent, AnimatorComponent>(
         [&](EntityId id, TransformComponent& t, MeshRendererComponent& mr, AnimatorComponent& anim) {
             if (!IsActiveInHierarchy(Entity(id, this))) return;

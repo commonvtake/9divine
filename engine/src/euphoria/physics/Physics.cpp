@@ -1,6 +1,7 @@
 #include "euphoria/physics/Physics.h"
 #include "euphoria/renderer/DebugDraw.h"
 #include "euphoria/core/Profiler.h"
+#include "euphoria/twod/Tilemap.h"
 #include <cmath>
 
 namespace eu {
@@ -53,6 +54,35 @@ void PhysicsWorld::Gather() {
     reg.View<TransformComponent, SphereColliderComponent>([&](EntityId id, TransformComponent&, SphereColliderComponent&) { add(id, true); });
     reg.View<TransformComponent, BoxColliderComponent>([&](EntityId id, TransformComponent&, BoxColliderComponent&) {
         if (!reg.Has<SphereColliderComponent>(id)) add(id, false);
+    });
+    // Tilemaps: their collision rectangles become static boxes (deep in Z, so 2D bodies at any
+    // depth hit them).
+    reg.View<TransformComponent, TilemapComponent>([&](EntityId id, TransformComponent& tf, TilemapComponent& tc) {
+        if (!tc.collisions) return;
+        Entity e(id, m_Scene);
+        if (!m_Scene->IsActiveInHierarchy(e)) return;
+        TilemapData* map = EnsureTilemapLoaded(tc);
+        if (!map || map->colliders.empty()) return;
+        float ppu = std::max(1.0f, m_Scene->Environment().pixelsPerUnit);
+        mat4 world = m_Scene->WorldMatrix(e);
+        vec3 t, sc; quat r;
+        DecomposeTRS(world, t, r, sc);
+        for (auto& rc : map->colliders) {
+            vec2 a = map->MapToLocal({ rc.x, rc.y + rc.h }, ppu), b = map->MapToLocal({ rc.x + rc.w, rc.y }, ppu);   // bottom-left, top-right
+            Body body{};
+            body.id = id;
+            body.sphere = false;
+            body.tf = &tf;
+            body.rb = nullptr;
+            body.rot = r;
+            body.center = vec3(world * vec4((a + b) * 0.5f, 0.0f, 1.0f));
+            body.half = vec3((b - a) * 0.5f * vec2(sc), 4.0f);
+            body.trigger = false;
+            body.offsetWorld = body.center - t;
+            body.movable = false;
+            body.invMass = 0.0f;
+            m_Bodies.push_back(body);
+        }
     });
     m_BodyCount = (uint32_t)m_Bodies.size();
 }
@@ -197,6 +227,9 @@ void PhysicsWorld::Step(float dt) {
     EU_PROFILE_SCOPE("Physics");
     Gather();
     const vec3 gravity = m_Scene->Environment().gravity;
+    const bool flat = m_Scene->Environment().mode2D;   // 2D: bodies stay in their XY plane
+    std::vector<float> depth0;
+    if (flat) for (auto& b : m_Bodies) depth0.push_back(b.tf->position.z);
 
     // Integrate
     for (auto& b : m_Bodies) {
@@ -208,6 +241,7 @@ void PhysicsWorld::Step(float dt) {
             rb.velocity += acc * dt;
             rb.velocity *= 1.0f / (1.0f + rb.drag * dt);
             if (rb.lockY) rb.velocity.y = 0.0f;
+            if (flat) rb.velocity.z = 0.0f;
             b.tf->position += rb.velocity * dt;
             b.center += rb.velocity * dt;
             rb.force = vec3(0.0f);
@@ -249,6 +283,10 @@ void PhysicsWorld::Step(float dt) {
         }
         for (auto& b : m_Bodies) CollideTerrain(b);
     }
+
+    if (flat)
+        for (size_t i = 0; i < m_Bodies.size(); i++)
+            if (m_Bodies[i].movable) m_Bodies[i].tf->position.z = depth0[i];
 
     // Enter / exit events
     for (auto& c : contacts) if (!m_Contacts.count(c)) m_Events.push_back({ CollisionEvent::CollisionEnter, c.first, c.second });
